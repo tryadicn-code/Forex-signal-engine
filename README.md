@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Forex Signal Engine
 
-## Getting Started
+Automated **Forex scanner + signal dashboard**. The system ingests market data,
+runs it through a strictly ordered decision pipeline, and emits explainable
+trade signals.
 
-First, run the development server:
+> **Status: Phase 0 - Project Initialization complete.**
+> Trading logic is intentionally minimal. No broker integration, no live
+> trading, no backtesting yet. Those arrive in later phases.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Pipeline
+
+```text
+Market Data -> Structure -> Regime -> Bias -> Setup -> Trigger -> Risk -> Execution
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Every stage is explainable: each decision carries the reasons that produced it.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the responsibility of each layer.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Next.js** (App Router) + **TypeScript**
+- **Tailwind CSS** for styling
+- **ESLint** for linting
+- **Vitest** + **Testing Library** for tests
+- PostgreSQL + Prisma and TradingView Lightweight Charts are planned for later
+  phases and are **not** installed yet.
 
-## Learn More
+## Getting started
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# 1. Install dependencies
+npm install
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# 2. Configure environment
+cp .env.example .env.local   # then edit .env.local
+# (Windows PowerShell: Copy-Item .env.example .env.local)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 3. Run the development server
+npm run dev
+```
 
-## Deploy on Vercel
+Open [http://localhost:3000](http://localhost:3000). The placeholder dashboard
+reports the current system status.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Development commands
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `npm run dev`        | Start the development server                 |
+| `npm run build`      | Production build                             |
+| `npm run start`      | Serve the production build                   |
+| `npm run lint`       | Run ESLint                                   |
+| `npm run typecheck`  | Run `tsc --noEmit` (no JS output)            |
+| `npm test`           | Run the test suite once                      |
+| `npm run test:watch` | Run tests in watch mode                      |
+| `npm run coverage`   | Run tests with a coverage report             |
+
+## Project structure
+
+```text
+src/
+  app/              Next.js App Router pages and layouts
+  components/        React components (UI only - no trading logic)
+  config/           System and feature configuration
+  core/              Trading engine pipeline (decision logic)
+    execution/       Execution decision gate (Phase 1: SIGNAL ONLY)
+  lib/               Small shared helpers
+  types/             Shared domain types (provider-agnostic)
+tests/               Test suite mirroring the source tree
+```
+
+`src/providers/`, `src/scanner/`, `src/backtesting/`, and `src/paper-trading/`
+are part of the target architecture but are intentionally **not** created yet.
+They appear in later phases, each with real content rather than as empty folders.
+
+## Engineering principles
+
+- **Modular** - one responsibility per module, no god files.
+- **Strongly typed** - shared domain types are the contract between layers.
+- **Testable** - engine logic is pure functions, easy to unit test.
+- **Provider-agnostic** - market data is normalized before engines see it.
+- **Explainable** - every decision records why it was made.
+- **Separated concerns** - trading logic never lives in React components; market
+  data providers and broker integration stay independent of the engine.
+
+## Scope guardrails
+
+The Execution Engine currently only decides between `WAIT`, `EXECUTE`,
+`BLOCKED`, and `INVALIDATED`. It does **not** send orders. Live trading,
+backtesting, paper trading, economic calendar, fundamentals, and notification
+channels (Telegram/WhatsApp/email) are out of scope until explicitly requested.
