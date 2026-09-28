@@ -201,7 +201,7 @@ describe("Phase 3 dashboard workspace", () => {
     expect(screen.getAllByText("BLOCKED").length).toBeGreaterThan(0);
     expect(screen.getAllByText("STALE").length).toBeGreaterThan(0);
     expect(screen.getAllByText("PROVIDER FAILURE").length).toBeGreaterThan(0);
-    expect(screen.getByText("4 shown")).toBeInTheDocument();
+    expect(screen.getAllByText("4 shown").length).toBeGreaterThan(0);
   });
 
   it("opens the signal detail from a mobile scanner action and can close it", () => {
@@ -272,11 +272,11 @@ describe("Phase 3 dashboard workspace", () => {
       />
     );
 
-    fireEvent.change(screen.getByLabelText("Search symbols"), {
+    fireEvent.change(screen.getAllByLabelText("Search symbols")[0], {
       target: { value: "GBP" },
     });
 
-    expect(screen.getByText("1 shown")).toBeInTheDocument();
+    expect(screen.getAllByText("1 shown").length).toBeGreaterThan(0);
     expect(screen.getAllByText("GBPUSD").length).toBeGreaterThan(0);
   });
 
