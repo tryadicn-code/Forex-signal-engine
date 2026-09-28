@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
 import type { DashboardData } from "@/types/dashboard";
 
@@ -9,29 +9,32 @@ export function DashboardClient() {
   const [error, setError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
-  const load = useCallback(async () => {
-    setError(null);
+  useEffect(() => {
+    let cancelled = false;
 
-    try {
-      const response = await fetch("/api/scanner", {
-        method: "GET",
-        cache: "no-store",
+    fetch("/api/scanner", {
+      method: "GET",
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Dashboard load failed with HTTP " + response.status + ".");
+        }
+        return (await response.json()) as DashboardData;
+      })
+      .then((next) => {
+        if (!cancelled) setData(next);
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          setError(cause instanceof Error ? cause.message : String(cause));
+        }
       });
 
-      if (!response.ok) {
-        throw new Error("Dashboard load failed with HTTP " + response.status + ".");
-      }
-
-      const next = (await response.json()) as DashboardData;
-      setData(next);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load, retryNonce]);
+    return () => {
+      cancelled = true;
+    };
+  }, [retryNonce]);
 
   if (data) {
     return <DashboardWorkspace initialData={data} />;
@@ -50,7 +53,11 @@ export function DashboardClient() {
           <p className="mt-2 text-xs leading-relaxed text-orange-200/70">{error}</p>
           <button
             type="button"
-            onClick={() => setRetryNonce((value) => value + 1)}
+            onClick={() => {
+              setError(null);
+              setData(null);
+              setRetryNonce((value) => value + 1);
+            }}
             className="mt-3 rounded-md border border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
           >
             Retry
