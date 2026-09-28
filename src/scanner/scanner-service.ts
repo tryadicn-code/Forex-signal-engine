@@ -57,13 +57,14 @@ import {
   deriveStateReason,
   transitionSignal,
 } from "@/scanner/signal-state-machine";
-import type { SignalStateTransition } from "@/types/market-data";
+import type { Freshness, SignalStateTransition } from "@/types/market-data";
 import {
   failureResult,
   type ScannerHealth,
   type ScannerSnapshot,
   type SymbolScanResult,
   type SymbolScanStatus,
+  type TimeframeSummary,
 } from "@/scanner/scanner-result";
 import type { FreshnessStatus } from "@/types/market-data";
 import type { ProviderStatus } from "@/types/market-data";
@@ -485,6 +486,29 @@ export class ScannerService {
       signalId: lifecycle?.identity.signalId ?? null,
       freshness: context!.freshness.status,
       updatedAt: asOf,
+      timeframes: [
+        summarizeTimeframe("macro", context!.d1),
+        summarizeTimeframe("bias", context!.h4),
+        summarizeTimeframe("setup", context!.h1),
+        summarizeTimeframe("trigger", context!.m15),
+      ],
+      executionDetail: pipeline.execution?.data
+        ? {
+            decision: pipeline.execution.data.decision,
+            conditions: pipeline.execution.data.conditions,
+            triggeredVetoes: pipeline.execution.data.triggeredVetoes,
+            reasons: pipeline.execution.data.reasons,
+          }
+        : null,
+      riskDetail: pipeline.risk?.data
+        ? {
+            approved: pipeline.risk.data.approved,
+            rejectionReason: pipeline.risk.data.rejectionReason,
+            stopDistancePips: pipeline.risk.data.stopDistancePips,
+            takeProfit1: pipeline.risk.data.tp1,
+            takeProfit2: pipeline.risk.data.tp2,
+          }
+        : null,
       evidence: collectEvidence(pipeline),
       conflicts: collectConflicts(pipeline),
       issues: input.stale ? staleIssue(symbol, triggerTf.timeframe, context!.freshness.ageMs) : [],
@@ -540,6 +564,17 @@ function toSnapshot(symbol: string, tf: { timeframe: Timeframe; candles: Canonic
       volume: c.volume,
     })),
     asOf: tf.asOf,
+  };
+}
+
+/** Presentation-only MTF summary: role + freshness + data depth. */
+function summarizeTimeframe(role: TimeframeSummary["role"], tf: { timeframe: Timeframe; candles: CanonicalCandle[]; asOf: number; freshness: Freshness }): TimeframeSummary {
+  return {
+    role,
+    timeframe: tf.timeframe,
+    asOf: tf.candles.length ? tf.asOf : null,
+    freshness: tf.freshness.status,
+    closedCandles: tf.candles.length,
   };
 }
 

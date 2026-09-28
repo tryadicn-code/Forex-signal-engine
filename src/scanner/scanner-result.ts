@@ -13,13 +13,56 @@ import type {
   RegimeLabel,
   SetupState,
   SignalState,
+  Timeframe,
   TriggerState,
 } from "@/types/market";
 import type {
   FreshnessStatus,
   ValidationIssue,
 } from "@/types/market-data";
-import type { Evidence, Conflict } from "@/types/engine";
+import type { ConditionCheck, Evidence, Conflict } from "@/types/engine";
+
+/**
+ * One timeframe's contribution to the multi-timeframe view.
+ *
+ * Presentation-only summary of the scanner's TimeframeContext: the phase the UI
+ * needs (which role, how fresh, how much data) with none of the candle arrays.
+ * The scanner stays the only place structure is computed.
+ */
+export interface TimeframeSummary {
+  role: "macro" | "bias" | "setup" | "trigger";
+  timeframe: Timeframe;
+  /** UTC epoch ms of the newest closed candle on this timeframe. */
+  asOf: number | null;
+  freshness: FreshnessStatus;
+  /** Closed, validated candles available on this timeframe. */
+  closedCandles: number;
+}
+
+/**
+ * The structured execution detail behind SymbolScanResult.executionDecision.
+ *
+ * Surfaces the execution engine's own condition checks, vetoes and reasons so
+ * the UI can explain a BLOCK without re-deriving it. Never computed in the UI.
+ */
+export interface ExecutionDetail {
+  decision: ExecutionDecision;
+  conditions: ConditionCheck[];
+  triggeredVetoes: string[];
+  reasons: string[];
+}
+
+/**
+ * The risk engine detail behind SymbolScanResult.riskReward, for the signal
+ * detail panel. Levels are the engine's own output.
+ */
+export interface RiskDetail {
+  approved: boolean;
+  rejectionReason: string | null;
+  stopDistancePips: number | null;
+  takeProfit1: number | null;
+  takeProfit2: number | null;
+}
 
 export interface SymbolScanResult {
   symbol: string;
@@ -55,6 +98,13 @@ export interface SymbolScanResult {
 
   freshness: FreshnessStatus | null;
   updatedAt: number | null;
+
+  /** D1/H4/H1/M15 summary for the multi-timeframe view. */
+  timeframes: TimeframeSummary[];
+  /** Structured execution detail (conditions, vetoes, reasons). */
+  executionDetail: ExecutionDetail | null;
+  /** Risk-engine levels behind the R:R figure. */
+  riskDetail: RiskDetail | null;
 
   /** Phase 1 evidence backing the conclusions. */
   evidence: Evidence[];
@@ -111,6 +161,9 @@ export function failureResult(
     signalId: null,
     freshness: null,
     updatedAt: asOf,
+    timeframes: [],
+    executionDetail: null,
+    riskDetail: null,
     evidence: [],
     conflicts: [],
     issues: [],

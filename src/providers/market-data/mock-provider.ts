@@ -91,7 +91,15 @@ const START_PRICES: Record<string, number> = {
 };
 
 const HOUR = 60 * 60 * 1000;
-const ANALYSIS_ANCHOR = Date.UTC(2024, 5, 3, 12, 0, 0);
+
+/**
+ * The deterministic market-time anchor the demo scanner analyses.
+ *
+ * The mock series are generated relative to this moment, so a scan run at this
+ * anchor is fully reproducible (identical candles, identical engine output).
+ * Exported so the dashboard's initial scan targets a stable, replayable time.
+ */
+export const MOCK_ANALYSIS_ANCHOR = Date.UTC(2024, 5, 3, 12, 0, 0);
 
 export class MockMarketDataProvider implements MarketDataProvider {
   readonly id = "mock";
@@ -246,7 +254,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
   }
 
   private now(): number {
-    return ANALYSIS_ANCHOR;
+    return MOCK_ANALYSIS_ANCHOR;
   }
 
   private recordSuccess(): void {
