@@ -1,10 +1,9 @@
 /**
  * Dashboard summary tiles.
  *
- * Every number is derived from scanner output that already exists: counts over
- * the last snapshot's results plus the scanner's own health record. No metric
- * is invented, and every tile falls back to an explicit placeholder when a scan
- * has not produced a value yet.
+ * Mobile prioritises the six operational counts a trader needs at a glance.
+ * Provider and timing diagnostics remain available below in Market Data Health
+ * and reappear as summary tiles on larger screens.
  */
 
 import type { ScannerHealth, ScannerSnapshot, SymbolScanResult } from "@/scanner/scanner-result";
@@ -19,24 +18,31 @@ function SummaryTile({
   glyph,
   tone,
   note,
+  className,
 }: {
   label: string;
   value: React.ReactNode;
   glyph: string;
   tone?: "default" | "warn" | "danger" | "good";
   note?: string;
+  className?: string;
 }) {
   return (
-    <div className="rounded border border-zinc-800 bg-zinc-900/40 px-3 py-2">
-      <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+    <div
+      className={cn(
+        "min-w-0 rounded-md border border-zinc-800 bg-zinc-900/35 px-3 py-2.5",
+        className
+      )}
+    >
+      <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
         <span aria-hidden="true" className="text-zinc-600">
           {glyph}
         </span>
-        {label}
+        <span className="truncate">{label}</span>
       </div>
       <div
         className={cn(
-          "mt-1 font-mono text-lg font-semibold tabular-nums",
+          "mt-1.5 font-mono text-xl font-semibold leading-none tabular-nums sm:text-lg",
           tone === "warn" && "text-amber-300",
           tone === "danger" && "text-orange-300",
           tone === "good" && "text-emerald-300",
@@ -45,12 +51,15 @@ function SummaryTile({
       >
         {value}
       </div>
-      {note && <div className="mt-0.5 text-[10px] text-zinc-600">{note}</div>}
+      {note && (
+        <div className="mt-1 hidden truncate text-[10px] text-zinc-600 sm:block">
+          {note}
+        </div>
+      )}
     </div>
   );
 }
 
-/** Counts the UI labels over the last scan's results. Presentation only. */
 export function summarizeResults(results: SymbolScanResult[]) {
   return {
     scanned: results.length,
@@ -79,15 +88,15 @@ export function DashboardSummary({
   return (
     <section aria-label="Scanner summary">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
-        <SummaryTile glyph="◉" label="Pairs scanned" value={counts.scanned} />
+        <SummaryTile glyph="◉" label="Pairs" value={counts.scanned} />
         <SummaryTile
           glyph="⚡"
-          label="Active signals"
+          label="Active"
           value={activeSignals.length}
           note={health ? health.activeSignals + " tracked" : undefined}
           tone={activeSignals.length > 0 ? "good" : "default"}
         />
-        <SummaryTile glyph="◉" label="Armed setups" value={counts.armed} />
+        <SummaryTile glyph="◉" label="Armed" value={counts.armed} />
         <SummaryTile
           glyph="▶"
           label="Executable"
@@ -111,6 +120,7 @@ export function DashboardSummary({
           glyph="◈"
           label="Provider"
           value={<ProviderStateBadge state={health?.providerStatus?.state ?? null} />}
+          className="hidden xl:block"
         />
         <SummaryTile
           glyph="◷"
@@ -127,6 +137,7 @@ export function DashboardSummary({
                 " failed"
               : undefined
           }
+          className="hidden xl:block"
         />
       </div>
       {snapshot === null && (

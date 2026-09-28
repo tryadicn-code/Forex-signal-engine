@@ -1,8 +1,9 @@
 /**
- * Application shell: top bar, navigation, main workspace.
+ * Application shell for the Phase 3 workstation.
  *
- * Server component. The chrome is static; the live provider strip is a server
- * component too, so the first paint carries real scanner health.
+ * Mobile keeps the chrome intentionally quiet: brand + execution mode on top,
+ * fixed bottom navigation, and no duplicate provider strip. Desktop retains the
+ * fuller workstation status bar and side navigation.
  */
 
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
@@ -13,25 +14,32 @@ import { systemConfig } from "@/config/system";
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-[#0b0e14] text-zinc-200">
-      <header className="sticky top-0 z-20 flex h-12 items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/90 px-4 backdrop-blur">
-        <div className="flex items-center gap-2">
-          <span aria-hidden="true" className="text-base leading-none text-emerald-400">
+      <header className="sticky top-0 z-30 flex h-12 items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 backdrop-blur sm:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <span aria-hidden="true" className="shrink-0 text-sm leading-none text-emerald-400">
             ◈
           </span>
-          <span className="text-sm font-semibold tracking-[0.18em] text-zinc-100">
+          <span className="hidden truncate text-xs font-semibold tracking-[0.16em] text-zinc-100 sm:inline">
             FOREX SIGNAL ENGINE
           </span>
-          <Badge tone="warning" glyph="◷" className="hidden sm:inline-flex">
+          <span className="font-mono text-xs font-semibold tracking-[0.18em] text-zinc-100 sm:hidden">
+            FSE
+          </span>
+          <Badge tone="warning" glyph="◷" className="text-[9px]">
             {systemConfig.executionMode}
           </Badge>
         </div>
-        <SystemStatusBar />
+
+        <div className="hidden lg:block">
+          <SystemStatusBar />
+        </div>
       </header>
+
       <div className="flex flex-1 flex-col md:flex-row">
-        <div className="border-b border-zinc-800 md:border-b-0 md:border-r">
+        <div className="md:border-r md:border-zinc-800">
           <SidebarNav />
         </div>
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
       </div>
     </div>
   );

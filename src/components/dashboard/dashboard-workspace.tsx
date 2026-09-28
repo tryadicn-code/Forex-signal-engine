@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Badge } from "@/components/common/badges";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
@@ -82,23 +83,31 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   return (
     <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4">
       <section id="overview" aria-labelledby="overview-title" className="scroll-mt-16">
-        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-emerald-400/80">
-              Professional Signal Dashboard
-            </p>
-            <h1 id="overview-title" className="mt-1 text-lg font-semibold tracking-tight text-zinc-100">
-              Market scanner workspace
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-400/80">
+                Phase 3 · Signal Dashboard
+              </p>
+              <Badge tone="info" glyph="◌" className="text-[9px]">
+                Mock data
+              </Badge>
+            </div>
+            <h1
+              id="overview-title"
+              className="mt-1 text-lg font-semibold tracking-tight text-zinc-100"
+            >
+              Market scanner
             </h1>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-zinc-500">
-              Phase 1 engine conclusions presented through the Phase 2 scanner contract.
-              Signal only; no broker execution.
+            <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-zinc-500 sm:text-xs">
+              Engine output via the Phase 2 scanner. Signal only; no broker execution.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="shrink-0 text-right">
             <span
               aria-live="polite"
-              className="hidden font-mono text-[11px] text-zinc-600 sm:inline"
+              className="hidden font-mono text-[11px] text-zinc-600 lg:block"
             >
               {refreshing
                 ? "Refreshing scanner..."
@@ -108,9 +117,9 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
               type="button"
               onClick={refresh}
               disabled={refreshing}
-              className="rounded border border-emerald-700/60 bg-emerald-950/20 px-3 py-1.5 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+              className="mt-0 rounded-md border border-emerald-700/60 bg-emerald-950/20 px-3 py-2 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 lg:mt-1"
             >
-              {refreshing ? "Refreshing..." : "Refresh scan"}
+              {refreshing ? "Refreshing..." : "Refresh"}
             </button>
           </div>
         </div>
@@ -125,7 +134,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       {errorMessage && (
         <div
           role="alert"
-          className="rounded border border-orange-700/50 bg-orange-950/20 px-3 py-2 text-xs text-orange-200"
+          className="rounded-md border border-orange-700/50 bg-orange-950/20 px-3 py-2 text-xs text-orange-200"
         >
           <span className="font-mono font-semibold">SCANNER ERROR</span>
           <span className="ml-2 text-orange-200/70">{errorMessage}</span>
@@ -136,15 +145,15 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         <section
           id="scanner"
           aria-labelledby="scanner-title"
-          className="min-w-0 scroll-mt-16 overflow-hidden rounded border border-zinc-800 bg-zinc-900/30"
+          className="min-w-0 scroll-mt-16 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900/30"
         >
-          <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-2.5">
+          <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-3">
             <div>
               <h2 id="scanner-title" className="text-sm font-semibold text-zinc-100">
-                Market scanner
+                Scanner
               </h2>
-              <p className="mt-0.5 text-[11px] text-zinc-500">
-                Select a row to inspect the engine evidence and execution gates.
+              <p className="mt-0.5 hidden text-[11px] text-zinc-500 sm:block">
+                Select a pair to inspect evidence and execution gates.
               </p>
             </div>
             <span className="font-mono text-[11px] text-zinc-600">
@@ -221,7 +230,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
         <section
           aria-labelledby="recent-transitions-title"
-          className="rounded border border-zinc-800 bg-zinc-900/30"
+          className="hidden rounded-md border border-zinc-800 bg-zinc-900/30 sm:block"
         >
           <header className="border-b border-zinc-800 px-3 py-2.5">
             <h2 id="recent-transitions-title" className="text-sm font-semibold text-zinc-100">
@@ -238,11 +247,25 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             />
           </div>
         </section>
+
+        <details className="rounded-md border border-zinc-800 bg-zinc-900/30 sm:hidden">
+          <summary className="cursor-pointer list-none px-3 py-3 text-sm font-semibold text-zinc-200">
+            <span className="flex items-center justify-between">
+              Recent signal transitions
+              <span aria-hidden="true" className="text-zinc-600">›</span>
+            </span>
+          </summary>
+          <div className="border-t border-zinc-800 p-3">
+            <TransitionHistory
+              transitions={data.recentTransitions}
+              emptyLabel="No state transitions have been recorded yet."
+            />
+          </div>
+        </details>
       </section>
 
       <footer className="border-t border-zinc-800 pt-3 text-[10px] leading-relaxed text-zinc-600">
-        Presentation layer only. Filtering, sorting, and visual priority do not modify
-        strategy scores, lifecycle rules, risk decisions, or execution vetoes.
+        Mock provider · presentation only · filtering and sorting never modify engine decisions.
       </footer>
     </div>
   );
