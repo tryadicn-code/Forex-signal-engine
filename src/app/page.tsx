@@ -1,12 +1,15 @@
-import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
+import { readDashboard } from "@/server/scanner-access";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
+export default async function Home() {
+  const data = await readDashboard();
+
   return (
     <DashboardShell>
-      <DashboardClient />
+      <DashboardWorkspace initialData={data} />
     </DashboardShell>
   );
 }
