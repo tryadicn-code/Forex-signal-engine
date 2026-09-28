@@ -261,7 +261,7 @@ describe("Phase 3 dashboard workspace", () => {
     const detail = screen.getByRole("complementary", {
       name: "Signal detail for GBPUSD",
     });
-    expect(within(detail).getByText("SPREAD_TOO_WIDE")).toBeInTheDocument();
+    expect(within(detail).getByText(/SPREAD_TOO_WIDE/)).toBeInTheDocument();
     expect(within(detail).getByText("Spread exceeded the limit.")).toBeInTheDocument();
   });
 
