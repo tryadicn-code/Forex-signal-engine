@@ -138,7 +138,7 @@ function ScannerCard({
               type="button"
               onClick={() => onSelect(result.symbol)}
               aria-pressed={selected}
-              aria-label={\`Open signal detail for \${result.symbol}\`}
+              aria-label={`Open signal detail for ${result.symbol}`}
               className="shrink-0 rounded-md border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             >
               View analysis
@@ -151,7 +151,7 @@ function ScannerCard({
         <button
           type="button"
           onClick={() => onSelect(result.symbol)}
-          aria-label={\`Open signal detail for \${result.symbol}\`}
+          aria-label={`Open signal detail for ${result.symbol}`}
           className="mt-2 rounded-md border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 hover:bg-zinc-800"
         >
           View details

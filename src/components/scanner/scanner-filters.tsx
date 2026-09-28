@@ -89,7 +89,7 @@ export function ScannerFilters({
                 : "border-zinc-700 bg-zinc-900 text-zinc-300"
             )}
           >
-            Filters{advancedCount > 0 ? \` \${advancedCount}\` : ""}
+            Filters{advancedCount > 0 ? ` ${advancedCount}` : ""}
           </button>
         </div>
 
@@ -245,7 +245,7 @@ export function ScannerFilters({
             </label>
             <button
               type="button"
-              aria-label={\`Sort \${sort.dir === "asc" ? "ascending" : "descending"}\`}
+              aria-label={`Sort ${sort.dir === "asc" ? "ascending" : "descending"}`}
               onClick={() =>
                 onSortChange({
                   ...sort,
