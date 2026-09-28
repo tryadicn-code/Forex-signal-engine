@@ -3,13 +3,14 @@
  *
  * Desktop uses a compact side rail. Mobile uses a fixed bottom bar so the top
  * header can stay readable and the scanner controls have more vertical room.
+ * Glyphs stay monochrome so none is mistaken for an active tab.
  */
 
 const NAV_ITEMS = [
   { href: "#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
-  { href: "#scanner", label: "Scanner", desktopLabel: "Scanner", glyph: "≣" },
-  { href: "#signals", label: "Signals", desktopLabel: "Signals", glyph: "⚡" },
-  { href: "#markets", label: "Health", desktopLabel: "Markets", glyph: "◉" },
+  { href: "#scanner", label: "Scanner", desktopLabel: "Scanner", glyph: "≡" },
+  { href: "#signals", label: "Signals", desktopLabel: "Signals", glyph: "↯" },
+  { href: "#markets", label: "Health", desktopLabel: "Markets", glyph: "◎" },
 ] as const;
 
 export function SidebarNav() {
@@ -24,7 +25,7 @@ export function SidebarNav() {
           href={item.href}
           className="flex min-w-0 flex-col items-center justify-center gap-1 rounded px-1 py-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 md:flex-row md:justify-start md:gap-2 md:px-2.5 md:text-xs"
         >
-          <span aria-hidden="true" className="text-base leading-none md:text-sm">
+          <span aria-hidden="true" className="text-base leading-none text-current md:text-sm">
             {item.glyph}
           </span>
           <span className="md:hidden">{item.label}</span>

@@ -93,21 +93,25 @@ export function ScannerFilters({
           </button>
         </div>
 
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
-          {MOBILE_STATE_FILTERS.map((chip) => (
-            <StateChip
-              key={chip}
-              chip={chip}
-              active={query.state === chip}
-              onClick={() => onQueryChange({ ...query, state: chip })}
-              mobile
-            />
-          ))}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1 overflow-x-auto scrollbar-none">
+            <div className="flex w-max gap-1.5 pr-2">
+              {MOBILE_STATE_FILTERS.map((chip) => (
+                <StateChip
+                  key={chip}
+                  chip={chip}
+                  active={query.state === chip}
+                  onClick={() => onQueryChange({ ...query, state: chip })}
+                  mobile
+                />
+              ))}
+            </div>
+          </div>
           <span
             aria-live="polite"
-            className="ml-auto shrink-0 self-center pl-2 font-mono text-[11px] text-zinc-600"
+            className="shrink-0 font-mono text-[11px] text-zinc-600"
           >
-            {resultCount} shown
+            {resultCount}
           </span>
         </div>
 
