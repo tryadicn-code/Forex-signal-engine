@@ -13,7 +13,6 @@ import {
   DEFAULT_QUERY,
   DEFAULT_SORT,
   filterAndSort,
-  hasActiveQuery,
   type ScannerQuery,
   type ScannerSort,
 } from "@/lib/scanner-query";
@@ -28,7 +27,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [refreshing, setRefreshing] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
 
-  const allResults = data.snapshot?.results ?? [];
+  const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
   const visibleResults = useMemo(
     () => filterAndSort(allResults, query, sort),
     [allResults, query, sort]
