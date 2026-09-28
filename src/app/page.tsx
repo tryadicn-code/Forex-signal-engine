@@ -1,9 +1,15 @@
-import { SystemStatusPanel } from "@/components/system/system-status-panel";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
+import { readDashboard } from "@/server/scanner-access";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const data = await readDashboard();
+
   return (
-    <main className="flex flex-1 items-center justify-center p-8">
-      <SystemStatusPanel />
-    </main>
+    <DashboardShell>
+      <DashboardWorkspace initialData={data} />
+    </DashboardShell>
   );
 }

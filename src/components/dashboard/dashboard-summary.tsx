@@ -9,7 +9,7 @@
 
 import type { ScannerHealth, ScannerSnapshot, SymbolScanResult } from "@/scanner/scanner-result";
 import type { SignalView } from "@/scanner/scanner-api";
-import { Badge, ProviderStateBadge } from "@/components/common/badges";
+import { ProviderStateBadge } from "@/components/common/badges";
 import { NOT_AVAILABLE, formatDuration, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -118,7 +118,13 @@ export function DashboardSummary({
           value={<span className="text-sm">{formatTime(health?.lastScanCompletedAt)}</span>}
           note={
             health
-              ? `Duration ${formatDuration(health.durationMs)} · ${health.symbolsSuccessful} ok / ${health.symbolsFailed} failed`
+              ? "Duration " +
+                formatDuration(health.durationMs) +
+                " · " +
+                health.symbolsSuccessful +
+                " ok / " +
+                health.symbolsFailed +
+                " failed"
               : undefined
           }
         />

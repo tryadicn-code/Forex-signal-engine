@@ -12,7 +12,6 @@ import type { SymbolScanResult } from "@/scanner/scanner-result";
 import {
   BiasBadge,
   DecisionBadge,
-  DirectionBadge,
   FreshnessBadge,
   RegimeBadge,
   SetupStateBadge,
@@ -20,12 +19,10 @@ import {
   TriggerStateBadge,
 } from "@/components/common/badges";
 import {
-  formatFixed,
   formatPrice,
   formatRatio,
   formatScore,
   formatTimeShort,
-  NOT_AVAILABLE,
 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -135,7 +132,7 @@ function ScannerRow({
       </td>
       {failed ? (
         <>
-          <td className="px-2 py-1.5" colSpan={8}>
+          <td className="px-2 py-1.5" colSpan={9}>
             <span className="font-mono text-[11px] text-orange-300/90">
               {result.status.replace("_", " ")} — {result.reason}
             </span>

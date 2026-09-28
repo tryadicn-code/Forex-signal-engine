@@ -1,10 +1,8 @@
 /**
  * Signal lifecycle visualization.
  *
- * Renders the engine's own state sequence as a stepper and shows terminal /
- * safety states separately, so a BLOCKED or CLOSED lifecycle reads as an
- * outcome rather than a step on the happy path. The state set comes from the
- * engine; the UI adds no states of its own.
+ * Renders the engine's own state sequence as a stepper and shows safety or
+ * terminal states separately. The UI adds no lifecycle states of its own.
  */
 
 import type { SignalState } from "@/types/market";
@@ -27,6 +25,21 @@ export function SignalLifecycle({ state }: { state: SignalState | null }) {
     return <p className="text-xs text-zinc-600">No signal lifecycle for this symbol.</p>;
   }
 
+  if (state === "MANAGE") {
+    return (
+      <div
+        role="status"
+        className="rounded border border-sky-700/40 bg-sky-950/20 px-3 py-2 text-xs text-sky-200"
+      >
+        <span className="font-mono font-semibold uppercase tracking-wide">MANAGE</span>
+        <p className="mt-0.5 text-[11px] text-sky-200/60">
+          The engine reports an existing management state. Phase 3 only displays it;
+          no broker or trade-management action is performed here.
+        </p>
+      </div>
+    );
+  }
+
   if (TERMINAL_STATES.includes(state)) {
     return (
       <div
@@ -43,7 +56,7 @@ export function SignalLifecycle({ state }: { state: SignalState | null }) {
           {state === "BLOCKED"
             ? "Execution is blocked. The block reasons below are the engine's own."
             : state === "INVALIDATED"
-              ? "The setup was invalidated and is no longer tracked."
+              ? "The setup was invalidated and is no longer actionable."
               : "The signal reached the end of its lifecycle."}
         </p>
       </div>
