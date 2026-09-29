@@ -194,7 +194,7 @@ export function importHistoricalCsvFiles(
   if (
     commonStartAt !== null &&
     commonEndAt !== null &&
-    commonStartAt >= commonEndAt
+    commonStartAt > commonEndAt
   ) {
     issues.push({
       severity: "ERROR",
