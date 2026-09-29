@@ -14,8 +14,8 @@ export type ScannerConnectionState = "Not Connected" | "Connected" | "Error";
 /**
  * Execution mode.
  *
- * "SIGNAL ONLY" is the only mode permitted in Phase 1: the engine decides and
- * reports, but never routes an order to a broker.
+ * Phase 4 runs in PAPER mode: the engine still only decides, while a separate
+ * simulator consumes EXECUTE decisions. No broker order is ever routed.
  */
 export type ExecutionMode = "SIGNAL ONLY" | "PAPER" | "LIVE";
 
@@ -23,7 +23,7 @@ export const systemConfig = {
   status: "Development" as SystemStatusValue,
   coreEngine: "Not Initialized" as CoreEngineState,
   marketScanner: "Not Connected" as ScannerConnectionState,
-  executionMode: "SIGNAL ONLY" as ExecutionMode,
+  executionMode: "PAPER" as ExecutionMode,
 } as const;
 
 export type SystemConfig = typeof systemConfig;
