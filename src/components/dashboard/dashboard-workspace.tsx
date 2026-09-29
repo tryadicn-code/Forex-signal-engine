@@ -247,6 +247,9 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             result={selectedResult}
             signal={selectedSignal}
             transitions={selectedHistory}
+            paper={data.paper}
+            onRefresh={refresh}
+            refreshing={refreshing}
             onClose={() => setSelectedSymbol(null)}
           />
         </div>
