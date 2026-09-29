@@ -31,6 +31,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [resettingPaper, setResettingPaper] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [paperOverlay, setPaperOverlay] = useState<"portfolio" | "journal" | null>(null);
+  const [clockNow, setClockNow] = useState<number | null>(null);
 
   const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
   const visibleResults = useMemo(
@@ -48,6 +49,20 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     selectedResult?.signalId
       ? data.signalHistory[selectedResult.signalId] ?? []
       : [];
+
+  useEffect(() => {
+    if (!data.automation?.enabled) {
+      setClockNow(null);
+      return;
+    }
+
+    setClockNow(Date.now());
+    const timer = window.setInterval(() => {
+      setClockNow(Date.now());
+    }, 1_000);
+
+    return () => window.clearInterval(timer);
+  }, [data.automation?.enabled]);
 
   useEffect(() => {
     const openPaper = (event: Event) => {
@@ -127,6 +142,51 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     data.automation?.enabled,
   ]);
 
+  const nextScanAt = data.automation?.nextScanAt ?? null;
+  const countdownSeconds =
+    clockNow !== null && nextScanAt !== null
+      ? Math.max(0, Math.ceil((nextScanAt - clockNow) / 1000))
+      : null;
+
+  useEffect(() => {
+    if (
+      !data.automation?.enabled ||
+      countdownSeconds !== 0 ||
+      nextScanAt === null
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const syncAfterDeadline = async () => {
+      try {
+        const response = await fetch("/api/scanner", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!response.ok || cancelled) return;
+        const next = (await response.json()) as DashboardData;
+        if (!cancelled) setData(next);
+      } catch {
+        // The normal read-only polling loop will retry. A missed countdown
+        // refresh must never affect the server-side scanner.
+      }
+    };
+
+    const timer = window.setTimeout(() => {
+      void syncAfterDeadline();
+    }, 750);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    countdownSeconds,
+    data.automation?.enabled,
+    nextScanAt,
+  ]);
+
   const clearFilters = () => {
     setQuery(DEFAULT_QUERY);
     setSort(DEFAULT_SORT);
@@ -204,7 +264,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
               </Badge>
               {data.automation?.enabled && (
                 <Badge tone="info" glyph="↻" className="text-[9px]">
-                  AUTO · {Math.round(data.automation.scanIntervalMs / 1000)}s
+                  AUTO
                 </Badge>
               )}
             </div>
@@ -220,23 +280,43 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           </div>
 
           <div className="shrink-0 text-right">
-            <span
-              aria-live="polite"
-              className="hidden font-mono text-[11px] text-zinc-600 lg:block"
-            >
-              {refreshing
-                ? "Refreshing scanner..."
-                : "Last scan " + formatTime(data.health?.lastScanCompletedAt)}
-            </span>
             <button
               type="button"
               onClick={refresh}
               disabled={refreshing}
               aria-label="Refresh scan"
-              className="mt-0 rounded-md border border-emerald-700/60 bg-emerald-950/20 px-3 py-2 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 lg:mt-1"
+              className="rounded-md border border-emerald-700/60 bg-emerald-950/20 px-3 py-2 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             >
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
+          </div>
+        </div>
+
+        <div
+          aria-live="polite"
+          className="mb-3 grid grid-cols-2 gap-2 rounded-md border border-zinc-800 bg-zinc-900/25 p-2 sm:flex sm:items-center sm:justify-between"
+        >
+          <div className="min-w-0">
+            <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-600">
+              Last scan
+            </div>
+            <div className="mt-0.5 truncate font-mono text-[11px] tabular-nums text-zinc-300">
+              {refreshing
+                ? "Scanning..."
+                : formatTime(data.health?.lastScanCompletedAt)}
+            </div>
+          </div>
+          <div className="min-w-0 text-right">
+            <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-600">
+              Next auto scan
+            </div>
+            <div className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-emerald-300">
+              {data.automation?.enabled
+                ? countdownSeconds === null
+                  ? "—"
+                  : countdownSeconds + "s"
+                : "OFF"}
+            </div>
           </div>
         </div>
 
