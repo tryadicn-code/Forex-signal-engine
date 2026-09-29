@@ -1,3 +1,9 @@
+export {
+  calculateHistoricalAnalytics,
+  compareHistoricalToForward,
+  DEFAULT_HISTORICAL_SESSION_BUCKETS,
+  toComparableHistoricalPerformance,
+} from "@/replay/backtest-analytics";
 export { HistoricalExecutionSimulator } from "@/replay/historical-execution-simulator";
 export { HistoricalReplayClock } from "@/replay/replay-clock";
 export { HistoricalReplayProvider } from "@/replay/historical-replay-provider";
@@ -24,3 +30,16 @@ export type {
   HistoricalPositionStatus,
   HistoricalTrade,
 } from "@/replay/execution-types";
+
+export type {
+  ComparablePerformance,
+  HistoricalAnalyticsOptions,
+  HistoricalBacktestAnalytics,
+  HistoricalCurvePoint,
+  HistoricalForwardComparison,
+  HistoricalPerformanceSegments,
+  HistoricalRDistributionBin,
+  HistoricalSegmentDimension,
+  HistoricalSegmentPerformance,
+  HistoricalSessionBucket,
+} from "@/replay/analytics-types";
