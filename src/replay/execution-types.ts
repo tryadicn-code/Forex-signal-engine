@@ -21,6 +21,10 @@ export interface HistoricalExecutionConfig {
    * Deterministic same-bar SL/TP policy. STOP_FIRST is the conservative default.
    */
   intrabarConflictPolicy?: HistoricalIntrabarConflictPolicy;
+  /** Maximum concurrent historical positions. Defaults to 10. */
+  maxOpenPositions?: number;
+  /** Maximum aggregate open risk as percent of realized balance. Defaults to 5%. */
+  maxTotalOpenRiskPercent?: number;
 }
 
 export interface HistoricalEngineSnapshot {
