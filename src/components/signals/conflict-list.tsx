@@ -25,7 +25,7 @@ export function ConflictList({
       {conflicts.map((item, index) => (
         <li
           key={`${item.code}-${index}`}
-          className="flex gap-2 rounded border border-amber-700/40 bg-amber-950/20 px-2 py-1.5"
+          className="flex gap-2 rounded border border-amber-700/40 bg-amber-950/20 px-2.5 py-2"
         >
           <span aria-hidden="true" className="mt-0.5 text-[11px] text-amber-400">
             −
@@ -41,7 +41,7 @@ export function ConflictList({
                   w {formatScore(item.weight)}
                 </span>
               )}
-              <code className="ml-auto font-mono text-[10px] text-amber-700/70">{item.code}</code>
+              <code className="ml-auto hidden font-mono text-[10px] text-amber-700/70 sm:inline">{item.code}</code>
             </div>
             {item.description && (
               <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/60">
@@ -49,7 +49,7 @@ export function ConflictList({
               </p>
             )}
             {item.value !== undefined && (
-              <p className="mt-0.5 font-mono text-[11px] text-amber-200/70">
+              <p className="mt-0.5 hidden font-mono text-[11px] text-amber-200/70 sm:block">
                 {String(item.value)}
               </p>
             )}

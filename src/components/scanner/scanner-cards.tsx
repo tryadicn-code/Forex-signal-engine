@@ -111,7 +111,11 @@ function ScannerCard({
             <div className="min-w-0">
               <div className="text-[10px] uppercase tracking-wider text-zinc-600">Signal</div>
               <div className="mt-0.5">
-                <StateBadge state={result.signalState} className="max-w-full text-[9px]" />
+                {result.signalState ? (
+                  <StateBadge state={result.signalState} className="max-w-full text-[9px]" />
+                ) : (
+                  <span className="text-[11px] text-zinc-600">No signal</span>
+                )}
               </div>
             </div>
           </div>

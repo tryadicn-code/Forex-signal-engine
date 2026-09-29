@@ -25,7 +25,7 @@ export function EvidenceList({
       {evidence.map((item, index) => (
         <li
           key={`${item.code}-${index}`}
-          className="flex gap-2 rounded border border-zinc-800/70 bg-zinc-900/30 px-2 py-1.5"
+          className="flex gap-2 rounded border border-zinc-800/70 bg-zinc-900/30 px-2.5 py-2"
         >
           <span aria-hidden="true" className="mt-0.5 text-[11px] text-emerald-400">
             +
@@ -41,7 +41,7 @@ export function EvidenceList({
                   w {formatScore(item.weight)}
                 </span>
               )}
-              <code className="ml-auto font-mono text-[10px] text-zinc-600">{item.code}</code>
+              <code className="ml-auto hidden font-mono text-[10px] text-zinc-600 sm:inline">{item.code}</code>
             </div>
             {item.description && (
               <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">
@@ -49,7 +49,7 @@ export function EvidenceList({
               </p>
             )}
             {item.value !== undefined && (
-              <p className="mt-0.5 font-mono text-[11px] text-zinc-400">
+              <p className="mt-0.5 hidden font-mono text-[11px] text-zinc-400 sm:block">
                 {String(item.value)}
               </p>
             )}

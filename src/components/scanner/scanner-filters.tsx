@@ -93,7 +93,7 @@ export function ScannerFilters({
           </button>
         </div>
 
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5">
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 scrollbar-none">
           {MOBILE_STATE_FILTERS.map((chip) => (
             <StateChip
               key={chip}
@@ -105,7 +105,7 @@ export function ScannerFilters({
           ))}
           <span
             aria-live="polite"
-            className="ml-auto shrink-0 self-center pl-2 font-mono text-[11px] text-zinc-600"
+            className="ml-auto hidden shrink-0 self-center pl-2 font-mono text-[11px] text-zinc-600 sm:inline"
           >
             {resultCount} shown
           </span>
