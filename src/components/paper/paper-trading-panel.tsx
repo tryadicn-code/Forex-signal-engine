@@ -32,14 +32,18 @@ function metric(
   );
 }
 
+export type PaperPanelView = "both" | "portfolio" | "journal";
+
 export function PaperTradingPanel({
   paper,
   onReset,
   resetting,
+  view = "both",
 }: {
   paper: PaperDashboardData | undefined;
   onReset: () => Promise<void>;
   resetting: boolean;
+  view?: PaperPanelView;
 }) {
   if (!paper) return null;
 
@@ -47,6 +51,7 @@ export function PaperTradingPanel({
 
   return (
     <div className="space-y-4">
+      {view !== "journal" && (
       <section
         id="portfolio"
         aria-labelledby="paper-portfolio-title"
@@ -158,7 +163,9 @@ export function PaperTradingPanel({
           )}
         </div>
       </section>
+      )}
 
+      {view !== "portfolio" && (
       <section
         id="journal"
         aria-labelledby="paper-journal-title"
@@ -232,6 +239,7 @@ export function PaperTradingPanel({
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }
