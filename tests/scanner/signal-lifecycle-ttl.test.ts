@@ -5,6 +5,8 @@ import {
   isTriggerExpired,
   recordTransition,
   computeSignalIdentity,
+  freshTriggerOccurrenceIdentity,
+  resolveLifecycleIdentity,
 } from "@/scanner/signal-lifecycle";
 import { intervalMs } from "@/market-data/timeframe";
 
@@ -86,5 +88,66 @@ describe("lifecycle records", () => {
     expect(updated.state).toBe("WATCH");
     expect(updated.transitions.length).toBe(1);
     expect(updated.updatedAt).toBe(T0);
+  });
+});
+
+
+describe("fresh trigger occurrences after terminal lifecycle", () => {
+  const baseIdentity = computeSignalIdentity({
+    symbol: "EURUSD",
+    direction: "LONG",
+    originTimeframe: "H1",
+    originTimestamp: T0,
+    zoneLow: 1.082,
+    zoneHigh: 1.086,
+    pipSize: 0.0001,
+  });
+
+  it("keeps CLOSED terminal and gives a newer trigger a new deterministic identity", () => {
+    const closed = {
+      ...createLifecycle(baseIdentity, T0),
+      state: "CLOSED" as const,
+      triggerOriginTimestamp: T0,
+    };
+
+    const nextTrigger = T0 + M15;
+    const resolved = resolveLifecycleIdentity(
+      baseIdentity,
+      closed,
+      nextTrigger
+    );
+
+    expect(resolved.signalId).not.toBe(baseIdentity.signalId);
+    expect(resolved.signalId).toBe(
+      freshTriggerOccurrenceIdentity(baseIdentity, nextTrigger).signalId
+    );
+    expect(closed.state).toBe("CLOSED");
+  });
+
+  it("does not fork a new id for the same or older trigger", () => {
+    const closed = {
+      ...createLifecycle(baseIdentity, T0),
+      state: "CLOSED" as const,
+      triggerOriginTimestamp: T0,
+    };
+
+    expect(
+      resolveLifecycleIdentity(baseIdentity, closed, T0).signalId
+    ).toBe(baseIdentity.signalId);
+    expect(
+      resolveLifecycleIdentity(baseIdentity, closed, T0 - M15).signalId
+    ).toBe(baseIdentity.signalId);
+  });
+
+  it("does not change identity while lifecycle is still active", () => {
+    const active = {
+      ...createLifecycle(baseIdentity, T0),
+      state: "EXECUTE" as const,
+      triggerOriginTimestamp: T0,
+    };
+
+    expect(
+      resolveLifecycleIdentity(baseIdentity, active, T0 + M15).signalId
+    ).toBe(baseIdentity.signalId);
   });
 });
