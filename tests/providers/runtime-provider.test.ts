@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRuntimeMarketDataProvider, resolveRuntimeProviderId } from "@/providers/market-data/runtime-provider";
+import { createRuntimeMarketDataProvider, resolveRuntimeProviderId, resolveRuntimeSymbols } from "@/providers/market-data/runtime-provider";
 import { MockMarketDataProvider } from "@/providers/market-data/mock-provider";
 import { OandaMarketDataProvider } from "@/providers/market-data/oanda-provider";
 
@@ -23,6 +23,15 @@ describe("runtime market-data provider selection", () => {
     expect(createRuntimeMarketDataProvider({ env })).toBeInstanceOf(
       OandaMarketDataProvider
     );
+  });
+
+  it("parses and validates a staged scanner universe override", () => {
+    expect(
+      resolveRuntimeSymbols({
+        SCANNER_SYMBOLS: "eurusd, USDJPY, eurusd, UNKNOWN",
+      })
+    ).toEqual(["EURUSD", "USDJPY"]);
+    expect(resolveRuntimeSymbols({})).toBeUndefined();
   });
 
   it("does not silently treat unknown provider ids as live", () => {

@@ -6,6 +6,7 @@
  * explicitly switched to OANDA.
  */
 
+import { SYMBOL_METADATA } from "@/config/scanner";
 import type { MockProviderConfig } from "./mock-provider";
 import { MockMarketDataProvider } from "./mock-provider";
 import {
@@ -29,6 +30,20 @@ export function resolveRuntimeProviderId(
     .toLowerCase();
 
   return configured === "oanda" ? "oanda" : "mock";
+}
+
+export function resolveRuntimeSymbols(
+  env: Record<string, string | undefined> = process.env
+): string[] | undefined {
+  const raw = env.SCANNER_SYMBOLS?.trim();
+  if (!raw) return undefined;
+
+  const symbols = raw
+    .split(",")
+    .map((symbol) => symbol.trim().toUpperCase())
+    .filter((symbol) => Boolean(SYMBOL_METADATA[symbol]));
+
+  return symbols.length > 0 ? [...new Set(symbols)] : undefined;
 }
 
 export function createRuntimeMarketDataProvider(

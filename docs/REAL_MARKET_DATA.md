@@ -21,6 +21,7 @@ Create `.env.local` from `.env.example` and set:
 
 ```dotenv
 MARKET_DATA_PROVIDER=oanda
+SCANNER_SYMBOLS=EURUSD
 OANDA_ENVIRONMENT=practice
 OANDA_API_TOKEN=<personal access token>
 OANDA_ACCOUNT_ID=<practice account id>

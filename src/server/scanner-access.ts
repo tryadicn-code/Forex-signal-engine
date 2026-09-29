@@ -10,6 +10,7 @@ import "server-only";
 import { ScannerApi } from "@/scanner/scanner-api";
 import { isTerminalState } from "@/lib/signal-meta";
 import type { DashboardData } from "@/types/dashboard";
+import { resolveRuntimeSymbols } from "@/providers/market-data/runtime-provider";
 import {
   primeRuntimeConversionRates,
   runtimeConversionResolver,
@@ -26,8 +27,12 @@ let api: ScannerApi | null = null;
 
 function scanner(): ScannerApi {
   if (!api) {
+    const symbols = resolveRuntimeSymbols();
     api = new ScannerApi(
-      { providerId: runtimeProviderId() },
+      {
+        providerId: runtimeProviderId(),
+        ...(symbols ? { symbols } : {}),
+      },
       {
         marketData: runtimeMarketDataProvider(),
         conversionResolver: runtimeConversionResolver(),
@@ -68,10 +73,6 @@ async function runScanner(inst: ScannerApi, asOf: number): Promise<string | null
   }
 }
 
-/**
- * Guarantee an initial scan exists. Mock mode remains deterministic; live mode
- * anchors to the wall clock at the moment the initial scan is requested.
- */
 export async function readDashboard(
   asOf: number = runtimeDefaultAsOf()
 ): Promise<DashboardData> {
@@ -85,7 +86,6 @@ export async function readDashboard(
   return dashboardView(inst, scanError);
 }
 
-/** Run one user-requested fresh scan cycle. */
 export async function refreshScanner(
   asOf: number = runtimeDefaultAsOf()
 ): Promise<DashboardData> {
