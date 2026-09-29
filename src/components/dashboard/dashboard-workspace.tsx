@@ -89,6 +89,44 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     };
   }, [allResults, selectedSymbol, visibleResults]);
 
+  useEffect(() => {
+    if (!data.automation?.enabled) return;
+
+    const intervalMs = Math.max(
+      5_000,
+      data.automation.dashboardSyncIntervalMs
+    );
+    let inFlight = false;
+
+    const syncLatestView = async () => {
+      if (inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/scanner", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const next = (await response.json()) as DashboardData;
+        setData(next);
+      } catch {
+        // Read-only sync failure must not replace the last good workstation
+        // state or interfere with the server-side paper scanner.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const timer = window.setInterval(() => {
+      void syncLatestView();
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [
+    data.automation?.dashboardSyncIntervalMs,
+    data.automation?.enabled,
+  ]);
+
   const clearFilters = () => {
     setQuery(DEFAULT_QUERY);
     setSort(DEFAULT_SORT);
@@ -164,6 +202,11 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
                   ? "Live · " + (data.providerId ?? "provider").toUpperCase()
                   : "Mock data"}
               </Badge>
+              {data.automation?.enabled && (
+                <Badge tone="info" glyph="↻" className="text-[9px]">
+                  AUTO · {Math.round(data.automation.scanIntervalMs / 1000)}s
+                </Badge>
+              )}
             </div>
             <h1
               id="overview-title"
