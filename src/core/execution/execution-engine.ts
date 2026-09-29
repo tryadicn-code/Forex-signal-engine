@@ -69,11 +69,17 @@ export function decide(input: ExecutionInput): EngineResult<ExecutionResultData>
   // Freshness fails closed: no snapshot means the data cannot be trusted,
   // rather than being assumed fresh (audit finding #11).
   const hasSnapshot = snapshot !== undefined;
-  const dataAgeMs = hasSnapshot ? context.now - snapshot.asOf : 0;
-  const dataFresh = hasSnapshot && dataAgeMs <= config.execution.maxDataAgeMs;
+  const dataAgeMs =
+    context.marketDataAgeMs ??
+    (hasSnapshot ? context.now - snapshot.asOf : 0);
+  const dataFresh =
+    hasSnapshot &&
+    (context.marketDataFreshness !== undefined
+      ? context.marketDataFreshness === "FRESH"
+      : dataAgeMs <= config.execution.maxDataAgeMs);
 
   // Spread is mandatory only in LIVE; elsewhere the provider may omit it.
-  const spreadPips = snapshot?.spreadPips;
+  const spreadPips = context.spreadPips ?? snapshot?.spreadPips;
   const spreadKnown = spreadPips !== undefined;
   const spreadWithinLimit = spreadKnown
     ? spreadPips <= config.execution.maxSpreadPips
@@ -115,7 +121,9 @@ export function decide(input: ExecutionInput): EngineResult<ExecutionResultData>
       name: "data_fresh",
       passed: dataFresh,
       detail: hasSnapshot
-        ? `Data is ${Math.round(dataAgeMs / 1000)}s old (max ${Math.round(config.execution.maxDataAgeMs / 1000)}s).`
+        ? context.marketDataFreshness !== undefined
+          ? `Scanner freshness is ${context.marketDataFreshness}; data age is ${Math.round(dataAgeMs / 1000)}s.`
+          : `Data is ${Math.round(dataAgeMs / 1000)}s old (max ${Math.round(config.execution.maxDataAgeMs / 1000)}s).`
         : "No market snapshot supplied; freshness could not be verified, so the gate fails closed.",
     },
     {

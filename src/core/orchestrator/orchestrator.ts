@@ -62,6 +62,8 @@ export interface PipelineResult {
   regime: EngineResult<RegimeResultData>;
   bias: EngineResult<BiasResultData>;
   setup: EngineResult<SetupResultData>;
+  /** Setup-timeframe structure already computed for zone construction. */
+  setupStructure: EngineResult<StructureResultData>;
   trigger: EngineResult<TriggerResultData> | null;
   risk: EngineResult<RiskResultData> | null;
   execution: EngineResult<ExecutionResultData> | null;
@@ -157,6 +159,7 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
       regime,
       bias,
       setup,
+      setupStructure,
       trigger: null,
       risk: null,
       execution: null,
@@ -226,6 +229,7 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
     regime,
     bias,
     setup,
+    setupStructure,
     trigger,
     risk,
     execution,

@@ -17,6 +17,16 @@ export interface ExecutionContext {
   mode?: ExecutionMode;
   /** Current time as UTC epoch milliseconds. */
   now: number;
+  /**
+   * Scanner-level freshness classification for the canonical multi-timeframe
+   * context. When supplied it takes precedence over the Phase 1 absolute-age
+   * fallback because closed-candle strategies are timeframe-relative.
+   */
+  marketDataFreshness?: "FRESH" | "DELAYED" | "STALE";
+  /** Age of the canonical trigger-timeframe market data, in milliseconds. */
+  marketDataAgeMs?: number;
+  /** Current provider spread in pips, when available. */
+  spreadPips?: number;
   /** Risk percentage requested for this trade. */
   riskPercent?: number;
   /** True when high-impact news is due within the block window. */
@@ -82,12 +92,28 @@ export const STALE_DATA_VETO: Veto = {
   label: "Stale market data",
   description: "Blocks execution when the latest market data is older than the configured maximum age.",
   evaluate(context) {
-    const maxAge = context.config.execution.maxDataAgeMs;
     const snapshot = context.snapshot;
-    const now = marketTime(context);
     if (!snapshot) {
       return { triggered: false, skipped: true, reason: "No market snapshot supplied." };
     }
+
+    const scannerFreshness = context.execution?.marketDataFreshness;
+    const scannerAge = context.execution?.marketDataAgeMs;
+    if (scannerFreshness !== undefined) {
+      if (scannerFreshness === "STALE") {
+        return {
+          triggered: true,
+          reason:
+            scannerAge === undefined
+              ? "Scanner classified the market data as STALE."
+              : `Scanner classified the market data as STALE (${Math.round(scannerAge / 1000)}s old).`,
+        };
+      }
+      return { triggered: false };
+    }
+
+    const maxAge = context.config.execution.maxDataAgeMs;
+    const now = marketTime(context);
     const age = now - snapshot.asOf;
     if (age > maxAge) {
       return {
@@ -164,7 +190,8 @@ export const SPREAD_TOO_WIDE_VETO: Veto = {
   description: "Blocks execution when the current spread is wider than the configured maximum.",
   evaluate(context) {
     const maxSpread = context.config.execution.maxSpreadPips;
-    const spread = context.snapshot?.spreadPips;
+    const spread =
+      context.execution?.spreadPips ?? context.snapshot?.spreadPips;
     if (spread === undefined) {
       return { triggered: false, skipped: true, reason: "Provider did not supply spread data." };
     }

@@ -82,6 +82,33 @@ describe("orchestrator - per-timeframe structure isolation", () => {
     expect(setup.zoneHigh).toBeGreaterThan(setup.zoneLow);
   });
 
+  it("exposes the setup-timeframe structure used by the setup engine", () => {
+    const biasCandles = bullishTrend(140);
+    const setupCandles = bullishTrendWithPullback(120);
+    const triggerCandles = bullishTrendWithPullback(40);
+
+    const result = analyzeMarket({
+      instrument: EURUSD_PAIR,
+      biasTimeframe: tf("H4", biasCandles),
+      setupTimeframe: tf("H1", setupCandles),
+      triggerTimeframe: tf("M15", triggerCandles),
+      accountBalance: 10_000,
+      accountCurrency: "USD",
+    });
+
+    const confirmed = result.setupStructure.data.structurePoints.filter(
+      (point) => point.confirmed
+    );
+    for (const point of confirmed) {
+      expect(point.confirmedAtTimestamp).toBeGreaterThanOrEqual(
+        setupCandles[0].timestamp
+      );
+      expect(point.confirmedAtTimestamp).toBeLessThanOrEqual(
+        setupCandles[setupCandles.length - 1].timestamp
+      );
+    }
+  });
+
   it("uses independent timestamps per timeframe without contamination", () => {
     const biasCandles = rangeSeries(80, 1.1, 0.003, "H4");
     const setupCandles = rangeSeries(60, 1.1, 0.003, "H1");

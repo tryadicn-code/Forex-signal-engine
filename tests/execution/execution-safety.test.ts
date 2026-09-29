@@ -124,6 +124,40 @@ describe("decide - market data fails closed", () => {
     expect(skipped).toBeDefined();
   });
 
+  it("honors scanner timeframe-relative freshness for closed-candle strategies", () => {
+    const result = decide(
+      greenInput({
+        context: {
+          mode: "SIGNAL_ONLY",
+          now: NOW,
+          marketDataFreshness: "FRESH",
+          marketDataAgeMs: 1_019_000,
+        },
+        snapshot: snapshot({ ageMs: 1_019_000, spreadPips: 1.2 }),
+      })
+    );
+    expect(result.data.triggeredVetoes).not.toContain("STALE_DATA");
+    expect(conditionNamed(result, "data_fresh")?.passed).toBe(true);
+    expect(conditionNamed(result, "data_fresh")?.detail).toContain(
+      "Scanner freshness is FRESH"
+    );
+  });
+
+  it("blocks when the scanner explicitly classifies market data as stale", () => {
+    const result = decide(
+      greenInput({
+        context: {
+          mode: "SIGNAL_ONLY",
+          now: NOW,
+          marketDataFreshness: "STALE",
+          marketDataAgeMs: 4_000_000,
+        },
+      })
+    );
+    expect(result.data.decision).toBe("BLOCKED");
+    expect(result.data.triggeredVetoes).toContain("STALE_DATA");
+  });
+
   it("blocks when the snapshot is older than the max data age", () => {
     const result = decide(
       greenInput({ snapshot: snapshot({ ageMs: 120_000, spreadPips: 1.2 }) })
@@ -137,6 +171,23 @@ describe("decide - market data fails closed", () => {
       greenInput({ snapshot: snapshot({ ageMs: 60_000, spreadPips: 1.2 }) })
     );
     expect(result.data.decision).toBe("EXECUTE");
+  });
+
+  it("uses provider spread from execution context even when snapshot omits it", () => {
+    const result = decide(
+      greenInput({
+        context: {
+          mode: "LIVE",
+          now: NOW,
+          marketDataFreshness: "FRESH",
+          marketDataAgeMs: 5_000,
+          spreadPips: 1.2,
+        },
+        snapshot: snapshot({ spreadPips: undefined }),
+      })
+    );
+    expect(conditionNamed(result, "spread_within_limit")?.passed).toBe(true);
+    expect(result.data.triggeredVetoes).not.toContain("SPREAD_TOO_WIDE");
   });
 
   it("blocks in LIVE mode when the spread quote is missing", () => {

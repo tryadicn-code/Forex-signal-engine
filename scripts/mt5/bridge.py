@@ -195,11 +195,56 @@ def _current_tick_quote(
     }
 
 
-def _historical_quote(
+def _historical_tick_quote(
+    canonical: str,
+    resolved_symbol: str,
+    as_of_ms: int,
+) -> dict[str, Any] | None:
+    # The scanner anchors asOf before network work begins. By the time quote
+    # retrieval happens, symbol_info_tick() may already be a few milliseconds
+    # newer than that anchor. Use the last historical bid/ask tick <= asOf so
+    # spread stays real without violating no-lookahead.
+    date_to = datetime.fromtimestamp(as_of_ms / 1000, tz=timezone.utc)
+    date_from = datetime.fromtimestamp((as_of_ms - 5 * 60 * 1000) / 1000, tz=timezone.utc)
+    ticks = mt5.copy_ticks_range(
+        resolved_symbol,
+        date_from,
+        date_to,
+        mt5.COPY_TICKS_INFO,
+    )
+    if ticks is None or len(ticks) == 0:
+        return None
+
+    for tick in reversed(ticks):
+        timestamp = int(_jsonable(tick["time_msc"]))
+        bid = float(_jsonable(tick["bid"]))
+        ask = float(_jsonable(tick["ask"]))
+        if (
+            timestamp > 0
+            and timestamp <= as_of_ms
+            and bid > 0
+            and ask > 0
+            and ask >= bid
+        ):
+            return {
+                "symbol": canonical,
+                "resolvedSymbol": resolved_symbol,
+                "bid": bid,
+                "ask": ask,
+                "price": (bid + ask) / 2,
+                "timestamp": timestamp,
+            }
+
+    return None
+
+
+def _historical_bar_quote(
     canonical: str,
     resolved_symbol: str,
     as_of_ms: int,
 ) -> dict[str, Any]:
+    # Last-resort fallback for brokers with no historical tick buffer. The M1
+    # bar spread may be coarser than a real tick, but it still preserves asOf.
     info = _symbol_info_or_raise(resolved_symbol)
     point = float(getattr(info, "point", 0.0) or 0.0)
     if point <= 0:
@@ -247,7 +292,12 @@ def get_quote(canonical: str, as_of_ms: int) -> dict[str, Any]:
     current = _current_tick_quote(canonical, resolved, as_of_ms)
     if current is not None:
         return current
-    return _historical_quote(canonical, resolved, as_of_ms)
+
+    historical_tick = _historical_tick_quote(canonical, resolved, as_of_ms)
+    if historical_tick is not None:
+        return historical_tick
+
+    return _historical_bar_quote(canonical, resolved, as_of_ms)
 
 
 class Handler(BaseHTTPRequestHandler):

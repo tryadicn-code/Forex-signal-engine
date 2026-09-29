@@ -318,7 +318,7 @@ export class ScannerService {
       },
       triggerTimeframe: {
         timeframe: triggerTimeframe,
-        snapshot: toSnapshot(context!.symbol, context!.m15),
+        snapshot: toSnapshot(context!.symbol, context!.m15, context!.spreadPips),
       },
       accountBalance: this.config.account.balance,
       accountCurrency: this.config.account.currency,
@@ -327,6 +327,9 @@ export class ScannerService {
       execution: {
         now: asOf,
         mode: this.config.executionMode,
+        marketDataFreshness: context!.freshness.status,
+        marketDataAgeMs: context!.freshness.ageMs,
+        spreadPips: context!.spreadPips,
       },
     });
   }
@@ -551,7 +554,11 @@ export class ScannerService {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function toSnapshot(symbol: string, tf: { timeframe: Timeframe; candles: CanonicalCandle[]; asOf: number }): MarketSnapshot {
+function toSnapshot(
+  symbol: string,
+  tf: { timeframe: Timeframe; candles: CanonicalCandle[]; asOf: number },
+  spreadPips?: number
+): MarketSnapshot {
   return {
     pair: symbol,
     timeframe: tf.timeframe,
@@ -564,6 +571,7 @@ function toSnapshot(symbol: string, tf: { timeframe: Timeframe; candles: Canonic
       volume: c.volume,
     })),
     asOf: tf.asOf,
+    ...(spreadPips === undefined ? {} : { spreadPips }),
   };
 }
 
@@ -592,7 +600,7 @@ function firstSetupOrigin(pipeline: PipelineResult): number | null {
   // most recent CONFIRMED structure point on the setup timeframe. That is a real
   // market timestamp (never a price), so two occurrences of the same zone at
   // different times get different identities.
-  const structure = pipeline.structure.data;
+  const structure = pipeline.setupStructure.data;
   const confirmed = structure.structurePoints.filter((p) => p.confirmed);
   if (confirmed.length === 0) return null;
   return confirmed[confirmed.length - 1].confirmedAtTimestamp;
