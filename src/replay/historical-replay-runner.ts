@@ -3,6 +3,7 @@ import { TableAccountConversionResolver } from "@/market-data/account-conversion
 import { createInMemoryRepositories } from "@/repositories/in-memory";
 import { HistoricalReplayProvider } from "@/replay/historical-replay-provider";
 import { HistoricalExecutionSimulator } from "@/replay/historical-execution-simulator";
+import { calculateHistoricalAnalytics } from "@/replay/backtest-analytics";
 import { HistoricalReplayClock } from "@/replay/replay-clock";
 import type {
   ReplayDataset,
@@ -143,6 +144,8 @@ export class HistoricalReplayRunner {
       index += 1;
     }
 
+    const execution = this.executionSimulator?.getSummary() ?? null;
+
     return {
       datasetId: this.dataset.id,
       ...(this.dataset.source ? { source: this.dataset.source } : {}),
@@ -153,7 +156,11 @@ export class HistoricalReplayRunner {
       firstStepAt,
       lastStepAt,
       steps,
-      execution: this.executionSimulator?.getSummary() ?? null,
+      execution,
+      analytics:
+        execution === null
+          ? null
+          : calculateHistoricalAnalytics(execution),
     };
   }
 }
