@@ -49,6 +49,7 @@ import {
   isSetupExpired,
   isTriggerExpired,
   recordTransition,
+  resolveLifecycleIdentity,
 } from "@/scanner/signal-lifecycle";
 import type { SignalLifecycleState } from "@/scanner/signal-lifecycle";
 import {
@@ -380,22 +381,32 @@ export class ScannerService {
     }
 
     const store = this.deps.repositories.signals;
-    const existing = store.getById(identity.signalId);
-    const lifecycle =
-      existing ??
-      createLifecycle(identity, asOf);
-
     const latestSetupOpen = lastOpen(context!.h1.candles);
     const latestTriggerOpen = lastOpen(context!.m15.candles);
+    const observedSetupOrigin = firstSetupOrigin(pipeline) ?? latestSetupOpen;
+    const observedTriggerOrigin = firstTriggerOrigin(pipeline);
+
+    // A terminal CLOSED lifecycle is never revived. If the engine observes a
+    // genuinely newer trigger inside the same setup, that trigger receives a
+    // deterministic occurrence id and starts a fresh lifecycle instead.
+    const baseExisting = store.getById(identity.signalId);
+    const lifecycleIdentity = resolveLifecycleIdentity(
+      identity,
+      baseExisting,
+      observedTriggerOrigin
+    );
+    const existing = store.getById(lifecycleIdentity.signalId);
+    const lifecycle =
+      existing ??
+      createLifecycle(lifecycleIdentity, asOf);
 
     // Track where the current setup/trigger first appeared so TTL has an origin.
     const setupOrigin =
       lifecycle.setupOriginTimestamp ??
-      firstSetupOrigin(pipeline) ??
-      latestSetupOpen;
+      observedSetupOrigin;
     const triggerOrigin =
       lifecycle.triggerOriginTimestamp ??
-      firstTriggerOrigin(pipeline) ??
+      observedTriggerOrigin ??
       null;
 
     const triggerExpired = isTriggerExpired(
@@ -406,7 +417,7 @@ export class ScannerService {
     );
     const setupExpired = isSetupExpired(
       setupOrigin,
-      input.identity!.originTimeframe,
+      lifecycleIdentity.originTimeframe,
       latestSetupOpen,
       this.config.signalTtl.setupBars
     );
@@ -417,7 +428,7 @@ export class ScannerService {
         ? `Setup TTL of ${this.config.signalTtl.setupBars} setup bars lapsed.`
         : undefined;
 
-    const identityNonNull = input.identity!;
+    const identityNonNull = lifecycleIdentity;
     const target = deriveSignalState({
       pipeline,
       stale: input.stale,
