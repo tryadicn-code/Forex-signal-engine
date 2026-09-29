@@ -89,8 +89,14 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
               <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-400/80">
                 Phase 3 · Signal Dashboard
               </p>
-              <Badge tone="info" glyph="◌" className="text-[9px]">
-                Mock data
+              <Badge
+                tone={data.liveMarketData ? "bullish" : "info"}
+                glyph={data.liveMarketData ? "●" : "◌"}
+                className="text-[9px]"
+              >
+                {data.liveMarketData
+                  ? "Live · " + (data.providerId ?? "provider").toUpperCase()
+                  : "Mock data"}
               </Badge>
             </div>
             <h1
@@ -266,7 +272,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       </section>
 
       <footer className="border-t border-zinc-800 pt-3 text-[10px] leading-relaxed text-zinc-600">
-        Mock provider · presentation only · filtering and sorting never modify engine decisions.
+        {(data.liveMarketData ? (data.providerId ?? "live").toUpperCase() : "Mock") +
+          " provider"} · presentation only · filtering and sorting never modify engine decisions.
       </footer>
     </div>
   );

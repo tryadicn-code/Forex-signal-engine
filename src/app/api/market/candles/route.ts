@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SYMBOL_METADATA } from "@/config/scanner";
-import { DEFAULT_SCAN_ASOF } from "@/server/scanner-access";
+import { runtimeDefaultAsOf } from "@/server/runtime-market-data";
 import { readPriceCandles } from "@/server/market-candles-access";
 import type { Timeframe } from "@/types/market";
 
@@ -35,11 +35,12 @@ export async function GET(request: NextRequest) {
     ? Math.min(MAX_LIMIT, Math.max(MIN_LIMIT, Math.trunc(requestedLimit)))
     : DEFAULT_LIMIT;
 
-  const requestedAsOf = Number(params.get("asOf") ?? DEFAULT_SCAN_ASOF);
+  const fallbackAsOf = runtimeDefaultAsOf();
+  const requestedAsOf = Number(params.get("asOf") ?? fallbackAsOf);
   const asOf =
     Number.isFinite(requestedAsOf) && requestedAsOf > 0
       ? requestedAsOf
-      : DEFAULT_SCAN_ASOF;
+      : fallbackAsOf;
 
   const result = await readPriceCandles({
     symbol,
@@ -53,7 +54,9 @@ export async function GET(request: NextRequest) {
       result.error.code === "SYMBOL_NOT_SUPPORTED" ||
       result.error.code === "TIMEFRAME_NOT_SUPPORTED"
         ? 400
-        : 503;
+        : result.error.code === "RATE_LIMIT"
+          ? 429
+          : 503;
 
     return NextResponse.json(
       {

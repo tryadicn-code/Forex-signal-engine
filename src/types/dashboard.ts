@@ -3,10 +3,7 @@ import type { ScannerHealth, ScannerSnapshot } from "@/scanner/scanner-result";
 import type { SignalStateTransition } from "@/types/market-data";
 
 /**
- * Serializable application-facing payload for the Phase 3 dashboard.
- *
- * This is a read model only. It contains scanner output and repository history;
- * it does not contain provider instances or trading logic.
+ * Serializable application-facing payload for the dashboard.
  */
 export interface DashboardData {
   snapshot: ScannerSnapshot | null;
@@ -16,4 +13,8 @@ export interface DashboardData {
   recentTransitions: SignalStateTransition[];
   signalHistory: Record<string, SignalStateTransition[]>;
   scanError: string | null;
+  /** Runtime market-data provider id. Optional for test fixtures/backward compatibility. */
+  providerId?: string;
+  /** True only when the runtime provider is not the deterministic mock. */
+  liveMarketData?: boolean;
 }

@@ -1,26 +1,25 @@
 /**
- * Server-side scanner access for the Phase 3 dashboard.
+ * Server-side scanner access.
  *
- * This is the composition root. UI components and route handlers reach the
- * scanner through this layer:
- *
- * UI -> scanner-access -> ScannerApi -> ScannerService -> provider -> Phase 1
- *
- * No component constructs a provider or runs a Phase 1 engine directly.
+ * Runtime provider selection lives in server/runtime-market-data. Phase 1/2
+ * remain provider-agnostic and receive only canonical market data.
  */
 
 import "server-only";
 
 import { ScannerApi } from "@/scanner/scanner-api";
-import {
-  MockMarketDataProvider,
-  MOCK_ANALYSIS_ANCHOR,
-} from "@/providers/market-data/mock-provider";
-import { DEMO_SCENARIOS } from "@/config/demo-scenarios";
 import { isTerminalState } from "@/lib/signal-meta";
 import type { DashboardData } from "@/types/dashboard";
+import {
+  primeRuntimeConversionRates,
+  runtimeConversionResolver,
+  runtimeDefaultAsOf,
+  runtimeMarketDataProvider,
+  runtimeProviderId,
+  runtimeUsesLiveMarketData,
+} from "@/server/runtime-market-data";
 
-export const DEFAULT_SCAN_ASOF = MOCK_ANALYSIS_ANCHOR;
+export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
 
 let api: ScannerApi | null = null;
@@ -28,8 +27,11 @@ let api: ScannerApi | null = null;
 function scanner(): ScannerApi {
   if (!api) {
     api = new ScannerApi(
-      { providerId: "mock" },
-      { marketData: new MockMarketDataProvider({ scenarios: DEMO_SCENARIOS }) }
+      { providerId: runtimeProviderId() },
+      {
+        marketData: runtimeMarketDataProvider(),
+        conversionResolver: runtimeConversionResolver(),
+      }
     );
   }
   return api;
@@ -51,45 +53,44 @@ function dashboardView(inst: ScannerApi, scanError: string | null): DashboardDat
     recentTransitions: inst.getRecentTransitions(RECENT_TRANSITIONS),
     signalHistory,
     scanError,
+    providerId: runtimeProviderId(),
+    liveMarketData: runtimeUsesLiveMarketData(),
   };
 }
 
+async function runScanner(inst: ScannerApi, asOf: number): Promise<string | null> {
+  try {
+    await primeRuntimeConversionRates(asOf, inst.config.account.currency);
+    await inst.runScan(asOf);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+}
+
 /**
- * Guarantee that an initial deterministic scan exists, then return a serializable
- * dashboard read model. Repeated reads do not rerun the engine.
+ * Guarantee an initial scan exists. Mock mode remains deterministic; live mode
+ * anchors to the wall clock at the moment the initial scan is requested.
  */
 export async function readDashboard(
-  asOf: number = DEFAULT_SCAN_ASOF
+  asOf: number = runtimeDefaultAsOf()
 ): Promise<DashboardData> {
   const inst = scanner();
   let scanError: string | null = null;
 
   if (!inst.getLatestSnapshot()) {
-    try {
-      await inst.runScan(asOf);
-    } catch (error) {
-      scanError = error instanceof Error ? error.message : String(error);
-    }
+    scanError = await runScanner(inst, asOf);
   }
 
   return dashboardView(inst, scanError);
 }
 
-/**
- * Run one user-requested scan cycle and return the new dashboard read model.
- */
+/** Run one user-requested fresh scan cycle. */
 export async function refreshScanner(
-  asOf: number = Date.now()
+  asOf: number = runtimeDefaultAsOf()
 ): Promise<DashboardData> {
   const inst = scanner();
-  let scanError: string | null = null;
-
-  try {
-    await inst.runScan(asOf);
-  } catch (error) {
-    scanError = error instanceof Error ? error.message : String(error);
-  }
-
+  const scanError = await runScanner(inst, asOf);
   return dashboardView(inst, scanError);
 }
 
