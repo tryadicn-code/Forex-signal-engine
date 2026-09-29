@@ -25,5 +25,7 @@ export interface DashboardData {
     enabled: boolean;
     scanIntervalMs: number;
     dashboardSyncIntervalMs: number;
+    /** Server runtime target for the next automatic scan. */
+    nextScanAt: number | null;
   };
 }
