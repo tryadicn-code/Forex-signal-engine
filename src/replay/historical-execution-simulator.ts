@@ -5,6 +5,7 @@ import type {
   HistoricalDirection,
   HistoricalExecutionConfig,
   HistoricalExecutionSummary,
+  HistoricalEquityPoint,
   HistoricalIntrabarConflictPolicy,
   HistoricalOrder,
   HistoricalPosition,
@@ -31,6 +32,7 @@ export class HistoricalExecutionSimulator {
   private orders: HistoricalOrder[] = [];
   private positions: HistoricalPosition[] = [];
   private trades: HistoricalTrade[] = [];
+  private equityCurve: HistoricalEquityPoint[] = [];
 
   constructor(input: {
     dataset: ReplayDataset;
@@ -76,6 +78,7 @@ export class HistoricalExecutionSimulator {
   /** Consume only new execution decisions after the scanner has run at asOf. */
   consumeStep(step: ReplayStep): HistoricalExecutionSummary {
     this.consumeExecutions(step);
+    this.recordEquityPoint(step.asOf);
     return this.summary();
   }
 
@@ -350,6 +353,29 @@ export class HistoricalExecutionSimulator {
     if (index >= 0) this.positions[index] = position;
   }
 
+  private recordEquityPoint(asOf: number): void {
+    const snapshot = this.summary();
+    const point: HistoricalEquityPoint = {
+      asOf,
+      balance: snapshot.balance,
+      equity: snapshot.equity,
+      realizedPnL: snapshot.realizedPnL,
+      unrealizedPnL: snapshot.unrealizedPnL,
+      openPositionCount: snapshot.openPositionCount,
+      openRiskPercent: snapshot.openRiskPercent,
+    };
+
+    const existingIndex = this.equityCurve.findIndex(
+      (item) => item.asOf === asOf
+    );
+    if (existingIndex >= 0) {
+      this.equityCurve[existingIndex] = point;
+    } else {
+      this.equityCurve.push(point);
+      this.equityCurve.sort((a, b) => a.asOf - b.asOf);
+    }
+  }
+
   private balance(): number {
     return (
       this.initialBalance +
@@ -393,6 +419,7 @@ export class HistoricalExecutionSimulator {
       orders: this.orders.map((order) => ({ ...order })),
       openPositions: openPositions.map((position) => ({ ...position })),
       trades: this.trades.map((trade) => ({ ...trade })),
+      equityCurve: this.equityCurve.map((point) => ({ ...point })),
     };
   }
 }
