@@ -2,7 +2,6 @@ import type { MarketDataProvider } from "@/providers/market-data/provider";
 import type { ScannerSnapshot, SymbolScanResult } from "@/scanner/scanner-result";
 import { candleCloseTime } from "@/market-data/timeframe";
 import {
-  DEFAULT_PAPER_TRADING_CONFIG,
   resolvePaperTradingConfig,
   type PaperTradingConfig,
 } from "@/config/paper";
@@ -19,7 +18,6 @@ import type {
   PaperAccountSummary,
   PaperDashboardData,
   PaperDirection,
-  PaperLedgerEvent,
   PaperOrder,
   PaperPosition,
   PaperStoreState,
