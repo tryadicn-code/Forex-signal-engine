@@ -43,3 +43,24 @@ export type {
   HistoricalSegmentPerformance,
   HistoricalSessionBucket,
 } from "@/replay/analytics-types";
+
+export { importHistoricalCsvFiles } from "@/replay/historical-csv-import";
+export { runImportedBacktest } from "@/replay/imported-backtest-runner";
+export {
+  BacktestValidationError,
+} from "@/replay/backtest-run-types";
+export type {
+  BacktestRunArtifact,
+  BacktestRunConfig,
+  BacktestRunListItem,
+  ResolvedBacktestRunConfig,
+} from "@/replay/backtest-run-types";
+export type {
+  HistoricalCsvImportOptions,
+  HistoricalCsvImportResult,
+  HistoricalDatasetValidation,
+  HistoricalFileSummary,
+  HistoricalImportIssue,
+  HistoricalSeriesCoverage,
+  HistoricalTextFile,
+} from "@/replay/import-types";
