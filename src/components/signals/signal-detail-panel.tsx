@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  Badge,
   BiasBadge,
   DecisionBadge,
   DirectionBadge,
