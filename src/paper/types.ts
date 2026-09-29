@@ -65,6 +65,8 @@ export interface PaperPosition {
   plannedRR: number | null;
   openedAt: number;
   updatedAt: number;
+  /** Open timestamp of the newest full post-entry M15 candle already evaluated. */
+  lastEvaluatedCandleTimestamp: number | null;
   status: PaperPositionStatus;
   unrealizedPnL: number;
   currentR: number;
