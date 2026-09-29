@@ -9,14 +9,15 @@ const NAV_ITEMS = [
   { href: "#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
   { href: "#scanner", label: "Scanner", desktopLabel: "Scanner", glyph: "≣" },
   { href: "#signals", label: "Signals", desktopLabel: "Signals", glyph: "⚡" },
-  { href: "#markets", label: "Health", desktopLabel: "Markets", glyph: "◉" },
+  { href: "#portfolio", label: "Portfolio", desktopLabel: "Portfolio", glyph: "◫" },
+  { href: "#journal", label: "Journal", desktopLabel: "Journal", glyph: "◎" },
 ] as const;
 
 export function SidebarNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-4 border-t border-zinc-800 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:static md:h-auto md:w-52 md:grid-cols-1 md:border-t-0 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
+      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t border-zinc-800 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:static md:h-auto md:w-52 md:grid-cols-1 md:border-t-0 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
     >
       {NAV_ITEMS.map((item) => (
         <a
