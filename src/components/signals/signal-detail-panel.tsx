@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   BiasBadge,
   DecisionBadge,
@@ -13,6 +13,7 @@ import { EvidenceList } from "@/components/signals/evidence-list";
 import { MtfContext } from "@/components/signals/mtf-context";
 import { SignalLifecycle } from "@/components/signals/signal-lifecycle";
 import { TransitionHistory } from "@/components/signals/transition-history";
+import { PriceChart } from "@/components/signals/price-chart";
 import {
   formatFixed,
   formatPips,
@@ -37,6 +38,8 @@ export function SignalDetailPanel({
   transitions: SignalStateTransition[];
   onClose: () => void;
 }) {
+  const [view, setView] = useState<"overview" | "chart">("overview");
+
   useEffect(() => {
     if (!result) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -102,6 +105,45 @@ export function SignalDetailPanel({
           <FailureDetail result={result} />
         ) : (
           <>
+            <div
+              role="tablist"
+              aria-label="Signal detail view"
+              className="grid grid-cols-2 rounded-md border border-zinc-800 bg-zinc-950/60 p-0.5"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "overview"}
+                onClick={() => setView("overview")}
+                className={cn(
+                  "rounded px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
+                  view === "overview"
+                    ? "bg-zinc-800 text-zinc-100"
+                    : "text-zinc-500 hover:text-zinc-200"
+                )}
+              >
+                Overview
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "chart"}
+                onClick={() => setView("chart")}
+                className={cn(
+                  "rounded px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
+                  view === "chart"
+                    ? "bg-emerald-950/60 text-emerald-300"
+                    : "text-zinc-500 hover:text-zinc-200"
+                )}
+              >
+                Chart
+              </button>
+            </div>
+
+            {view === "chart" ? (
+              <PriceChart symbol={result.symbol} asOf={result.updatedAt} />
+            ) : (
+              <>
             <section aria-labelledby="decision-title">
               <SectionTitle id="decision-title">Decision</SectionTitle>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -183,6 +225,8 @@ export function SignalDetailPanel({
             </section>
 
             <DataQuality result={result} />
+              </>
+            )}
           </>
         )}
       </div>
