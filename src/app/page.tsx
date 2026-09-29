@@ -8,7 +8,10 @@ export default async function Home() {
   const data = await readDashboard();
 
   return (
-    <DashboardShell>
+    <DashboardShell
+      providerId={data.providerId}
+      liveMarketData={data.liveMarketData}
+    >
       <DashboardWorkspace initialData={data} />
     </DashboardShell>
   );
