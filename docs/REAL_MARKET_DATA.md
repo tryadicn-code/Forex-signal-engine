@@ -1,86 +1,150 @@
 # Real Market Data Integration
 
-This bridge sits between locked Phase 3 and Phase 4. It changes the runtime
-market-data source without changing trading strategy logic or enabling orders.
+This bridge sits between locked Phase 3 and Phase 4. It changes only the
+market-data source. The execution mode remains SIGNAL_ONLY and no broker order
+endpoint exists.
 
-## Provider modes
+## Runtime providers
 
 ```text
-MARKET_DATA_PROVIDER=mock   -> deterministic offline provider
-MARKET_DATA_PROVIDER=oanda  -> OANDA v20 market data
+MarketDataProvider
+├── mock   -> deterministic CI / replay / development
+├── mt5    -> primary free live feed through local MetaTrader 5
+└── oanda  -> optional REST provider
 ```
 
-Mock remains the default for CI, replay, and deterministic tests.
+## Primary live path: MetaTrader 5
 
-OANDA mode is market-data only. The application remains `SIGNAL_ONLY`; this
-integration does not create, modify, or submit broker orders.
+```text
+Broker demo/live market feed
+        ↓
+MetaTrader 5 terminal
+        ↓
+Python read-only local bridge
+        ↓
+Mt5MarketDataProvider
+        ↓
+canonical market data
+        ↓
+validation / closed-candle safety / freshness
+        ↓
+D1 / H4 / H1 / M15
+        ↓
+existing Phase 1 engine
+        ↓
+scanner + dashboard
+```
 
-## OANDA practice setup
+The bridge binds to `127.0.0.1:8765` by default and exposes only:
 
-Create `.env.local` from `.env.example` and set:
+- `GET /health`
+- `GET /candles`
+- `GET /quote`
+
+There are deliberately no order, position, buy, sell, or broker-execution
+routes.
+
+## Windows setup
+
+1. Install MetaTrader 5 from the broker you want to use.
+2. Open MT5 and log in to a demo account.
+3. Keep the terminal running.
+4. Install Python 3 for Windows if it is not already installed.
+5. In PowerShell from the repository root run:
+
+```powershell
+.\scripts\mt5\start-bridge.ps1
+```
+
+The script installs the official `MetaTrader5` Python package if necessary and
+starts the local read-only bridge.
+
+In a second PowerShell window verify:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8765/health
+```
+
+A connected terminal should return `connected = True`.
+
+## Forex Signal Engine configuration
+
+Create or replace `.env.local` with the staged EURUSD setup:
 
 ```dotenv
-MARKET_DATA_PROVIDER=oanda
+MARKET_DATA_PROVIDER=mt5
 SCANNER_SYMBOLS=EURUSD
-OANDA_ENVIRONMENT=practice
-OANDA_API_TOKEN=<personal access token>
-OANDA_ACCOUNT_ID=<practice account id>
+MT5_BRIDGE_URL=http://127.0.0.1:8765
 ```
 
-Do not commit `.env.local`.
+Restart Next.js after changing the environment:
 
-The default practice REST base URL is:
-
-```text
-https://api-fxpractice.oanda.com
+```powershell
+npm run dev -- -p 3001
 ```
 
-The live REST URL is supported by the adapter, but practice should be used for
-this pre-Phase-4 acceptance step.
+The dashboard should display `LIVE · MT5`.
 
-## Runtime path
+## Broker symbol suffixes
 
-```text
-OANDA REST
-  -> OandaMarketDataProvider
-  -> canonical closed candles / quote / spread
-  -> validation + freshness
-  -> D1 / H4 / H1 / M15 context
-  -> existing Phase 1 engine
-  -> scanner API
-  -> dashboard + chart
+Many brokers expose symbols such as `EURUSDm`, `EURUSD.a`, or similar.
+The bridge first tries the canonical name and then auto-discovers a symbol
+starting with the canonical pair.
+
+For unusual broker naming, the bridge process also accepts:
+
+```powershell
+$env:MT5_SYMBOL_PREFIX=""
+$env:MT5_SYMBOL_SUFFIX="m"
+.\scripts\mt5\start-bridge.ps1
 ```
 
-The provider maps internal symbols such as `EURUSD` to OANDA instruments such
-as `EUR_USD`, and internal timeframes to OANDA granularities.
+These variables belong to the bridge process, not Next.js.
+
+## Staged acceptance
+
+Start with:
+
+```dotenv
+SCANNER_SYMBOLS=EURUSD
+```
+
+Confirm:
+
+1. Bridge health is connected.
+2. Dashboard says `LIVE · MT5`.
+3. EURUSD is ANALYSED rather than PROVIDER_FAILURE.
+4. D1/H4/H1/M15 each have sufficient closed candles.
+5. Freshness is sensible for the current market session.
+6. Latest price and spread are plausible compared with the MT5 terminal.
+7. Chart, when opened, reports `MT5 provider`.
+
+Then expand to all configured pairs:
+
+```dotenv
+SCANNER_SYMBOLS=EURUSD,GBPUSD,USDJPY,USDCHF,AUDUSD,NZDUSD,USDCAD,EURJPY,GBPJPY,EURGBP,AUDJPY,EURAUD,GBPAUD
+```
+
+## No-lookahead behavior
+
+The bridge receives the scanner's `asOf` time. It returns only bars whose full
+timeframe interval has closed by that time. Latest quote requests use a current
+tick only when it is at or before `asOf` and recent; otherwise the bridge
+derives an as-of quote from completed M1 market data.
 
 ## Account-currency conversion
 
-Risk sizing still runs inside the existing pure Risk Engine. Before a live scan,
-the server primes the synchronous conversion resolver from real provider quotes.
-For a USD account this includes the required USD conversion legs such as
-USDJPY/USDCHF/USDCAD and direct GBPUSD/AUDUSD rates. Missing rates stay missing;
-the engine is allowed to reject risk rather than use a fabricated fallback.
-
-## Acceptance checks before Phase 4
-
-1. Start with OANDA practice credentials.
-2. Run one EURUSD scan and compare the latest closed M15/H1/H4/D1 bars against
-   OANDA.
-3. Verify dashboard badge reads `LIVE · OANDA`.
-4. Verify provider state is CONNECTED and freshness is not stale during an open
-   market.
-5. Verify chart source reads `OANDA provider`.
-6. Verify JPY pairs use 3-digit precision and 0.01 pip size.
-7. Verify non-USD quote pairs do not receive a mock conversion rate.
-8. Expand to all 13 configured pairs only after the single-pair check passes.
+Before each scan, the server primes the existing synchronous conversion resolver
+from the active live provider. Missing conversion rates remain missing so the
+Risk Engine can reject rather than use a fabricated fallback.
 
 ## Rollback
 
-Set:
+To return to deterministic mock data:
 
 ```dotenv
 MARKET_DATA_PROVIDER=mock
+SCANNER_SYMBOLS=EURUSD
 ```
 
-and restart the Next.js server. No source changes are required.
+Restart Next.js. No source change is required.

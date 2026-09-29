@@ -3,7 +3,7 @@
  *
  * The scanner remains provider-agnostic. Deployments choose the provider with
  * MARKET_DATA_PROVIDER, while tests/default development stay on mock unless
- * explicitly switched to OANDA.
+ * explicitly switched to a live provider.
  */
 
 import { SYMBOL_METADATA } from "@/config/scanner";
@@ -13,9 +13,10 @@ import {
   OandaMarketDataProvider,
   type OandaEnvironment,
 } from "./oanda-provider";
+import { Mt5MarketDataProvider } from "./mt5-provider";
 import type { MarketDataProvider } from "./provider";
 
-export type RuntimeMarketDataProviderId = "mock" | "oanda";
+export type RuntimeMarketDataProviderId = "mock" | "oanda" | "mt5";
 
 export interface RuntimeProviderOptions {
   env?: Record<string, string | undefined>;
@@ -29,7 +30,9 @@ export function resolveRuntimeProviderId(
     .trim()
     .toLowerCase();
 
-  return configured === "oanda" ? "oanda" : "mock";
+  if (configured === "oanda") return "oanda";
+  if (configured === "mt5") return "mt5";
+  return "mock";
 }
 
 export function resolveRuntimeSymbols(
@@ -51,6 +54,13 @@ export function createRuntimeMarketDataProvider(
 ): MarketDataProvider {
   const env = options.env ?? process.env;
   const providerId = resolveRuntimeProviderId(env);
+
+  if (providerId === "mt5") {
+    return new Mt5MarketDataProvider({
+      bridgeUrl: env.MT5_BRIDGE_URL,
+      requestTimeoutMs: parsePositiveInt(env.MT5_REQUEST_TIMEOUT_MS),
+    });
+  }
 
   if (providerId === "oanda") {
     const environment: OandaEnvironment =
