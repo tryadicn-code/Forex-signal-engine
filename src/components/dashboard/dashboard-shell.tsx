@@ -1,5 +1,5 @@
 /**
- * Application shell for the Phase 3 workstation.
+ * Application shell for the Phase 4 paper-trading workstation.
  *
  * Mobile keeps the chrome intentionally quiet: brand + execution mode on top,
  * fixed bottom navigation, and no duplicate provider strip. Desktop retains the
