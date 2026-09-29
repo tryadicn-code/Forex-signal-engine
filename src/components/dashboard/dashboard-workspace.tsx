@@ -51,17 +51,16 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       : [];
 
   useEffect(() => {
-    if (!data.automation?.enabled) {
-      setClockNow(null);
-      return;
-    }
+    if (!data.automation?.enabled) return;
 
-    setClockNow(Date.now());
-    const timer = window.setInterval(() => {
-      setClockNow(Date.now());
-    }, 1_000);
+    const tick = () => setClockNow(Date.now());
+    const initialTick = window.setTimeout(tick, 0);
+    const timer = window.setInterval(tick, 1_000);
 
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialTick);
+      window.clearInterval(timer);
+    };
   }, [data.automation?.enabled]);
 
   useEffect(() => {
