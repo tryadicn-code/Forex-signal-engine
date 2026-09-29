@@ -247,25 +247,50 @@ function maxDrawdown(
 
 function buildRDistribution(values: number[]): HistoricalRDistributionBin[] {
   const bins = [
-    { key: "LTE_NEG_1", label: "≤ -1R", min: null, max: -1 },
-    { key: "NEG_1_TO_0", label: "-1R to 0R", min: -1, max: 0 },
-    { key: "ZERO_TO_1", label: "0R to 1R", min: 0, max: 1 },
-    { key: "ONE_TO_2", label: "1R to 2R", min: 1, max: 2 },
-    { key: "GTE_2", label: "≥ 2R", min: 2, max: null },
-  ] as const;
+    {
+      key: "LTE_NEG_1",
+      label: "≤ -1R",
+      minInclusive: null,
+      maxExclusive: -1,
+      matches: (value: number) => value <= -1,
+    },
+    {
+      key: "NEG_1_TO_0",
+      label: "-1R to 0R",
+      minInclusive: -1,
+      maxExclusive: 0,
+      matches: (value: number) => value > -1 && value < 0,
+    },
+    {
+      key: "ZERO_TO_1",
+      label: "0R to 1R",
+      minInclusive: 0,
+      maxExclusive: 1,
+      matches: (value: number) => value >= 0 && value < 1,
+    },
+    {
+      key: "ONE_TO_2",
+      label: "1R to 2R",
+      minInclusive: 1,
+      maxExclusive: 2,
+      matches: (value: number) => value >= 1 && value < 2,
+    },
+    {
+      key: "GTE_2",
+      label: "≥ 2R",
+      minInclusive: 2,
+      maxExclusive: null,
+      matches: (value: number) => value >= 2,
+    },
+  ];
 
   return bins.map((bin) => {
-    const count = values.filter((value) => {
-      if (bin.min === null) return value <= bin.max!;
-      if (bin.max === null) return value >= bin.min;
-      return value >= bin.min && value < bin.max;
-    }).length;
-
+    const count = values.filter(bin.matches).length;
     return {
       key: bin.key,
       label: bin.label,
-      minInclusive: bin.min,
-      maxExclusive: bin.max,
+      minInclusive: bin.minInclusive,
+      maxExclusive: bin.maxExclusive,
       count,
       percent: values.length > 0 ? (count / values.length) * 100 : 0,
     };
