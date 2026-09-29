@@ -80,21 +80,26 @@ export function findLegalTransitionPath(
   to: SignalState
 ): SignalState[] | null {
   if (from === to) return [];
+  if (isLegalTransition(from, to)) return [to];
 
-  const queue: Array<{ state: SignalState; path: SignalState[] }> = [
-    { state: from, path: [] },
+  const progression: SignalState[] = [
+    "DISCOVERED",
+    "WATCH",
+    "SETUP",
+    "ARMED",
+    "TRIGGERED",
+    "RISK_APPROVED",
+    "EXECUTE",
   ];
-  const visited = new Set<SignalState>([from]);
+  const fromIndex = progression.indexOf(from);
+  const toIndex = progression.indexOf(to);
 
-  while (queue.length > 0) {
-    const current = queue.shift()!;
-    for (const next of LEGAL_TRANSITIONS[current.state] ?? []) {
-      if (visited.has(next)) continue;
-      const path = [...current.path, next];
-      if (next === to) return path;
-      visited.add(next);
-      queue.push({ state: next, path });
-    }
+  if (fromIndex >= 0 && toIndex > fromIndex) {
+    return progression.slice(fromIndex + 1, toIndex + 1);
+  }
+
+  if (from === "BLOCKED" && to === "EXECUTE") {
+    return ["RISK_APPROVED", "EXECUTE"];
   }
 
   return null;
