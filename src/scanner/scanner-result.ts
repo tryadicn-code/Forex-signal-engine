@@ -59,9 +59,20 @@ export interface ExecutionDetail {
 export interface RiskDetail {
   approved: boolean;
   rejectionReason: string | null;
+  /** Frozen entry candidate used by the existing Risk Engine. */
+  entryPrice: number | null;
+  /** Setup invalidation level used as the hard stop. */
+  stopLoss: number | null;
   stopDistancePips: number | null;
   takeProfit1: number | null;
   takeProfit2: number | null;
+  /** Risk Engine capital-at-risk snapshot in account currency. */
+  riskCapital: number | null;
+  riskPercent: number | null;
+  positionSize: number | null;
+  plannedRR: number | null;
+  pipSize: number | null;
+  accountCurrency: string | null;
 }
 
 export interface SymbolScanResult {
