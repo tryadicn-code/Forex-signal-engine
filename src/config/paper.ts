@@ -9,6 +9,12 @@ export interface PaperTradingConfig {
   maxOpenPositions: number;
   maxTotalOpenRiskPercent: number;
   intrabarConflictPolicy: IntrabarConflictPolicy;
+  /** Run the scanner continuously while the Phase 4 server process is alive. */
+  autoScanEnabled: boolean;
+  /** Server-side scan cadence. M15 strategy defaults to a conservative 60s poll. */
+  autoScanIntervalMs: number;
+  /** Read-only browser sync cadence; never creates orders by itself. */
+  dashboardSyncIntervalMs: number;
 }
 
 export const DEFAULT_PAPER_TRADING_CONFIG: PaperTradingConfig = {
@@ -18,6 +24,9 @@ export const DEFAULT_PAPER_TRADING_CONFIG: PaperTradingConfig = {
   maxOpenPositions: 10,
   maxTotalOpenRiskPercent: 5,
   intrabarConflictPolicy: "STOP_FIRST",
+  autoScanEnabled: true,
+  autoScanIntervalMs: 60_000,
+  dashboardSyncIntervalMs: 15_000,
 };
 
 export function resolvePaperTradingConfig(
