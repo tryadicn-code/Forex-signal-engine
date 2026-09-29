@@ -1,16 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { PriceChartResponse } from "@/types/chart";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { PriceChartCandle, PriceChartResponse } from "@/types/chart";
 import type { Timeframe } from "@/types/market";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const TIMEFRAMES: Timeframe[] = ["M15", "H1", "H4", "D1"];
-const VISIBLE_BARS = 120;
 const WIDTH = 900;
 const HEIGHT = 380;
 const PAD = { top: 18, right: 70, bottom: 28, left: 10 };
+
+export function visibleBarsForWidth(width: number): number {
+  if (width < 600) return 60;
+  if (width < 1000) return 80;
+  return 120;
+}
 
 export function PriceChart({
   symbol,
@@ -22,6 +27,8 @@ export function PriceChart({
   const [timeframe, setTimeframe] = useState<Timeframe>("H1");
   const [data, setData] = useState<PriceChartResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [visibleBars, setVisibleBars] = useState(60);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -53,9 +60,25 @@ export function PriceChart({
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
         setError(cause instanceof Error ? cause.message : String(cause));
-      })
+      });
+
     return () => controller.abort();
   }, [symbol, timeframe, asOf]);
+
+  useEffect(() => {
+    const element = chartContainerRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (!width) return;
+      const next = visibleBarsForWidth(width);
+      setVisibleBars((current) => (current === next ? current : next));
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section aria-label={"Price chart for " + symbol} className="space-y-3">
@@ -84,7 +107,7 @@ export function PriceChart({
           ))}
         </div>
         <div className="text-right">
-          <div className="font-mono text-xs font-semibold text-zinc-200">
+          <div className="font-mono text-sm font-semibold tabular-nums text-zinc-100">
             {data?.candles.length
               ? formatPrice(symbol, data.candles[data.candles.length - 1].close)
               : "—"}
@@ -95,7 +118,10 @@ export function PriceChart({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-md border border-zinc-800 bg-[#090c11]">
+      <div
+        ref={chartContainerRef}
+        className="overflow-hidden rounded-md border border-zinc-800 bg-[#090c11]"
+      >
         {!data && !error ? (
           <div
             aria-busy="true"
@@ -111,7 +137,7 @@ export function PriceChart({
             <p className="mt-1 max-w-sm text-xs leading-relaxed text-zinc-500">{error}</p>
           </div>
         ) : data && data.candles.length > 0 ? (
-          <CandlesSvg data={data} />
+          <CandlesSvg data={data} visibleBars={visibleBars} />
         ) : (
           <div className="flex h-72 items-center justify-center text-xs text-zinc-600">
             No closed candles available.
@@ -121,7 +147,7 @@ export function PriceChart({
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-zinc-600">
         <span>
-          {data ? Math.min(data.candles.length, VISIBLE_BARS) : 0} visible · {data?.candles.length ?? 0} loaded
+          {data ? Math.min(data.candles.length, visibleBars) : 0} visible · {data?.candles.length ?? 0} loaded
         </span>
         <span>
           {data?.source ? data.source.toUpperCase() + " provider" : "—"}
@@ -131,103 +157,200 @@ export function PriceChart({
   );
 }
 
-function CandlesSvg({ data }: { data: PriceChartResponse }) {
-  const model = useMemo(() => chartModel(data), [data]);
+function CandlesSvg({
+  data,
+  visibleBars,
+}: {
+  data: PriceChartResponse;
+  visibleBars: number;
+}) {
+  const model = useMemo(() => chartModel(data, visibleBars), [data, visibleBars]);
+  const [hoveredTimestamp, setHoveredTimestamp] = useState<number | null>(null);
+  const [selectedTimestamp, setSelectedTimestamp] = useState<number | null>(null);
+
+  const activeCandle =
+    model.candles.find((candle) => candle.timestamp === hoveredTimestamp) ??
+    model.candles.find((candle) => candle.timestamp === selectedTimestamp) ??
+    model.candles.at(-1) ??
+    null;
 
   return (
-    <svg
-      viewBox={"0 0 " + WIDTH + " " + HEIGHT}
-      role="img"
-      aria-label={
-        data.symbol +
-        " " +
-        data.timeframe +
-        " candlestick chart with " +
-        model.candles.length +
-        " closed candles"
-      }
-      className="block h-auto min-h-64 w-full touch-pan-y select-none"
-      preserveAspectRatio="none"
-    >
-      <rect width={WIDTH} height={HEIGHT} fill="#090c11" />
+    <div className="relative">
+      {activeCandle && (
+        <OhlcReadout
+          candle={activeCandle}
+          symbol={data.symbol}
+          timeframe={data.timeframe}
+        />
+      )}
 
-      {model.gridY.map((grid) => (
-        <g key={grid.y}>
-          <line
-            x1={PAD.left}
-            x2={WIDTH - PAD.right}
-            y1={grid.y}
-            y2={grid.y}
-            stroke="#27272a"
-            strokeWidth="1"
-          />
-          <text
-            x={WIDTH - PAD.right + 8}
-            y={grid.y + 4}
-            fill="#71717a"
-            fontSize="11"
-            fontFamily="ui-monospace, monospace"
-          >
-            {grid.label}
-          </text>
-        </g>
-      ))}
+      <svg
+        viewBox={"0 0 " + WIDTH + " " + HEIGHT}
+        role="img"
+        aria-label={
+          data.symbol +
+          " " +
+          data.timeframe +
+          " candlestick chart with " +
+          model.candles.length +
+          " closed candles"
+        }
+        className="block h-auto min-h-64 w-full touch-pan-y select-none"
+        preserveAspectRatio="none"
+      >
+        <rect width={WIDTH} height={HEIGHT} fill="#090c11" />
 
-      {model.candles.map((candle) => (
-        <g key={candle.timestamp}>
-          <line
-            x1={candle.x}
-            x2={candle.x}
-            y1={candle.highY}
-            y2={candle.lowY}
-            stroke={candle.up ? "#34d399" : "#fb7185"}
-            strokeWidth="1.2"
-          />
+        {model.gridY.map((grid) => (
+          <g key={grid.y}>
+            <line
+              x1={PAD.left}
+              x2={WIDTH - PAD.right}
+              y1={grid.y}
+              y2={grid.y}
+              stroke="#27272a"
+              strokeWidth="1"
+            />
+            <text
+              x={WIDTH - PAD.right + 8}
+              y={grid.y + 4}
+              fill="#71717a"
+              fontSize="11"
+              fontFamily="ui-monospace, monospace"
+            >
+              {grid.label}
+            </text>
+          </g>
+        ))}
+
+        <line
+          data-testid="current-price-line"
+          x1={PAD.left}
+          x2={WIDTH - PAD.right}
+          y1={model.currentPriceY}
+          y2={model.currentPriceY}
+          stroke="#10b981"
+          strokeWidth="1"
+          strokeDasharray="5 4"
+          opacity="0.75"
+        />
+        <rect
+          x={WIDTH - PAD.right + 3}
+          y={model.currentPriceY - 8}
+          width={64}
+          height={16}
+          rx="3"
+          fill="#064e3b"
+        />
+        <text
+          x={WIDTH - PAD.right + 35}
+          y={model.currentPriceY + 4}
+          textAnchor="middle"
+          fill="#a7f3d0"
+          fontSize="10"
+          fontFamily="ui-monospace, monospace"
+        >
+          {model.currentPriceLabel}
+        </text>
+
+        {model.candles.map((candle) => (
+          <g key={candle.timestamp}>
+            <line
+              x1={candle.x}
+              x2={candle.x}
+              y1={candle.highY}
+              y2={candle.lowY}
+              stroke={candle.up ? "#34d399" : "#fb7185"}
+              strokeWidth="1.2"
+            />
+            <rect
+              x={candle.x - candle.bodyWidth / 2}
+              y={candle.bodyY}
+              width={candle.bodyWidth}
+              height={candle.bodyHeight}
+              rx="0.5"
+              fill={candle.up ? "#10b981" : "#e11d48"}
+            />
+          </g>
+        ))}
+
+        {model.candles.map((candle) => (
           <rect
-            x={candle.x - candle.bodyWidth / 2}
-            y={candle.bodyY}
-            width={candle.bodyWidth}
-            height={candle.bodyHeight}
-            rx="0.5"
-            fill={candle.up ? "#10b981" : "#e11d48"}
+            key={"hit-" + candle.timestamp}
+            data-candle-timestamp={candle.timestamp}
+            x={candle.x - model.step / 2}
+            y={PAD.top}
+            width={model.step}
+            height={HEIGHT - PAD.top - PAD.bottom}
+            fill="transparent"
+            onPointerEnter={() => setHoveredTimestamp(candle.timestamp)}
+            onPointerLeave={() => setHoveredTimestamp(null)}
+            onPointerDown={() =>
+              setSelectedTimestamp((current) =>
+                current === candle.timestamp ? null : candle.timestamp
+              )
+            }
           />
-        </g>
-      ))}
+        ))}
 
-      <line
-        x1={PAD.left}
-        x2={WIDTH - PAD.right}
-        y1={HEIGHT - PAD.bottom}
-        y2={HEIGHT - PAD.bottom}
-        stroke="#3f3f46"
-        strokeWidth="1"
-      />
+        <line
+          x1={PAD.left}
+          x2={WIDTH - PAD.right}
+          y1={HEIGHT - PAD.bottom}
+          y2={HEIGHT - PAD.bottom}
+          stroke="#3f3f46"
+          strokeWidth="1"
+        />
 
-      <text
-        x={PAD.left}
-        y={HEIGHT - 8}
-        fill="#52525b"
-        fontSize="10"
-        fontFamily="ui-monospace, monospace"
-      >
-        {model.startLabel}
-      </text>
-      <text
-        x={WIDTH - PAD.right}
-        y={HEIGHT - 8}
-        textAnchor="end"
-        fill="#52525b"
-        fontSize="10"
-        fontFamily="ui-monospace, monospace"
-      >
-        {model.endLabel}
-      </text>
-    </svg>
+        <text
+          x={PAD.left}
+          y={HEIGHT - 8}
+          fill="#52525b"
+          fontSize="10"
+          fontFamily="ui-monospace, monospace"
+        >
+          {model.startLabel}
+        </text>
+        <text
+          x={WIDTH - PAD.right}
+          y={HEIGHT - 8}
+          textAnchor="end"
+          fill="#52525b"
+          fontSize="10"
+          fontFamily="ui-monospace, monospace"
+        >
+          {model.endLabel}
+        </text>
+      </svg>
+    </div>
   );
 }
 
-function chartModel(data: PriceChartResponse) {
-  const source = data.candles.slice(-VISIBLE_BARS);
+function OhlcReadout({
+  candle,
+  symbol,
+  timeframe,
+}: {
+  candle: PriceChartCandle;
+  symbol: string;
+  timeframe: Timeframe;
+}) {
+  return (
+    <div
+      data-testid="chart-ohlc"
+      aria-live="polite"
+      className="pointer-events-none absolute left-2 top-2 z-10 flex flex-wrap gap-x-2 gap-y-0.5 rounded border border-zinc-800/80 bg-[#090c11]/90 px-2 py-1 font-mono text-[9px] text-zinc-500 backdrop-blur sm:text-[10px]"
+    >
+      <span className="text-zinc-300">{chartTimeLabel(candle.timestamp, timeframe)}</span>
+      <span>O <b className="font-medium text-zinc-300">{formatPrice(symbol, candle.open)}</b></span>
+      <span>H <b className="font-medium text-emerald-300">{formatPrice(symbol, candle.high)}</b></span>
+      <span>L <b className="font-medium text-rose-300">{formatPrice(symbol, candle.low)}</b></span>
+      <span>C <b className="font-medium text-zinc-100">{formatPrice(symbol, candle.close)}</b></span>
+    </div>
+  );
+}
+
+function chartModel(data: PriceChartResponse, visibleBars: number) {
+  const source = data.candles.slice(-visibleBars);
   const highs = source.map((candle) => candle.high);
   const lows = source.map((candle) => candle.low);
   let max = Math.max(...highs);
@@ -240,7 +363,7 @@ function chartModel(data: PriceChartResponse) {
   const plotWidth = WIDTH - PAD.left - PAD.right;
   const plotHeight = HEIGHT - PAD.top - PAD.bottom;
   const step = plotWidth / Math.max(source.length, 1);
-  const bodyWidth = Math.max(1.5, Math.min(5, step * 0.62));
+  const bodyWidth = Math.max(1.8, Math.min(8, step * 0.62));
   const y = (value: number) =>
     PAD.top + ((max - value) / Math.max(max - min, 1e-8)) * plotHeight;
 
@@ -268,9 +391,14 @@ function chartModel(data: PriceChartResponse) {
     };
   });
 
+  const currentPrice = source.at(-1)?.close ?? 0;
+
   return {
     candles,
     gridY,
+    step,
+    currentPriceY: y(currentPrice),
+    currentPriceLabel: currentPrice.toFixed(data.pricePrecision),
     startLabel: source[0] ? chartTimeLabel(source[0].timestamp, data.timeframe) : "",
     endLabel: source.at(-1)
       ? chartTimeLabel(source.at(-1)!.timestamp, data.timeframe)
