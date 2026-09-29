@@ -94,6 +94,26 @@ describe("HistoricalReplayRunner", () => {
     expect(result.steps[0].snapshot.symbolsRequested).toBe(1);
   });
 
+  it("enables the Phase 5.2 execution layer only when requested", async () => {
+    const withoutExecution = new HistoricalReplayRunner(dataset(), {
+      startAt: T0,
+      endAt: T0,
+    });
+    const withExecution = new HistoricalReplayRunner(dataset(), {
+      startAt: T0,
+      endAt: T0,
+      execution: { enabled: true },
+    });
+
+    const baseline = await withoutExecution.run();
+    const enabled = await withExecution.run();
+
+    expect(baseline.execution).toBeNull();
+    expect(enabled.execution?.enabled).toBe(true);
+    expect(enabled.execution?.initialBalance).toBe(10_000);
+    expect(enabled.execution?.executionTimeframe).toBe("M15");
+  });
+
   it("keeps repositories isolated between replay runs", async () => {
     const first = new HistoricalReplayRunner(dataset(), {
       startAt: T0,
