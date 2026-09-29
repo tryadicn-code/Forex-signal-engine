@@ -1,3 +1,4 @@
+import type { HistoricalExecutionConfig, HistoricalExecutionSummary } from "@/replay/execution-types";
 import type { ScannerSnapshot } from "@/scanner/scanner-result";
 import type { Timeframe } from "@/types/market";
 import type { CanonicalCandle, SymbolMetadata } from "@/types/market-data";
@@ -48,6 +49,8 @@ export interface ReplayRunConfig {
   accountBalance?: number;
   accountCurrency?: string;
   riskPercent?: number;
+  /** Optional Phase 5.2 historical order/position simulation. Disabled by default. */
+  execution?: HistoricalExecutionConfig;
 }
 
 export interface ReplayStep {
@@ -66,6 +69,8 @@ export interface ReplayRunResult {
   firstStepAt: number | null;
   lastStepAt: number | null;
   steps: ReplayStep[];
+  /** Historical execution result when Phase 5.2 execution is enabled. */
+  execution: HistoricalExecutionSummary | null;
 }
 
 export type ReplayStepHandler = (step: ReplayStep) => void | Promise<void>;
