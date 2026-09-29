@@ -26,6 +26,8 @@ export class HistoricalExecutionSimulator {
   private readonly initialBalance: number;
   private readonly executionTimeframe;
   private readonly intrabarConflictPolicy: HistoricalIntrabarConflictPolicy;
+  private readonly maxOpenPositions: number;
+  private readonly maxTotalOpenRiskPercent: number;
   private orders: HistoricalOrder[] = [];
   private positions: HistoricalPosition[] = [];
   private trades: HistoricalTrade[] = [];
@@ -43,9 +45,44 @@ export class HistoricalExecutionSimulator {
     this.executionTimeframe = input.config?.executionTimeframe ?? "M15";
     this.intrabarConflictPolicy =
       input.config?.intrabarConflictPolicy ?? DEFAULT_POLICY;
+    this.maxOpenPositions = input.config?.maxOpenPositions ?? 10;
+    this.maxTotalOpenRiskPercent =
+      input.config?.maxTotalOpenRiskPercent ?? 5;
+
+    if (!Number.isInteger(this.maxOpenPositions) || this.maxOpenPositions <= 0) {
+      throw new Error("Historical maxOpenPositions must be a positive integer.");
+    }
+    if (
+      !Number.isFinite(this.maxTotalOpenRiskPercent) ||
+      this.maxTotalOpenRiskPercent <= 0
+    ) {
+      throw new Error(
+        "Historical maxTotalOpenRiskPercent must be a positive finite number."
+      );
+    }
   }
 
   /**
+   * Advance existing positions to a replay market-time boundary.
+   *
+   * Runner integration calls this BEFORE the scanner evaluates new entries at
+   * the same asOf so realized balance is available to the existing Risk Engine.
+   */
+  advanceTo(asOf: number): HistoricalExecutionSummary {
+    this.advanceOpenPositions(asOf);
+    return this.summary();
+  }
+
+  /** Consume only new execution decisions after the scanner has run at asOf. */
+  consumeStep(step: ReplayStep): HistoricalExecutionSummary {
+    this.consumeExecutions(step);
+    return this.summary();
+  }
+
+  /**
+   * Convenience API for direct consumers/tests: advance exits first, then
+   * consume new entries from the snapshot.
+   *
    * Process one replay snapshot.
    *
    * Exit chronology is processed BEFORE new entries at the same asOf. Therefore
@@ -53,8 +90,8 @@ export class HistoricalExecutionSimulator {
    * to stop or target itself; the first eligible exit candle is N+1.
    */
   processStep(step: ReplayStep): HistoricalExecutionSummary {
-    this.advanceOpenPositions(step.asOf);
-    this.consumeExecutions(step);
+    this.advanceTo(step.asOf);
+    this.consumeStep(step);
     return this.summary();
   }
 
@@ -145,8 +182,42 @@ export class HistoricalExecutionSimulator {
         continue;
       }
 
+      const portfolioRejection = this.validatePortfolioRisk(result);
+      if (portfolioRejection) {
+        this.orders.push(
+          rejectedOrder(result, executionKey, step.asOf, portfolioRejection)
+        );
+        continue;
+      }
+
       this.openPosition(result, executionKey, step.asOf);
     }
+  }
+
+  private validatePortfolioRisk(result: SymbolScanResult): string | null {
+    const openPositions = this.positions.filter(
+      (position) => position.status === "OPEN"
+    );
+    if (openPositions.length >= this.maxOpenPositions) {
+      return "HISTORICAL_MAX_OPEN_POSITIONS";
+    }
+
+    const balance = this.balance();
+    const currentOpenRisk = openPositions.reduce(
+      (sum, position) => sum + position.riskAmount,
+      0
+    );
+    const candidateRisk = result.riskDetail?.riskCapital ?? 0;
+    const projectedRiskPercent =
+      balance > 0
+        ? ((currentOpenRisk + candidateRisk) / balance) * 100
+        : Number.POSITIVE_INFINITY;
+
+    if (projectedRiskPercent > this.maxTotalOpenRiskPercent + 1e-9) {
+      return "HISTORICAL_MAX_TOTAL_RISK";
+    }
+
+    return null;
   }
 
   private openPosition(
