@@ -68,6 +68,39 @@ export interface TransitionResult {
 }
 
 /**
+ * Find a shortest legal path between lifecycle states.
+ *
+ * Scanner cycles are snapshots, not an event stream: the engine can move from
+ * WATCH to EXECUTE between two scans. Rather than permitting an illegal jump,
+ * the lifecycle catches up through the existing legal edges. Terminal CLOSED
+ * remains terminal because no path leaves it.
+ */
+export function findLegalTransitionPath(
+  from: SignalState,
+  to: SignalState
+): SignalState[] | null {
+  if (from === to) return [];
+
+  const queue: Array<{ state: SignalState; path: SignalState[] }> = [
+    { state: from, path: [] },
+  ];
+  const visited = new Set<SignalState>([from]);
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const next of LEGAL_TRANSITIONS[current.state] ?? []) {
+      if (visited.has(next)) continue;
+      const path = [...current.path, next];
+      if (next === to) return path;
+      visited.add(next);
+      queue.push({ state: next, path });
+    }
+  }
+
+  return null;
+}
+
+/**
  * Apply a proposed transition. Refuses anything not on the legal edge list and
  * returns the unchanged state plus a refusal reason, so illegal jumps are
  * observable rather than silently dropped.
