@@ -25,17 +25,24 @@ import {
 import type { SignalView } from "@/scanner/scanner-api";
 import type { SymbolScanResult } from "@/scanner/scanner-result";
 import type { SignalStateTransition } from "@/types/market-data";
+import type { PaperDashboardData } from "@/paper/types";
 import { cn } from "@/lib/utils";
 
 export function SignalDetailPanel({
   result,
   signal,
   transitions,
+  paper,
+  onRefresh,
+  refreshing = false,
   onClose,
 }: {
   result: SymbolScanResult | null;
   signal: SignalView | null;
   transitions: SignalStateTransition[];
+  paper?: PaperDashboardData;
+  onRefresh?: () => Promise<void>;
+  refreshing?: boolean;
   onClose: () => void;
 }) {
   const [view, setView] = useState<"overview" | "chart">("overview");
@@ -168,6 +175,13 @@ export function SignalDetailPanel({
               </dl>
             </section>
 
+            <PaperExecutionDetail
+              result={result}
+              paper={paper}
+              onRefresh={onRefresh}
+              refreshing={refreshing}
+            />
+
             <section aria-labelledby="mtf-title">
               <SectionTitle id="mtf-title">Multi-timeframe context</SectionTitle>
               <div className="mt-2">
@@ -231,6 +245,94 @@ export function SignalDetailPanel({
         )}
       </div>
     </aside>
+  );
+}
+
+function PaperExecutionDetail({
+  result,
+  paper,
+  onRefresh,
+  refreshing,
+}: {
+  result: SymbolScanResult;
+  paper?: PaperDashboardData;
+  onRefresh?: () => Promise<void>;
+  refreshing: boolean;
+}) {
+  if (!result.signalId) return null;
+
+  const order = paper?.recentOrders.find((item) => item.signalId === result.signalId) ?? null;
+  const position = paper?.openPositions.find((item) => item.signalId === result.signalId) ?? null;
+  const trade = paper?.recentTrades.find((item) => item.signalId === result.signalId) ?? null;
+
+  let label = "NO PAPER ACTION";
+  let tone = "muted";
+  let note = "This signal has not produced a paper execution.";
+  let glyph = "◌";
+
+  if (position) {
+    label = "PAPER OPEN";
+    tone = "bullish";
+    glyph = "●";
+    note = `Paper position is open from ${formatPrice(result.symbol, position.entryPrice)}.`;
+  } else if (trade) {
+    label = "PAPER CLOSED";
+    tone = trade.realizedPnL >= 0 ? "bullish" : "danger";
+    glyph = "■";
+    note = `Closed ${trade.closeReason} at ${formatPrice(result.symbol, trade.exitPrice)} · ${trade.realizedR >= 0 ? "+" : ""}${trade.realizedR.toFixed(2)}R.`;
+  } else if (order?.status === "REJECTED") {
+    label = "PAPER REJECTED";
+    tone = "danger";
+    glyph = "✕";
+    note = order.rejectionReason ?? "Paper execution was rejected.";
+  } else if (order?.status === "FILLED") {
+    label = "PAPER FILLED";
+    tone = "info";
+    glyph = "✓";
+    note = "The paper order was filled; portfolio state is being reconciled.";
+  } else if (result.executionDecision === "EXECUTE") {
+    label = "PAPER PENDING";
+    tone = "warning";
+    glyph = "◷";
+    note =
+      "EXECUTE is an engine decision, not a manual button. Paper Trading processes it automatically on a scanner refresh.";
+  }
+
+  return (
+    <section aria-labelledby="paper-execution-title">
+      <SectionTitle id="paper-execution-title">Paper execution</SectionTitle>
+      <div className="mt-2 rounded border border-zinc-800 bg-zinc-900/30 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Badge
+            tone={tone as "bullish" | "danger" | "info" | "warning" | "muted"}
+            glyph={glyph}
+          >
+            {label}
+          </Badge>
+          {result.executionDecision === "EXECUTE" && !order && onRefresh && (
+            <button
+              type="button"
+              disabled={refreshing}
+              onClick={() => void onRefresh()}
+              className="rounded-md border border-emerald-700/60 bg-emerald-950/20 px-2.5 py-1.5 text-[10px] font-medium text-emerald-300 hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+            >
+              {refreshing ? "Processing..." : "Refresh & process paper"}
+            </button>
+          )}
+        </div>
+
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{note}</p>
+
+        {order && (
+          <dl className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded border border-zinc-800 bg-zinc-800 sm:grid-cols-4">
+            <Metric label="Paper entry" value={formatPrice(result.symbol, order.fillPrice ?? order.requestedEntry)} />
+            <Metric label="Paper SL" value={formatPrice(result.symbol, order.stopLoss)} />
+            <Metric label="Paper TP" value={formatPrice(result.symbol, order.takeProfit)} />
+            <Metric label="Paper size" value={formatFixed(order.positionSize, 2)} />
+          </dl>
+        )}
+      </div>
+    </section>
   );
 }
 
