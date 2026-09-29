@@ -14,10 +14,12 @@ export function DashboardShell({
   children,
   providerId,
   liveMarketData,
+  statusLabel,
 }: {
   children: React.ReactNode;
   providerId?: string;
   liveMarketData?: boolean;
+  statusLabel?: string;
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-[#0b0e14] text-zinc-200">
@@ -33,13 +35,14 @@ export function DashboardShell({
             FOREX SCANNER ENGINE
           </span>
           <Badge
-            tone={liveMarketData ? "bullish" : "info"}
-            glyph={liveMarketData ? "●" : "◌"}
+            tone={statusLabel ? "info" : liveMarketData ? "bullish" : "info"}
+            glyph={statusLabel ? "◷" : liveMarketData ? "●" : "◌"}
             className="text-[9px]"
           >
-            {liveMarketData
-              ? "LIVE · " + (providerId ?? "provider").toUpperCase()
-              : "MOCK DATA"}
+            {statusLabel ??
+              (liveMarketData
+                ? "LIVE · " + (providerId ?? "provider").toUpperCase()
+                : "MOCK DATA")}
           </Badge>
         </div>
 
