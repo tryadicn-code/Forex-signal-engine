@@ -20,4 +20,10 @@ export interface DashboardData {
   liveMarketData?: boolean;
   /** Phase 4 paper-account state. Optional for older fixtures. */
   paper?: PaperDashboardData;
+  /** Runtime automation status. Optional for older fixtures/backward compatibility. */
+  automation?: {
+    enabled: boolean;
+    scanIntervalMs: number;
+    dashboardSyncIntervalMs: number;
+  };
 }
