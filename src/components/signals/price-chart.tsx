@@ -21,14 +21,10 @@ export function PriceChart({
 }) {
   const [timeframe, setTimeframe] = useState<Timeframe>("H1");
   const [data, setData] = useState<PriceChartResponse | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-
     const params = new URLSearchParams({
       symbol,
       timeframe,
@@ -51,16 +47,13 @@ export function PriceChart({
         return (await response.json()) as PriceChartResponse;
       })
       .then((next) => {
+        setError(null);
         setData(next);
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
         setError(cause instanceof Error ? cause.message : String(cause));
       })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-
     return () => controller.abort();
   }, [symbol, timeframe, asOf]);
 
@@ -73,7 +66,12 @@ export function PriceChart({
               key={tf}
               type="button"
               aria-pressed={timeframe === tf}
-              onClick={() => setTimeframe(tf)}
+              onClick={() => {
+                if (tf === timeframe) return;
+                setData(null);
+                setError(null);
+                setTimeframe(tf);
+              }}
               className={cn(
                 "rounded px-2.5 py-1.5 font-mono text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
                 timeframe === tf
@@ -98,7 +96,7 @@ export function PriceChart({
       </div>
 
       <div className="overflow-hidden rounded-md border border-zinc-800 bg-[#090c11]">
-        {loading && !data ? (
+        {!data && !error ? (
           <div
             aria-busy="true"
             className="flex h-72 items-center justify-center text-xs text-zinc-600"
