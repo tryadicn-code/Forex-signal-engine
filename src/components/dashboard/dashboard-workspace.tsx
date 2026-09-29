@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/common/badges";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
 import { PaperTradingPanel } from "@/components/paper/paper-trading-panel";
@@ -246,36 +245,10 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   return (
     <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4">
       <section id="overview" aria-labelledby="overview-title" className="scroll-mt-16">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-400/80 sm:text-[10px]">
-              Phase 4 · Paper Trading
-            </p>
-            <Badge
-              tone={data.liveMarketData ? "bullish" : "info"}
-              glyph={data.liveMarketData ? "●" : "◌"}
-              className="text-[8px] sm:text-[9px]"
-            >
-              {data.liveMarketData
-                ? "Live · " + (data.providerId ?? "provider").toUpperCase()
-                : "Mock data"}
-            </Badge>
-            {data.automation?.enabled && (
-              <Badge tone="info" glyph="↻" className="text-[8px] sm:text-[9px]">
-                AUTO · {countdownSeconds === null ? "—" : countdownSeconds + "s"}
-              </Badge>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={refreshing}
-            aria-label="Refresh scan"
-            className="shrink-0 rounded-md border border-emerald-700/60 bg-emerald-950/20 px-2.5 py-1.5 text-[10px] font-medium text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:text-[11px]"
-          >
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
+        <div className="mb-1.5">
+          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-400/80 sm:text-[10px]">
+            Phase 4 · Paper Trading
+          </p>
         </div>
 
         <div className="mb-2">
@@ -292,23 +265,35 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
         <div
           aria-live="polite"
-          className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 border-y border-zinc-800/80 py-1.5 text-[9px] text-zinc-600 sm:text-[10px]"
+          className="mb-2 flex items-center justify-between gap-2 border-y border-zinc-800/80 py-1.5"
         >
-          <span className="uppercase tracking-[0.12em]">Last scan</span>
-          <span className="font-mono tabular-nums text-zinc-300">
-            {refreshing
-              ? "Scanning..."
-              : formatTime(data.health?.lastScanCompletedAt)}
-          </span>
-          <span aria-hidden="true" className="text-zinc-700">·</span>
-          <span className="uppercase tracking-[0.12em]">Next</span>
-          <span className="font-mono font-semibold tabular-nums text-emerald-300">
-            {data.automation?.enabled
-              ? countdownSeconds === null
-                ? "—"
-                : countdownSeconds + "s"
-              : "OFF"}
-          </span>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-zinc-600 sm:text-[10px]">
+            <span className="uppercase tracking-[0.12em]">Last scan</span>
+            <span className="font-mono tabular-nums text-zinc-300">
+              {refreshing
+                ? "Scanning..."
+                : formatTime(data.health?.lastScanCompletedAt)}
+            </span>
+            <span aria-hidden="true" className="text-zinc-700">·</span>
+            <span className="uppercase tracking-[0.12em]">Next sync</span>
+            <span className="font-mono font-semibold tabular-nums text-emerald-300">
+              {data.automation?.enabled
+                ? countdownSeconds === null
+                  ? "—"
+                  : countdownSeconds + "s"
+                : "OFF"}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            aria-label="Refresh scan manually"
+            className="shrink-0 rounded border border-zinc-700 bg-zinc-900/60 px-2 py-1 text-[9px] font-medium text-zinc-300 transition-colors hover:border-emerald-700/60 hover:bg-emerald-950/20 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:text-[10px]"
+          >
+            {refreshing ? "Syncing..." : "Refresh"}
+          </button>
         </div>
 
         <DashboardSummary
