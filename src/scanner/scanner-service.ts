@@ -464,6 +464,10 @@ export class ScannerService {
     const risk = pipeline.risk?.data ?? null;
     const setup = pipeline.setup.data;
     const triggerTf = context!.m15;
+    const entryPrice =
+      risk && triggerTf.candles.length > 0
+        ? triggerTf.candles[triggerTf.candles.length - 1].close
+        : null;
 
     return {
       symbol,
@@ -507,9 +511,17 @@ export class ScannerService {
         ? {
             approved: pipeline.risk.data.approved,
             rejectionReason: pipeline.risk.data.rejectionReason,
+            entryPrice,
+            stopLoss: setup.invalidationLevel,
             stopDistancePips: pipeline.risk.data.stopDistancePips,
             takeProfit1: pipeline.risk.data.tp1,
             takeProfit2: pipeline.risk.data.tp2,
+            riskCapital: pipeline.risk.data.riskCapital,
+            riskPercent: this.config.account.riskPercent,
+            positionSize: pipeline.risk.data.positionSize,
+            plannedRR: pipeline.risk.data.rr,
+            pipSize: context!.metadata.pipSize,
+            accountCurrency: this.config.account.currency,
           }
         : null,
       evidence: collectEvidence(pipeline),
