@@ -198,6 +198,118 @@ describe("PaperTradingService", () => {
     expect(repeated.recentTrades).toHaveLength(1);
   });
 
+  it("remains idempotent after a service restart with the same persisted store", async () => {
+    const store = new InMemoryPaperStore();
+    const provider = new MockMarketDataProvider();
+    const firstService = new PaperTradingService(store, {
+      initialBalance: 10_000,
+      accountCurrency: "USD",
+      maxOpenPositions: 10,
+      maxTotalOpenRiskPercent: 5,
+    });
+
+    await firstService.processSnapshot(snapshot(result()), provider);
+
+    const restarted = new PaperTradingService(store, {
+      initialBalance: 10_000,
+      accountCurrency: "USD",
+      maxOpenPositions: 10,
+      maxTotalOpenRiskPercent: 5,
+    });
+    const data = await restarted.processSnapshot(snapshot(result(), T0 + 60_000), provider);
+
+    expect(data.openPositions).toHaveLength(1);
+    expect(data.recentOrders).toHaveLength(1);
+  });
+
+  it("keeps balance unchanged while floating P/L moves equity", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    await paper.processSnapshot(snapshot(result()), provider);
+
+    const marked = await paper.processSnapshot(
+      snapshot(
+        result({
+          latestPrice: 1.105,
+          executionDecision: "WAIT",
+          signalState: "MANAGE",
+        }),
+        T0 + 60_000
+      ),
+      provider
+    );
+
+    expect(marked.account.balance).toBeCloseTo(10_000);
+    expect(marked.account.unrealizedPnL).toBeCloseTo(50);
+    expect(marked.account.equity).toBeCloseTo(10_050);
+  });
+
+  it("closes a SHORT at TP with positive P/L", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    const short = result({
+      bias: "SHORT",
+      biasDirection: "SHORT",
+      latestPrice: 1.1,
+      riskDetail: {
+        approved: true,
+        rejectionReason: null,
+        entryPrice: 1.1,
+        stopLoss: 1.105,
+        stopDistancePips: 50,
+        takeProfit1: 1.09,
+        takeProfit2: 1.085,
+        riskCapital: 50,
+        riskPercent: 0.5,
+        positionSize: 1,
+        plannedRR: 2,
+        pipSize: 0.0001,
+        accountCurrency: "USD",
+      },
+    });
+    await paper.processSnapshot(snapshot(short), provider);
+
+    const closed = await paper.processSnapshot(
+      snapshot(
+        {
+          ...short,
+          latestPrice: 1.089,
+          executionDecision: "WAIT",
+          signalState: "MANAGE",
+        },
+        T0 + 60_000
+      ),
+      provider
+    );
+
+    expect(closed.openPositions).toHaveLength(0);
+    expect(closed.recentTrades).toHaveLength(1);
+    expect(closed.recentTrades[0].side).toBe("SHORT");
+    expect(closed.recentTrades[0].realizedPnL).toBeCloseTo(100);
+    expect(closed.recentTrades[0].realizedR).toBeCloseTo(2);
+  });
+
+  it("rejects a second trade when total open risk would exceed the portfolio cap", async () => {
+    const paper = new PaperTradingService(new InMemoryPaperStore(), {
+      initialBalance: 10_000,
+      accountCurrency: "USD",
+      maxOpenPositions: 10,
+      maxTotalOpenRiskPercent: 0.5,
+    });
+    const provider = new MockMarketDataProvider();
+
+    await paper.processSnapshot(snapshot(result({ signalId: "signal-a" })), provider);
+    const second = await paper.processSnapshot(
+      snapshot(result({ signalId: "signal-b" }), T0 + 60_000),
+      provider
+    );
+
+    expect(second.openPositions).toHaveLength(1);
+    const rejected = second.recentOrders.find((order) => order.signalId === "signal-b");
+    expect(rejected?.status).toBe("REJECTED");
+    expect(rejected?.rejectionReason).toBe("PAPER_MAX_TOTAL_RISK");
+  });
+
   it("reset restores the initial paper account and clears history", async () => {
     const paper = service();
     const provider = new MockMarketDataProvider();
