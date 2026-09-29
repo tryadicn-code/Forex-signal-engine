@@ -17,9 +17,7 @@ class QuoteOnlyProvider implements MarketDataProvider {
 
   constructor(private readonly prices: Record<string, number>) {}
 
-  async getCandles(
-    _request: CandleRequest
-  ): Promise<ProviderResult<CanonicalCandle[]>> {
+  async getCandles(): Promise<ProviderResult<CanonicalCandle[]>> {
     return {
       ok: false,
       error: {
