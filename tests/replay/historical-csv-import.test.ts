@@ -69,15 +69,21 @@ describe("historical CSV import", () => {
   });
 
   it("deduplicates identical overlapping candles with an explicit warning", () => {
-    const row =
-      "2026.01.02\t00:00:00\t1.1000\t1.1100\t1.0900\t1.1050\t100";
+    const m15Row =
+      "2026.01.01\t23:45:00\t1.1000\t1.1100\t1.0900\t1.1050\t100";
     const imported = importHistoricalCsvFiles(
       [
-        mt5File("EURUSD_M15_part1.csv", [row]),
-        mt5File("EURUSD_M15_part2.csv", [row]),
-        mt5File("EURUSD_D1.csv", [row]),
-        mt5File("EURUSD_H4.csv", [row]),
-        mt5File("EURUSD_H1.csv", [row]),
+        mt5File("EURUSD_M15_part1.csv", [m15Row]),
+        mt5File("EURUSD_M15_part2.csv", [m15Row]),
+        mt5File("EURUSD_D1.csv", [
+          "2026.01.01\t00:00:00\t1.1000\t1.1100\t1.0900\t1.1050\t100",
+        ]),
+        mt5File("EURUSD_H4.csv", [
+          "2026.01.01\t20:00:00\t1.1000\t1.1100\t1.0900\t1.1050\t100",
+        ]),
+        mt5File("EURUSD_H1.csv", [
+          "2026.01.01\t23:00:00\t1.1000\t1.1100\t1.0900\t1.1050\t100",
+        ]),
       ],
       {
         datasetId: "dedupe-test",
