@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - phase-3-professional-signal-dashboard
+      - pre-phase-4-real-market-data
   pull_request:
     branches:
       - master
