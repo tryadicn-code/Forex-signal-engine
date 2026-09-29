@@ -10,6 +10,7 @@
 
 import type { SymbolScanResult } from "@/scanner/scanner-result";
 import {
+  Badge,
   DecisionBadge,
   DirectionBadge,
   FreshnessBadge,
@@ -57,16 +58,24 @@ function ScannerCard({
   onSelect: (symbol: string) => void;
 }) {
   const failed = result.status !== "ANALYSED";
+  const actionable =
+    result.executionDecision === "EXECUTE" &&
+    result.signalState === "EXECUTE";
+  const engineLifecycleMismatch =
+    result.executionDecision === "EXECUTE" &&
+    result.signalState !== "EXECUTE";
 
   return (
     <li
       className={cn(
         "border-l-2 px-3 py-3",
-        result.executionDecision === "EXECUTE"
+        actionable
           ? "border-l-emerald-500"
-          : result.executionDecision === "BLOCKED" || result.signalState === "BLOCKED"
-            ? "border-l-orange-500"
-            : "border-l-zinc-800",
+          : engineLifecycleMismatch
+            ? "border-l-amber-500"
+            : result.executionDecision === "BLOCKED" || result.signalState === "BLOCKED"
+              ? "border-l-orange-500"
+              : "border-l-zinc-800",
         selected && "bg-zinc-800/50"
       )}
     >
@@ -120,30 +129,48 @@ function ScannerCard({
             </div>
           </div>
 
-          <div className="mt-2 flex items-end justify-between gap-3 border-t border-zinc-800/70 pt-2">
-            <dl className="grid flex-1 grid-cols-3 gap-3">
+          <div className="mt-2 border-t border-zinc-800/70 pt-2">
+            <dl className="grid grid-cols-3 gap-2">
               <CompactMetric label="Setup" value={formatScore(result.setupScore)} />
               <CompactMetric label="R:R" value={formatRatio(result.riskReward)} />
               <CompactMetric
-                label="Decision"
-                value={
-                  result.executionDecision
-                    ? undefined
-                    : "—"
-                }
+                label="Engine"
+                value={result.executionDecision ? undefined : "—"}
                 node={
                   result.executionDecision ? (
-                    <DecisionBadge decision={result.executionDecision} className="text-[9px]" />
+                    <DecisionBadge decision={result.executionDecision} className="max-w-full text-[8px]" />
                   ) : undefined
                 }
               />
             </dl>
+
+            {actionable && (
+              <div className="mt-2">
+                <Badge tone="bullish" glyph="●" className="text-[9px]">
+                  PAPER ACTIONABLE
+                </Badge>
+              </div>
+            )}
+
+            {engineLifecycleMismatch && (
+              <div className="mt-2 rounded border border-amber-800/50 bg-amber-950/15 px-2.5 py-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="warning" glyph="!" className="text-[9px]">
+                    NOT ACTIONABLE
+                  </Badge>
+                  <span className="text-[10px] text-amber-200/60">
+                    Lifecycle {result.signalState ?? "unavailable"} · no paper entry
+                  </span>
+                </div>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={() => onSelect(result.symbol)}
               aria-pressed={selected}
               aria-label={`Open signal detail for ${result.symbol}`}
-              className="shrink-0 rounded-md border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+              className="mt-2 w-full rounded-md border border-zinc-700 px-3 py-2 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             >
               View analysis
             </button>
