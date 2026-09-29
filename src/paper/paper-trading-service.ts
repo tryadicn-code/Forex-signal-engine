@@ -203,12 +203,38 @@ export class PaperTradingService {
     if (!this.config.enabled) return;
 
     for (const result of snapshot.results) {
-      if (result.executionDecision !== "EXECUTE") continue;
+      // A paper execution candidate exists only when BOTH the Phase 1 engine
+      // decision and the scanner lifecycle are executable. Engine EXECUTE by
+      // itself is presentation information, not permission to create an order.
+      if (
+        result.executionDecision !== "EXECUTE" ||
+        result.signalState !== "EXECUTE"
+      ) {
+        continue;
+      }
       if (!result.signalId) continue;
 
       const executionKey = `paper:${result.signalId}`;
-      if (state.orders.some((order) => order.executionKey === executionKey)) {
-        continue;
+      const existingOrder = state.orders.find(
+        (order) => order.executionKey === executionKey
+      );
+
+      if (existingOrder) {
+        // Phase 4 review exposed a legacy integration bug where an ENGINE
+        // EXECUTE + non-EXECUTE lifecycle created a persistent rejected order.
+        // That state should never have become a paper order. Reconcile only
+        // this exact legacy rejection so a now-valid lifecycle can be processed;
+        // every filled order and every genuine paper rejection stays idempotent.
+        if (
+          existingOrder.status === "REJECTED" &&
+          existingOrder.rejectionReason === "PAPER_SIGNAL_STATE_NOT_EXECUTE"
+        ) {
+          state.orders = state.orders.filter(
+            (order) => order.id !== existingOrder.id
+          );
+        } else {
+          continue;
+        }
       }
 
       const rejection = this.validateCandidate(state, result);
