@@ -56,6 +56,7 @@ import {
   attachIdentity,
   deriveSignalState,
   deriveStateReason,
+  findLegalTransitionPath,
   transitionSignal,
 } from "@/scanner/signal-state-machine";
 import type { Freshness, SignalStateTransition } from "@/types/market-data";
@@ -420,12 +421,18 @@ export class ScannerService {
       latestTriggerOpen,
       this.config.signalTtl.triggerBars
     );
-    const setupExpired = isSetupExpired(
-      setupOrigin,
-      lifecycleIdentity.originTimeframe,
-      latestSetupOpen,
-      this.config.signalTtl.setupBars
-    );
+    // Setup TTL governs candidates only until a trigger exists. Once a trigger
+    // is confirmed, trigger TTL becomes the canonical expiry clock; otherwise a
+    // fresh entry trigger could be closed solely because the underlying setup
+    // zone was discovered hours earlier.
+    const setupExpired =
+      triggerOrigin === null &&
+      isSetupExpired(
+        setupOrigin,
+        lifecycleIdentity.originTimeframe,
+        latestSetupOpen,
+        this.config.signalTtl.setupBars
+      );
     const expired = triggerExpired || setupExpired;
     const expiredReason = triggerExpired
       ? `Trigger TTL of ${this.config.signalTtl.triggerBars} trigger bars lapsed.`
@@ -451,11 +458,21 @@ export class ScannerService {
 
     let updated = lifecycle;
     const transitions: SignalStateTransition[] = [];
-    const applied = transitionSignal(lifecycle.state, target, reason, asOf);
-    const withIdentity = attachIdentity(applied.transition, identityNonNull);
-    if (withIdentity !== null) {
-      updated = recordTransition(lifecycle, withIdentity, asOf);
-      transitions.push(withIdentity);
+    const path = findLegalTransitionPath(lifecycle.state, target);
+
+    if (path !== null) {
+      for (const step of path) {
+        const stepReason =
+          step === target
+            ? reason
+            : `Lifecycle catch-up toward ${target}: ${reason}`;
+        const applied = transitionSignal(updated.state, step, stepReason, asOf);
+        const withIdentity = attachIdentity(applied.transition, identityNonNull);
+        if (withIdentity !== null) {
+          updated = recordTransition(updated, withIdentity, asOf);
+          transitions.push(withIdentity);
+        }
+      }
     }
 
     updated = {
