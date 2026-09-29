@@ -68,6 +68,44 @@ export interface TransitionResult {
 }
 
 /**
+ * Find a shortest legal path between lifecycle states.
+ *
+ * Scanner cycles are snapshots, not an event stream: the engine can move from
+ * WATCH to EXECUTE between two scans. Rather than permitting an illegal jump,
+ * the lifecycle catches up through the existing legal edges. Terminal CLOSED
+ * remains terminal because no path leaves it.
+ */
+export function findLegalTransitionPath(
+  from: SignalState,
+  to: SignalState
+): SignalState[] | null {
+  if (from === to) return [];
+  if (isLegalTransition(from, to)) return [to];
+
+  const progression: SignalState[] = [
+    "DISCOVERED",
+    "WATCH",
+    "SETUP",
+    "ARMED",
+    "TRIGGERED",
+    "RISK_APPROVED",
+    "EXECUTE",
+  ];
+  const fromIndex = progression.indexOf(from);
+  const toIndex = progression.indexOf(to);
+
+  if (fromIndex >= 0 && toIndex > fromIndex) {
+    return progression.slice(fromIndex + 1, toIndex + 1);
+  }
+
+  if (from === "BLOCKED" && to === "EXECUTE") {
+    return ["RISK_APPROVED", "EXECUTE"];
+  }
+
+  return null;
+}
+
+/**
  * Apply a proposed transition. Refuses anything not on the legal edge list and
  * returns the unchanged state plus a refusal reason, so illegal jumps are
  * observable rather than silently dropped.

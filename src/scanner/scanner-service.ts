@@ -49,12 +49,14 @@ import {
   isSetupExpired,
   isTriggerExpired,
   recordTransition,
+  resolveLifecycleIdentity,
 } from "@/scanner/signal-lifecycle";
 import type { SignalLifecycleState } from "@/scanner/signal-lifecycle";
 import {
   attachIdentity,
   deriveSignalState,
   deriveStateReason,
+  findLegalTransitionPath,
   transitionSignal,
 } from "@/scanner/signal-state-machine";
 import type { Freshness, SignalStateTransition } from "@/types/market-data";
@@ -126,6 +128,19 @@ export class ScannerService {
 
   get economicCalendarProvider(): EconomicCalendarProvider {
     return this.deps.economicCalendar;
+  }
+
+  /**
+   * Update the runtime account balance used by the existing Risk Engine.
+   *
+   * Phase 4 uses this only in PAPER mode so position sizing follows the
+   * reconstructable paper-account balance. No strategy threshold or decision
+   * logic is changed.
+   */
+  setRuntimeAccountBalance(balance: number): void {
+    if (this.config.executionMode !== "PAPER") return;
+    if (!Number.isFinite(balance) || balance <= 0) return;
+    this.config.account.balance = balance;
   }
 
   /** Symbols the scanner will analyse; unknown symbols are rejected up front. */
@@ -367,22 +382,37 @@ export class ScannerService {
     }
 
     const store = this.deps.repositories.signals;
-    const existing = store.getById(identity.signalId);
-    const lifecycle =
-      existing ??
-      createLifecycle(identity, asOf);
-
     const latestSetupOpen = lastOpen(context!.h1.candles);
     const latestTriggerOpen = lastOpen(context!.m15.candles);
+    const observedSetupOrigin = firstSetupOrigin(pipeline) ?? latestSetupOpen;
+    const observedTriggerOrigin = firstTriggerOrigin(pipeline);
+
+    // A terminal CLOSED lifecycle is never revived. If the engine observes a
+    // genuinely newer trigger inside the same setup, that trigger receives a
+    // deterministic occurrence id and starts a fresh lifecycle instead.
+    const baseExisting = store.getById(identity.signalId);
+    const lifecycleIdentity = resolveLifecycleIdentity(
+      identity,
+      baseExisting,
+      observedTriggerOrigin
+    );
+    const existing = store.getById(lifecycleIdentity.signalId);
+    const lifecycle =
+      existing ??
+      createLifecycle(lifecycleIdentity, asOf);
+    const freshTriggerOccurrence =
+      lifecycleIdentity.signalId !== identity.signalId;
 
     // Track where the current setup/trigger first appeared so TTL has an origin.
+    // A fresh trigger occurrence is a NEW lifecycle: it must not inherit the
+    // elapsed setup TTL of the already-closed occurrence. The old lifecycle
+    // remains terminal and preserved in history.
     const setupOrigin =
       lifecycle.setupOriginTimestamp ??
-      firstSetupOrigin(pipeline) ??
-      latestSetupOpen;
+      (freshTriggerOccurrence ? latestSetupOpen : observedSetupOrigin);
     const triggerOrigin =
       lifecycle.triggerOriginTimestamp ??
-      firstTriggerOrigin(pipeline) ??
+      observedTriggerOrigin ??
       null;
 
     const triggerExpired = isTriggerExpired(
@@ -391,12 +421,18 @@ export class ScannerService {
       latestTriggerOpen,
       this.config.signalTtl.triggerBars
     );
-    const setupExpired = isSetupExpired(
-      setupOrigin,
-      input.identity!.originTimeframe,
-      latestSetupOpen,
-      this.config.signalTtl.setupBars
-    );
+    // Setup TTL governs candidates only until a trigger exists. Once a trigger
+    // is confirmed, trigger TTL becomes the canonical expiry clock; otherwise a
+    // fresh entry trigger could be closed solely because the underlying setup
+    // zone was discovered hours earlier.
+    const setupExpired =
+      triggerOrigin === null &&
+      isSetupExpired(
+        setupOrigin,
+        lifecycleIdentity.originTimeframe,
+        latestSetupOpen,
+        this.config.signalTtl.setupBars
+      );
     const expired = triggerExpired || setupExpired;
     const expiredReason = triggerExpired
       ? `Trigger TTL of ${this.config.signalTtl.triggerBars} trigger bars lapsed.`
@@ -404,7 +440,7 @@ export class ScannerService {
         ? `Setup TTL of ${this.config.signalTtl.setupBars} setup bars lapsed.`
         : undefined;
 
-    const identityNonNull = input.identity!;
+    const identityNonNull = lifecycleIdentity;
     const target = deriveSignalState({
       pipeline,
       stale: input.stale,
@@ -422,11 +458,21 @@ export class ScannerService {
 
     let updated = lifecycle;
     const transitions: SignalStateTransition[] = [];
-    const applied = transitionSignal(lifecycle.state, target, reason, asOf);
-    const withIdentity = attachIdentity(applied.transition, identityNonNull);
-    if (withIdentity !== null) {
-      updated = recordTransition(lifecycle, withIdentity, asOf);
-      transitions.push(withIdentity);
+    const path = findLegalTransitionPath(lifecycle.state, target);
+
+    if (path !== null) {
+      for (const step of path) {
+        const stepReason =
+          step === target
+            ? reason
+            : `Lifecycle catch-up toward ${target}: ${reason}`;
+        const applied = transitionSignal(updated.state, step, stepReason, asOf);
+        const withIdentity = attachIdentity(applied.transition, identityNonNull);
+        if (withIdentity !== null) {
+          updated = recordTransition(updated, withIdentity, asOf);
+          transitions.push(withIdentity);
+        }
+      }
     }
 
     updated = {
@@ -464,6 +510,10 @@ export class ScannerService {
     const risk = pipeline.risk?.data ?? null;
     const setup = pipeline.setup.data;
     const triggerTf = context!.m15;
+    const entryPrice =
+      risk && triggerTf.candles.length > 0
+        ? triggerTf.candles[triggerTf.candles.length - 1].close
+        : null;
 
     return {
       symbol,
@@ -507,9 +557,17 @@ export class ScannerService {
         ? {
             approved: pipeline.risk.data.approved,
             rejectionReason: pipeline.risk.data.rejectionReason,
+            entryPrice,
+            stopLoss: setup.invalidationLevel,
             stopDistancePips: pipeline.risk.data.stopDistancePips,
             takeProfit1: pipeline.risk.data.tp1,
             takeProfit2: pipeline.risk.data.tp2,
+            riskCapital: pipeline.risk.data.riskCapital,
+            riskPercent: this.config.account.riskPercent,
+            positionSize: pipeline.risk.data.positionSize,
+            plannedRR: pipeline.risk.data.rr,
+            pipSize: context!.metadata.pipSize,
+            accountCurrency: this.config.account.currency,
           }
         : null,
       evidence: collectEvidence(pipeline),

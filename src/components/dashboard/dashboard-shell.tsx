@@ -1,5 +1,5 @@
 /**
- * Application shell for the Phase 3 workstation.
+ * Application shell for the Phase 4 paper-trading workstation.
  *
  * Mobile keeps the chrome intentionally quiet: brand + execution mode on top,
  * fixed bottom navigation, and no duplicate provider strip. Desktop retains the
@@ -9,9 +9,16 @@
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SystemStatusBar } from "@/components/dashboard/system-status-bar";
 import { Badge } from "@/components/common/badges";
-import { systemConfig } from "@/config/system";
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({
+  children,
+  providerId,
+  liveMarketData,
+}: {
+  children: React.ReactNode;
+  providerId?: string;
+  liveMarketData?: boolean;
+}) {
   return (
     <div className="flex min-h-screen flex-col bg-[#0b0e14] text-zinc-200">
       <header className="sticky top-0 z-30 flex h-12 items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 backdrop-blur sm:px-4">
@@ -20,13 +27,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             ◈
           </span>
           <span className="hidden truncate text-xs font-semibold tracking-[0.16em] text-zinc-100 sm:inline">
-            FOREX SIGNAL ENGINE
+            FOREX SCANNER ENGINE
           </span>
-          <span className="font-mono text-xs font-semibold tracking-[0.18em] text-zinc-100 sm:hidden">
-            FSE
+          <span className="truncate text-[10px] font-semibold tracking-[0.12em] text-zinc-100 sm:hidden">
+            FOREX SCANNER ENGINE
           </span>
-          <Badge tone="warning" glyph="◷" className="text-[9px]">
-            {systemConfig.executionMode}
+          <Badge
+            tone={liveMarketData ? "bullish" : "info"}
+            glyph={liveMarketData ? "●" : "◌"}
+            className="text-[9px]"
+          >
+            {liveMarketData
+              ? "LIVE · " + (providerId ?? "provider").toUpperCase()
+              : "MOCK DATA"}
           </Badge>
         </div>
 

@@ -14,8 +14,8 @@ export type ScannerConnectionState = "Not Connected" | "Connected" | "Error";
 /**
  * Execution mode.
  *
- * "SIGNAL ONLY" is the only mode permitted in Phase 1: the engine decides and
- * reports, but never routes an order to a broker.
+ * Phase 1 baseline remains SIGNAL ONLY. Later workstation phases may present
+ * their own operational mode without rewriting this locked baseline.
  */
 export type ExecutionMode = "SIGNAL ONLY" | "PAPER" | "LIVE";
 

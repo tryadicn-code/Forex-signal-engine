@@ -81,7 +81,10 @@ function matchesState(result: SymbolScanResult, filter: StateFilter): boolean {
     );
   }
   if (filter === "EXECUTE") {
-    return result.executionDecision === "EXECUTE" || result.signalState === "EXECUTE";
+    return (
+      result.executionDecision === "EXECUTE" &&
+      result.signalState === "EXECUTE"
+    );
   }
   if (filter === "TRIGGERED") {
     return result.signalState === "TRIGGERED" || result.triggerState === "CONFIRMED";

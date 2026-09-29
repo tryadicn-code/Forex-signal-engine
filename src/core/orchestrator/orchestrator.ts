@@ -218,6 +218,12 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
       now,
       riskPercent: context.riskPercent ?? config.risk.defaultRiskPercent,
       ...context.execution,
+      // Feed the canonical trigger market time into the existing
+      // SIGNAL_EXPIRED veto. Without this, the veto is always skipped and the
+      // Execution Engine can continue reporting EXECUTE for an aged trigger.
+      signalTimestamp:
+        trigger.data.triggerTimestamp ??
+        context.execution?.signalTimestamp,
     },
     snapshot: triggerTimeframe.snapshot,
     configOverrides: context.configOverrides,

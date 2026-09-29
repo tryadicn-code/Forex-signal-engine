@@ -63,7 +63,10 @@ function SummaryTile({
 export function summarizeResults(results: SymbolScanResult[]) {
   return {
     scanned: results.length,
-    executable: results.filter((r) => r.executionDecision === "EXECUTE").length,
+    executable: results.filter(
+      (r) => r.executionDecision === "EXECUTE" && r.signalState === "EXECUTE"
+    ).length,
+    engineExecute: results.filter((r) => r.executionDecision === "EXECUTE").length,
     blocked: results.filter((r) => r.executionDecision === "BLOCKED").length,
     armed: results.filter(
       (r) => r.setupState === "ARMED" || r.signalState === "ARMED"
@@ -102,6 +105,11 @@ export function DashboardSummary({
           label="Executable"
           value={counts.executable}
           tone={counts.executable > 0 ? "good" : "default"}
+          note={
+            counts.engineExecute > counts.executable
+              ? counts.engineExecute + " engine execute · " + counts.executable + " actionable"
+              : undefined
+          }
         />
         <SummaryTile
           glyph="✕"

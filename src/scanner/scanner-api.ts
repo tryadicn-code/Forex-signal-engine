@@ -60,6 +60,11 @@ export class ScannerApi {
     return this.service.symbols;
   }
 
+  /** Phase 4 PAPER-only runtime balance input for the existing Risk Engine. */
+  setRuntimeAccountBalance(balance: number): void {
+    this.service.setRuntimeAccountBalance(balance);
+  }
+
   /**
    * Run one scan cycle at market time `asOf`.
    *

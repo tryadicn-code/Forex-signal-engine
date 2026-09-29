@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Badge } from "@/components/common/badges";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
+import { PaperTradingPanel } from "@/components/paper/paper-trading-panel";
+import { PaperTradingOverlay } from "@/components/paper/paper-trading-overlay";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
@@ -26,7 +27,10 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [sort, setSort] = useState<ScannerSort>(DEFAULT_SORT);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [resettingPaper, setResettingPaper] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [paperOverlay, setPaperOverlay] = useState<"portfolio" | "journal" | null>(null);
+  const [clockNow, setClockNow] = useState<number | null>(null);
 
   const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
   const visibleResults = useMemo(
@@ -44,6 +48,142 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     selectedResult?.signalId
       ? data.signalHistory[selectedResult.signalId] ?? []
       : [];
+
+  useEffect(() => {
+    if (!data.automation?.enabled) return;
+
+    const tick = () => setClockNow(Date.now());
+    const initialTick = window.setTimeout(tick, 0);
+    const timer = window.setInterval(tick, 1_000);
+
+    return () => {
+      window.clearTimeout(initialTick);
+      window.clearInterval(timer);
+    };
+  }, [data.automation?.enabled]);
+
+  useEffect(() => {
+    const openPaper = (event: Event) => {
+      const detail = (event as CustomEvent<{ panel?: "portfolio" | "journal" }>).detail;
+      if (detail?.panel === "portfolio" || detail?.panel === "journal") {
+        setPaperOverlay(detail.panel);
+      }
+    };
+
+    const navigateSignals = () => {
+      const current =
+        (selectedSymbol && allResults.find((item) => item.symbol === selectedSymbol)) ??
+        visibleResults.find((item) => item.signalId) ??
+        allResults.find((item) => item.signalId) ??
+        null;
+
+      if (current) {
+        setSelectedSymbol(current.symbol);
+        requestAnimationFrame(() => {
+          document.getElementById("signals")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+        return;
+      }
+
+      document.getElementById("scanner")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    };
+
+    window.addEventListener("fse:open-paper-panel", openPaper);
+    window.addEventListener("fse:navigate-signals", navigateSignals);
+    return () => {
+      window.removeEventListener("fse:open-paper-panel", openPaper);
+      window.removeEventListener("fse:navigate-signals", navigateSignals);
+    };
+  }, [allResults, selectedSymbol, visibleResults]);
+
+  useEffect(() => {
+    if (!data.automation?.enabled) return;
+
+    const intervalMs = Math.max(
+      5_000,
+      data.automation.dashboardSyncIntervalMs
+    );
+    let inFlight = false;
+
+    const syncLatestView = async () => {
+      if (inFlight || document.visibilityState === "hidden") return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/scanner", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+        const next = (await response.json()) as DashboardData;
+        setData(next);
+      } catch {
+        // Read-only sync failure must not replace the last good workstation
+        // state or interfere with the server-side paper scanner.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const timer = window.setInterval(() => {
+      void syncLatestView();
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [
+    data.automation?.dashboardSyncIntervalMs,
+    data.automation?.enabled,
+  ]);
+
+  const nextScanAt = data.automation?.nextScanAt ?? null;
+  const countdownSeconds =
+    clockNow !== null && nextScanAt !== null
+      ? Math.max(0, Math.ceil((nextScanAt - clockNow) / 1000))
+      : null;
+
+  useEffect(() => {
+    if (
+      !data.automation?.enabled ||
+      countdownSeconds !== 0 ||
+      nextScanAt === null
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const syncAfterDeadline = async () => {
+      try {
+        const response = await fetch("/api/scanner", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!response.ok || cancelled) return;
+        const next = (await response.json()) as DashboardData;
+        if (!cancelled) setData(next);
+      } catch {
+        // The normal read-only polling loop will retry. A missed countdown
+        // refresh must never affect the server-side scanner.
+      }
+    };
+
+    const timer = window.setTimeout(() => {
+      void syncAfterDeadline();
+    }, 750);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [
+    countdownSeconds,
+    data.automation?.enabled,
+    nextScanAt,
+  ]);
 
   const clearFilters = () => {
     setQuery(DEFAULT_QUERY);
@@ -78,57 +218,82 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     }
   };
 
+  const resetPaper = async () => {
+    if (resettingPaper) return;
+    if (!window.confirm("Reset all paper orders, positions, journal, and paper balance?")) return;
+    setResettingPaper(true);
+    setRequestError(null);
+    try {
+      const response = await fetch("/api/paper", {
+        method: "DELETE",
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error("Paper reset failed with HTTP " + response.status + ".");
+      }
+      const paper = await response.json();
+      setData((current) => ({ ...current, paper }));
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setResettingPaper(false);
+    }
+  };
+
   const errorMessage = requestError ?? data.scanError;
 
   return (
     <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4">
       <section id="overview" aria-labelledby="overview-title" className="scroll-mt-16">
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-400/80">
-                Phase 3 · Signal Dashboard
-              </p>
-              <Badge
-                tone={data.liveMarketData ? "bullish" : "info"}
-                glyph={data.liveMarketData ? "●" : "◌"}
-                className="text-[9px]"
-              >
-                {data.liveMarketData
-                  ? "Live · " + (data.providerId ?? "provider").toUpperCase()
-                  : "Mock data"}
-              </Badge>
-            </div>
-            <h1
-              id="overview-title"
-              className="mt-1 text-lg font-semibold tracking-tight text-zinc-100"
-            >
-              Market scanner
-            </h1>
-            <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-zinc-500 sm:text-xs">
-              Engine output via the Phase 2 scanner. Signal only; no broker execution.
-            </p>
+        <div className="mb-1.5">
+          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-400/80 sm:text-[10px]">
+            Phase 4 · Paper Trading
+          </p>
+        </div>
+
+        <div className="mb-2">
+          <h1
+            id="overview-title"
+            className="text-[19px] font-semibold leading-tight tracking-tight text-zinc-100 sm:text-xl"
+          >
+            Market scanner
+          </h1>
+          <p className="mt-0.5 max-w-3xl text-[10px] leading-4 text-zinc-500 sm:text-[11px]">
+            FSE decisions with deterministic paper execution · no broker orders · no real funds
+          </p>
+        </div>
+
+        <div
+          aria-live="polite"
+          className="mb-2 flex items-center justify-between gap-2 border-y border-zinc-800/80 py-1.5"
+        >
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-zinc-600 sm:text-[10px]">
+            <span className="uppercase tracking-[0.12em]">Last scan</span>
+            <span className="font-mono tabular-nums text-zinc-300">
+              {refreshing
+                ? "Scanning..."
+                : formatTime(data.health?.lastScanCompletedAt)}
+            </span>
+            <span aria-hidden="true" className="text-zinc-700">·</span>
+            <span className="uppercase tracking-[0.12em]">Next sync</span>
+            <span className="font-mono font-semibold tabular-nums text-emerald-300">
+              {data.automation?.enabled
+                ? countdownSeconds === null
+                  ? "—"
+                  : countdownSeconds + "s"
+                : "OFF"}
+            </span>
           </div>
 
-          <div className="shrink-0 text-right">
-            <span
-              aria-live="polite"
-              className="hidden font-mono text-[11px] text-zinc-600 lg:block"
-            >
-              {refreshing
-                ? "Refreshing scanner..."
-                : "Last scan " + formatTime(data.health?.lastScanCompletedAt)}
-            </span>
-            <button
-              type="button"
-              onClick={refresh}
-              disabled={refreshing}
-              aria-label="Refresh scan"
-              className="mt-0 rounded-md border border-emerald-700/60 bg-emerald-950/20 px-3 py-2 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 lg:mt-1"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            aria-label="Refresh scan"
+            className="shrink-0 rounded border border-zinc-700 bg-zinc-900/60 px-2 py-1 text-[9px] font-medium text-zinc-300 transition-colors hover:border-emerald-700/60 hover:bg-emerald-950/20 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:text-[10px]"
+          >
+            {refreshing ? "Syncing..." : "Refresh"}
+          </button>
         </div>
 
         <DashboardSummary
@@ -223,10 +388,30 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             result={selectedResult}
             signal={selectedSignal}
             transitions={selectedHistory}
+            paper={data.paper}
+            onRefresh={refresh}
+            refreshing={refreshing}
             onClose={() => setSelectedSymbol(null)}
           />
         </div>
       </div>
+
+      <div className="hidden md:block">
+        <PaperTradingPanel
+          paper={data.paper}
+          onReset={resetPaper}
+          resetting={resettingPaper}
+        />
+      </div>
+
+      <PaperTradingOverlay
+        open={paperOverlay !== null}
+        view={paperOverlay ?? "portfolio"}
+        paper={data.paper}
+        onClose={() => setPaperOverlay(null)}
+        onReset={resetPaper}
+        resetting={resettingPaper}
+      />
 
       <section
         id="markets"
@@ -273,7 +458,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
       <footer className="border-t border-zinc-800 pt-3 text-[10px] leading-relaxed text-zinc-600">
         {(data.liveMarketData ? (data.providerId ?? "live").toUpperCase() : "Mock") +
-          " provider"} · presentation only · filtering and sorting never modify engine decisions.
+          " provider"} · PAPER execution · filtering and sorting never modify engine decisions.
       </footer>
     </div>
   );

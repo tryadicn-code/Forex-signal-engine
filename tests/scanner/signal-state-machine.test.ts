@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   isLegalTransition,
+  findLegalTransitionPath,
   transitionSignal,
   deriveSignalState,
   deriveStateReason,
@@ -151,6 +152,39 @@ describe("legal transitions", () => {
     expect(isLegalTransition("CLOSED", "WATCH")).toBe(false);
     expect(isLegalTransition("CLOSED", "EXECUTE")).toBe(false);
     expect(isLegalTransition("CLOSED", "MANAGE")).toBe(false);
+  });
+});
+
+
+describe("lifecycle catch-up paths", () => {
+  it("catches a newly observed executable signal up through the canonical path", () => {
+    expect(findLegalTransitionPath("DISCOVERED", "EXECUTE")).toEqual([
+      "WATCH",
+      "SETUP",
+      "ARMED",
+      "TRIGGERED",
+      "RISK_APPROVED",
+      "EXECUTE",
+    ]);
+  });
+
+  it("catches a sparse-scan WATCH state up to EXECUTE without an illegal jump", () => {
+    expect(findLegalTransitionPath("WATCH", "EXECUTE")).toEqual([
+      "SETUP",
+      "ARMED",
+      "TRIGGERED",
+      "RISK_APPROVED",
+      "EXECUTE",
+    ]);
+  });
+
+  it("never revives CLOSED", () => {
+    expect(findLegalTransitionPath("CLOSED", "EXECUTE")).toBeNull();
+  });
+
+  it("uses direct legal safety transitions when available", () => {
+    expect(findLegalTransitionPath("ARMED", "CLOSED")).toEqual(["CLOSED"]);
+    expect(findLegalTransitionPath("TRIGGERED", "BLOCKED")).toEqual(["BLOCKED"]);
   });
 });
 

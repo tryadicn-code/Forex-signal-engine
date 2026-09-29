@@ -1,6 +1,7 @@
 import type { SignalView } from "@/scanner/scanner-api";
 import type { ScannerHealth, ScannerSnapshot } from "@/scanner/scanner-result";
 import type { SignalStateTransition } from "@/types/market-data";
+import type { PaperDashboardData } from "@/paper/types";
 
 /**
  * Serializable application-facing payload for the dashboard.
@@ -17,4 +18,14 @@ export interface DashboardData {
   providerId?: string;
   /** True only when the runtime provider is not the deterministic mock. */
   liveMarketData?: boolean;
+  /** Phase 4 paper-account state. Optional for older fixtures. */
+  paper?: PaperDashboardData;
+  /** Runtime automation status. Optional for older fixtures/backward compatibility. */
+  automation?: {
+    enabled: boolean;
+    scanIntervalMs: number;
+    dashboardSyncIntervalMs: number;
+    /** Server runtime target for the next automatic scan. */
+    nextScanAt: number | null;
+  };
 }
