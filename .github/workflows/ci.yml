@@ -7,6 +7,7 @@ on:
       - phase-3-professional-signal-dashboard
       - pre-phase-4-real-market-data
       - phase-4-paper-trading
+      - phase-5-validation-backtest
   pull_request:
     branches:
       - master
