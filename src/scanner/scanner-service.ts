@@ -128,6 +128,19 @@ export class ScannerService {
     return this.deps.economicCalendar;
   }
 
+  /**
+   * Update the runtime account balance used by the existing Risk Engine.
+   *
+   * Phase 4 uses this only in PAPER mode so position sizing follows the
+   * reconstructable paper-account balance. No strategy threshold or decision
+   * logic is changed.
+   */
+  setRuntimeAccountBalance(balance: number): void {
+    if (this.config.executionMode !== "PAPER") return;
+    if (!Number.isFinite(balance) || balance <= 0) return;
+    this.config.account.balance = balance;
+  }
+
   /** Symbols the scanner will analyse; unknown symbols are rejected up front. */
   get symbols(): string[] {
     return this.config.symbols.filter((symbol) => {
