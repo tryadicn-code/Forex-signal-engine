@@ -9,9 +9,16 @@
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SystemStatusBar } from "@/components/dashboard/system-status-bar";
 import { Badge } from "@/components/common/badges";
-import { DEFAULT_PAPER_TRADING_CONFIG } from "@/config/paper";
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({
+  children,
+  providerId,
+  liveMarketData,
+}: {
+  children: React.ReactNode;
+  providerId?: string;
+  liveMarketData?: boolean;
+}) {
   return (
     <div className="flex min-h-screen flex-col bg-[#0b0e14] text-zinc-200">
       <header className="sticky top-0 z-30 flex h-12 items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 backdrop-blur sm:px-4">
@@ -25,8 +32,14 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <span className="truncate text-[10px] font-semibold tracking-[0.12em] text-zinc-100 sm:hidden">
             FOREX SCANNER ENGINE
           </span>
-          <Badge tone="warning" glyph="◷" className="text-[9px]">
-            {DEFAULT_PAPER_TRADING_CONFIG.enabled ? "PAPER" : "SIGNAL ONLY"}
+          <Badge
+            tone={liveMarketData ? "bullish" : "info"}
+            glyph={liveMarketData ? "●" : "◌"}
+            className="text-[9px]"
+          >
+            {liveMarketData
+              ? "LIVE · " + (providerId ?? "provider").toUpperCase()
+              : "MOCK DATA"}
           </Badge>
         </div>
 
