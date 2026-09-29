@@ -94,6 +94,18 @@ describe("buildMarketContext required-timeframe gate", () => {
     expect(outcome.rejection?.timeframes).toContain("D1");
   });
 
+  it("uses trigger candle close time for aggregate freshness age", async () => {
+    const outcome = await buildMarketContext(mkInput());
+    const ctx = outcome.context!;
+    expect(ctx.freshness.ageMs).toBe(ctx.m15.freshness.ageMs);
+    expect(ctx.freshness.marketTimestamp).toBe(
+      ctx.m15.freshness.marketTimestamp
+    );
+    expect(ctx.freshness.ageMs).not.toBe(
+      Math.max(0, T0 - ctx.m15.asOf)
+    );
+  });
+
   it("keeps timeframe isolation: each timeframe has its own asOf and candles", async () => {
     const outcome = await buildMarketContext(mkInput());
     const ctx = outcome.context!;

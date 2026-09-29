@@ -314,13 +314,15 @@ export async function buildMarketContext(
         : conversion.rate,
     source: input.provider.id,
     receivedAt: input.asOf,
-    marketTimestamp: triggerTf.asOf,
+    marketTimestamp:
+      triggerTf.freshness.marketTimestamp ?? triggerTf.asOf,
     freshness: {
       source: input.provider.id,
-      marketTimestamp: triggerTf.asOf,
+      marketTimestamp:
+        triggerTf.freshness.marketTimestamp ?? triggerTf.asOf,
       receivedAt: input.asOf,
-      ageMs: Math.max(0, input.asOf - triggerTf.asOf),
-      missing: false,
+      ageMs: triggerTf.freshness.ageMs,
+      missing: triggerTf.freshness.missing,
       status: rollupFreshness(perTimeframe.map((o) => o.freshness.status)),
     },
   };
