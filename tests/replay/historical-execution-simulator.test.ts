@@ -335,6 +335,57 @@ describe("HistoricalExecutionSimulator", () => {
     expect(trade.closedAt).toBe(T0 + 2 * M15);
   });
 
+  it("enforces aggregate historical portfolio risk cap", () => {
+    const simulator = new HistoricalExecutionSimulator({
+      dataset: dataset([]),
+      initialBalance: 10_000,
+      config: {
+        enabled: true,
+        maxTotalOpenRiskPercent: 0.5,
+      },
+    });
+
+    simulator.processStep(step(T0, result({ signalId: "signal-a" })));
+    simulator.processStep(
+      step(T0, result({ signalId: "signal-b" }))
+    );
+
+    const summary = simulator.getSummary();
+    expect(summary.openPositionCount).toBe(1);
+    const rejected = summary.orders.find(
+      (order) => order.signalId === "signal-b"
+    );
+    expect(rejected?.status).toBe("REJECTED");
+    expect(rejected?.rejectionReason).toBe("HISTORICAL_MAX_TOTAL_RISK");
+  });
+
+  it("does not reopen a closed signal id on later replay steps", () => {
+    const simulator = new HistoricalExecutionSimulator({
+      dataset: dataset([
+        candle({
+          timestamp: T0,
+          high: 1.111,
+          low: 1.099,
+          close: 1.108,
+        }),
+      ]),
+      initialBalance: 10_000,
+    });
+
+    simulator.processStep(step(T0, result()));
+    simulator.processStep(
+      step(T0 + M15, result())
+    );
+    simulator.processStep(
+      step(T0 + 2 * M15, result())
+    );
+
+    const summary = simulator.getSummary();
+    expect(summary.orderCount).toBe(1);
+    expect(summary.closedTradeCount).toBe(1);
+    expect(summary.openPositionCount).toBe(0);
+  });
+
   it("rejects malformed executable risk snapshots fail-closed", () => {
     const simulator = new HistoricalExecutionSimulator({
       dataset: dataset([]),
