@@ -20,10 +20,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             ◈
           </span>
           <span className="hidden truncate text-xs font-semibold tracking-[0.16em] text-zinc-100 sm:inline">
-            FOREX SIGNAL ENGINE
+            FOREX SCANNER ENGINE
           </span>
-          <span className="font-mono text-xs font-semibold tracking-[0.18em] text-zinc-100 sm:hidden">
-            FSE
+          <span className="truncate text-[10px] font-semibold tracking-[0.12em] text-zinc-100 sm:hidden">
+            FOREX SCANNER ENGINE
           </span>
           <Badge tone="warning" glyph="◷" className="text-[9px]">
             {DEFAULT_PAPER_TRADING_CONFIG.enabled ? "PAPER" : "SIGNAL ONLY"}
