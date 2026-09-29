@@ -106,6 +106,16 @@ export interface HistoricalTrade {
   engine: HistoricalEngineSnapshot;
 }
 
+export interface HistoricalEquityPoint {
+  asOf: number;
+  balance: number;
+  equity: number;
+  realizedPnL: number;
+  unrealizedPnL: number;
+  openPositionCount: number;
+  openRiskPercent: number;
+}
+
 export interface HistoricalExecutionSummary {
   enabled: true;
   executionTimeframe: Timeframe;
@@ -123,4 +133,6 @@ export interface HistoricalExecutionSummary {
   orders: HistoricalOrder[];
   openPositions: HistoricalPosition[];
   trades: HistoricalTrade[];
+  /** End-of-replay-step mark-to-market history for Phase 5.3 analytics. */
+  equityCurve: HistoricalEquityPoint[];
 }
