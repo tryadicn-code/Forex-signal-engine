@@ -5,8 +5,6 @@
  * invoke the signal engine, derive indicators, or mutate scanner state.
  */
 
-import "server-only";
-
 import { DEMO_SCENARIOS } from "@/config/demo-scenarios";
 import { SYMBOL_METADATA } from "@/config/scanner";
 import { MockMarketDataProvider } from "@/providers/market-data/mock-provider";
