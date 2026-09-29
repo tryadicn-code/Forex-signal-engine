@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/common/badges";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
 import { PaperTradingPanel } from "@/components/paper/paper-trading-panel";
+import { PaperTradingOverlay } from "@/components/paper/paper-trading-overlay";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
@@ -29,6 +30,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [refreshing, setRefreshing] = useState(false);
   const [resettingPaper, setResettingPaper] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
+  const [paperOverlay, setPaperOverlay] = useState<"portfolio" | "journal" | null>(null);
 
   const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
   const visibleResults = useMemo(
@@ -46,6 +48,46 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     selectedResult?.signalId
       ? data.signalHistory[selectedResult.signalId] ?? []
       : [];
+
+  useEffect(() => {
+    const openPaper = (event: Event) => {
+      const detail = (event as CustomEvent<{ panel?: "portfolio" | "journal" }>).detail;
+      if (detail?.panel === "portfolio" || detail?.panel === "journal") {
+        setPaperOverlay(detail.panel);
+      }
+    };
+
+    const navigateSignals = () => {
+      const current =
+        (selectedSymbol && allResults.find((item) => item.symbol === selectedSymbol)) ??
+        visibleResults.find((item) => item.signalId) ??
+        allResults.find((item) => item.signalId) ??
+        null;
+
+      if (current) {
+        setSelectedSymbol(current.symbol);
+        requestAnimationFrame(() => {
+          document.getElementById("signals")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+        return;
+      }
+
+      document.getElementById("scanner")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    };
+
+    window.addEventListener("fse:open-paper-panel", openPaper);
+    window.addEventListener("fse:navigate-signals", navigateSignals);
+    return () => {
+      window.removeEventListener("fse:open-paper-panel", openPaper);
+      window.removeEventListener("fse:navigate-signals", navigateSignals);
+    };
+  }, [allResults, selectedSymbol, visibleResults]);
 
   const clearFilters = () => {
     setQuery(DEFAULT_QUERY);
@@ -255,8 +297,19 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         </div>
       </div>
 
-      <PaperTradingPanel
+      <div className="hidden md:block">
+        <PaperTradingPanel
+          paper={data.paper}
+          onReset={resetPaper}
+          resetting={resettingPaper}
+        />
+      </div>
+
+      <PaperTradingOverlay
+        open={paperOverlay !== null}
+        view={paperOverlay ?? "portfolio"}
         paper={data.paper}
+        onClose={() => setPaperOverlay(null)}
         onReset={resetPaper}
         resetting={resettingPaper}
       />
