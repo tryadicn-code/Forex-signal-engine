@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildConversionRateTable } from "@/server/runtime-market-data";
-import type { CandleRequest, MarketDataProvider } from "@/providers/market-data/provider";
+import type { MarketDataProvider } from "@/providers/market-data/provider";
 import type {
   CanonicalCandle,
   ProviderResult,
