@@ -83,8 +83,7 @@ function pipeline(overrides: {
           triggeredVetoes: [],
           reasons: [],
         });
-  return {
-    structure: engine<StructureResultData>({
+  const structure = engine<StructureResultData>({
       trend: "NEUTRAL",
       swingHighs: [],
       swingLows: [],
@@ -97,7 +96,10 @@ function pipeline(overrides: {
       trendStrength: 0,
       equalHighs: [],
       equalLows: [],
-    }),
+    });
+
+  return {
+    structure,
     regime: engine<RegimeResultData>({
       regime: "RANGE",
       baseRegime: "RANGE",
@@ -118,6 +120,7 @@ function pipeline(overrides: {
       weights: {} as BiasResultData["weights"],
     }),
     setup: engine<SetupResultData>(setup, 60),
+    setupStructure: structure,
     trigger,
     risk,
     execution,
