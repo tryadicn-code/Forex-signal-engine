@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/common/badges";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
+import { PaperTradingPanel } from "@/components/paper/paper-trading-panel";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
@@ -26,6 +27,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [sort, setSort] = useState<ScannerSort>(DEFAULT_SORT);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [resettingPaper, setResettingPaper] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
 
   const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
@@ -78,6 +80,28 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     }
   };
 
+  const resetPaper = async () => {
+    if (resettingPaper) return;
+    if (!window.confirm("Reset all paper orders, positions, journal, and paper balance?")) return;
+    setResettingPaper(true);
+    setRequestError(null);
+    try {
+      const response = await fetch("/api/paper", {
+        method: "DELETE",
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error("Paper reset failed with HTTP " + response.status + ".");
+      }
+      const paper = await response.json();
+      setData((current) => ({ ...current, paper }));
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setResettingPaper(false);
+    }
+  };
+
   const errorMessage = requestError ?? data.scanError;
 
   return (
@@ -87,7 +111,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-400/80">
-                Phase 3 · Signal Dashboard
+                Phase 4 · Paper Trading
               </p>
               <Badge
                 tone={data.liveMarketData ? "bullish" : "info"}
@@ -106,7 +130,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
               Market scanner
             </h1>
             <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-zinc-500 sm:text-xs">
-              Engine output via the Phase 2 scanner. Signal only; no broker execution.
+              FSE decisions with deterministic paper execution. No broker orders or real funds.
             </p>
           </div>
 
@@ -228,6 +252,12 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         </div>
       </div>
 
+      <PaperTradingPanel
+        paper={data.paper}
+        onReset={resetPaper}
+        resetting={resettingPaper}
+      />
+
       <section
         id="markets"
         aria-label="Market data and signal history"
@@ -273,7 +303,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
       <footer className="border-t border-zinc-800 pt-3 text-[10px] leading-relaxed text-zinc-600">
         {(data.liveMarketData ? (data.providerId ?? "live").toUpperCase() : "Mock") +
-          " provider"} · presentation only · filtering and sorting never modify engine decisions.
+          " provider"} · PAPER execution · filtering and sorting never modify engine decisions.
       </footer>
     </div>
   );
