@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { BacktestRunArtifact, BacktestRunListItem } from "@/replay/backtest-run-types";
 import type { HistoricalDatasetValidation } from "@/replay/import-types";
@@ -55,7 +56,10 @@ export function BacktestWorkspace() {
   };
 
   useEffect(() => {
-    void refreshRecent();
+    const initialLoad = window.setTimeout(() => {
+      void refreshRecent();
+    }, 0);
+    return () => window.clearTimeout(initialLoad);
   }, []);
 
   const runBacktest = async () => {
@@ -166,12 +170,12 @@ export function BacktestWorkspace() {
                 Import normalized MT5/CSV history, validate coverage, replay the existing FSE engine, and persist an isolated validation report.
               </p>
             </div>
-            <a
+            <Link
               href="/#overview"
               className="rounded border border-zinc-700 px-2.5 py-1.5 text-[10px] font-medium text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
             >
               ← Live scanner
-            </a>
+            </Link>
           </div>
         </header>
 
