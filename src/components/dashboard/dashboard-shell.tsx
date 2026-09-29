@@ -9,7 +9,7 @@
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SystemStatusBar } from "@/components/dashboard/system-status-bar";
 import { Badge } from "@/components/common/badges";
-import { systemConfig } from "@/config/system";
+import { DEFAULT_PAPER_TRADING_CONFIG } from "@/config/paper";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
@@ -26,7 +26,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             FSE
           </span>
           <Badge tone="warning" glyph="◷" className="text-[9px]">
-            {systemConfig.executionMode}
+            {DEFAULT_PAPER_TRADING_CONFIG.enabled ? "PAPER" : "SIGNAL ONLY"}
           </Badge>
         </div>
 
