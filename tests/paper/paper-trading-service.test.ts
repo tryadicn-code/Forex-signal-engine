@@ -99,6 +99,71 @@ describe("PaperTradingService", () => {
     expect(second.recentOrders).toHaveLength(1);
   });
 
+  it("does not create a paper order for ENGINE EXECUTE when lifecycle is not EXECUTE", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    const closed = result({ signalState: "CLOSED" });
+
+    const data = await paper.processSnapshot(snapshot(closed), provider);
+
+    expect(data.openPositions).toHaveLength(0);
+    expect(data.recentOrders).toHaveLength(0);
+  });
+
+  it("reconciles the legacy lifecycle-mismatch rejection once the same signal becomes actionable", async () => {
+    const store = new InMemoryPaperStore();
+    const paper = new PaperTradingService(store, {
+      initialBalance: 10_000,
+      accountCurrency: "USD",
+      maxOpenPositions: 10,
+      maxTotalOpenRiskPercent: 5,
+    });
+    const provider = new MockMarketDataProvider();
+
+    // Seed the exact legacy rejection produced by the pre-fix integration.
+    await store.save({
+      schemaVersion: 1,
+      account: { currency: "USD", initialBalance: 10_000, createdAt: T0 },
+      orders: [{
+        id: "order-signal-1",
+        executionKey: "paper:signal-1",
+        signalId: "signal-1",
+        symbol: "EURUSD",
+        side: "LONG",
+        requestedAt: T0,
+        filledAt: null,
+        requestedEntry: 1.1,
+        fillPrice: null,
+        stopLoss: 1.095,
+        takeProfit: 1.11,
+        positionSize: 1,
+        riskAmount: 50,
+        riskPercent: 0.5,
+        plannedRR: 2,
+        status: "REJECTED",
+        rejectionReason: "PAPER_SIGNAL_STATE_NOT_EXECUTE",
+        engine: {
+          bias: "LONG",
+          setupScore: 85,
+          executionDecision: "EXECUTE",
+          freshness: "FRESH",
+          engineVersion: "phase-4",
+          paperConfigVersion: "phase-4.1",
+        },
+      }],
+      positions: [],
+      trades: [],
+      ledger: [],
+    });
+
+    const data = await paper.processSnapshot(snapshot(result(), T0 + 1), provider);
+
+    expect(data.openPositions).toHaveLength(1);
+    expect(data.recentOrders).toHaveLength(1);
+    expect(data.recentOrders[0].status).toBe("FILLED");
+    expect(data.recentOrders[0].rejectionReason).toBeNull();
+  });
+
   it("fails closed when an EXECUTE-shaped input is stale", async () => {
     const paper = service();
     const provider = new MockMarketDataProvider();
