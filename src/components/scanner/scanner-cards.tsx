@@ -68,7 +68,7 @@ function ScannerCard({
   return (
     <li
       className={cn(
-        "border-l-2 px-3 py-3",
+        "border-l-2 px-3 py-2.5",
         actionable
           ? "border-l-emerald-500"
           : engineLifecycleMismatch
@@ -80,23 +80,25 @@ function ScannerCard({
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="font-mono text-[15px] font-semibold tracking-wide text-zinc-100">
-            {result.symbol}
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <DirectionBadge direction={result.biasDirection} className="text-[10px]" />
-            <FreshnessBadge status={result.freshness} className="text-[9px]" />
-          </div>
+        <div className="font-mono text-[15px] font-semibold tracking-wide text-zinc-100">
+          {result.symbol}
         </div>
         <div className="text-right">
           <div className="font-mono text-[15px] font-semibold tabular-nums text-zinc-100">
             {formatPrice(result.symbol, result.latestPrice)}
           </div>
-          <div className="mt-1 font-mono text-[11px] tabular-nums text-zinc-600">
+          <div className="mt-0.5 font-mono text-[10px] tabular-nums text-zinc-600">
             {formatTimeShort(result.updatedAt)}
           </div>
         </div>
+      </div>
+
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <DirectionBadge direction={result.biasDirection} className="text-[9px]" />
+        <FreshnessBadge status={result.freshness} className="text-[8px]" />
+        {result.signalState && (
+          <StateBadge state={result.signalState} className="max-w-full text-[8px]" />
+        )}
       </div>
 
       {failed ? (
@@ -110,67 +112,50 @@ function ScannerCard({
         </div>
       ) : (
         <>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-wider text-zinc-600">Bias</div>
-              <div className="mt-0.5 truncate text-xs font-medium text-zinc-300">
-                {result.bias ? BIAS_DISPLAY[result.bias] : "—"}
-              </div>
-            </div>
-            <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-wider text-zinc-600">Signal</div>
-              <div className="mt-0.5">
-                {result.signalState ? (
-                  <StateBadge state={result.signalState} className="max-w-full text-[9px]" />
-                ) : (
-                  <span className="text-[11px] text-zinc-600">No signal</span>
-                )}
-              </div>
-            </div>
-          </div>
-
           <div className="mt-2 border-t border-zinc-800/70 pt-2">
             <dl className="grid grid-cols-3 gap-2">
+              <CompactMetric
+                label="Bias"
+                value={result.bias ? BIAS_DISPLAY[result.bias] : "—"}
+              />
               <CompactMetric label="Setup" value={formatScore(result.setupScore)} />
               <CompactMetric label="R:R" value={formatRatio(result.riskReward)} />
-              <CompactMetric
-                label="Engine"
-                value={result.executionDecision ? undefined : "—"}
-                node={
-                  result.executionDecision ? (
-                    <DecisionBadge decision={result.executionDecision} className="max-w-full text-[8px]" />
-                  ) : undefined
-                }
-              />
             </dl>
 
-            {actionable && (
-              <div className="mt-2">
-                <Badge tone="bullish" glyph="●" className="text-[9px]">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {result.executionDecision ? (
+                <DecisionBadge
+                  decision={result.executionDecision}
+                  className="max-w-full text-[8px]"
+                />
+              ) : (
+                <Badge tone="muted" className="text-[8px]">NO ENGINE DECISION</Badge>
+              )}
+
+              {actionable && (
+                <Badge tone="bullish" glyph="●" className="text-[8px]">
                   PAPER ACTIONABLE
                 </Badge>
-              </div>
-            )}
+              )}
 
-            {engineLifecycleMismatch && (
-              <div className="mt-2 rounded border border-amber-800/50 bg-amber-950/15 px-2.5 py-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone="warning" glyph="!" className="text-[9px]">
+              {engineLifecycleMismatch && (
+                <>
+                  <Badge tone="warning" glyph="!" className="text-[8px]">
                     NOT ACTIONABLE
                   </Badge>
-                  <span className="text-[10px] text-amber-200/60">
-                    Lifecycle {result.signalState ?? "unavailable"} · no paper entry
+                  <span className="text-[9px] text-amber-200/55">
+                    Lifecycle {result.signalState ?? "unavailable"}
                   </span>
-                </div>
-              </div>
-            )}
+                </>
+              )}
+            </div>
 
             <button
               type="button"
               onClick={() => onSelect(result.symbol)}
               aria-pressed={selected}
               aria-label={`Open signal detail for ${result.symbol}`}
-              className="mt-2 w-full rounded-md border border-zinc-700 px-3 py-2 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+              className="mt-2 w-full rounded-md border border-zinc-700 px-3 py-1.5 text-[10px] font-medium text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             >
               View analysis
             </button>
