@@ -2,6 +2,7 @@ import { DEFAULT_ACCOUNT } from "@/config/scanner";
 import { TableAccountConversionResolver } from "@/market-data/account-conversion";
 import { createInMemoryRepositories } from "@/repositories/in-memory";
 import { HistoricalReplayProvider } from "@/replay/historical-replay-provider";
+import { HistoricalExecutionSimulator } from "@/replay/historical-execution-simulator";
 import { HistoricalReplayClock } from "@/replay/replay-clock";
 import type {
   ReplayDataset,
@@ -36,6 +37,7 @@ export class HistoricalReplayRunner {
   >;
   private readonly provider: HistoricalReplayProvider;
   private readonly scannerApi: ScannerApi;
+  private readonly executionSimulator: HistoricalExecutionSimulator | null;
 
   constructor(dataset: ReplayDataset, config: ReplayRunConfig) {
     const symbols = config.symbols ?? Object.keys(dataset.symbols);
@@ -61,6 +63,13 @@ export class HistoricalReplayRunner {
     };
 
     this.provider = new HistoricalReplayProvider(dataset);
+    this.executionSimulator = config.execution?.enabled
+      ? new HistoricalExecutionSimulator({
+          dataset,
+          initialBalance: this.config.accountBalance,
+          config: config.execution,
+        })
+      : null;
     this.scannerApi = new ScannerApi(
       {
         providerId: this.provider.id,
@@ -114,6 +123,8 @@ export class HistoricalReplayRunner {
       if (firstStepAt === null) firstStepAt = asOf;
       lastStepAt = asOf;
 
+      this.executionSimulator?.processStep(step);
+
       if (collectSteps) {
         steps.push(step);
       }
@@ -134,6 +145,7 @@ export class HistoricalReplayRunner {
       firstStepAt,
       lastStepAt,
       steps,
+      execution: this.executionSimulator?.getSummary() ?? null,
     };
   }
 }
