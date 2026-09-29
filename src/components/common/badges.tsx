@@ -86,7 +86,16 @@ export function DecisionBadge({
   }
   const meta = DECISION_META[decision];
   return (
-    <Badge tone={meta.tone} glyph={meta.glyph} className={className} title={`Execution decision: ${decision}`}>
+    <Badge
+      tone={meta.tone}
+      glyph={meta.glyph}
+      className={className}
+      title={
+        decision === "EXECUTE"
+          ? "Engine decision: EXECUTE. Paper Trading processes this automatically after a scanner refresh."
+          : `Execution decision: ${decision}`
+      }
+    >
       {meta.label}
     </Badge>
   );
