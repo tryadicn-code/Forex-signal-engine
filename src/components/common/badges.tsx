@@ -69,7 +69,7 @@ export function StateBadge({ state, className }: { state: SignalState | null | u
   const meta = SIGNAL_STATE_META[state];
   return (
     <Badge tone={meta.tone} glyph={meta.glyph} className={className} title={`Signal state: ${state}`}>
-      {decision === "EXECUTE" ? "ENGINE EXECUTE" : meta.label}
+      {meta.label}
     </Badge>
   );
 }
@@ -96,7 +96,7 @@ export function DecisionBadge({
           : `Execution decision: ${decision}`
       }
     >
-      {meta.label}
+      {decision === "EXECUTE" ? "ENGINE EXECUTE" : meta.label}
     </Badge>
   );
 }
