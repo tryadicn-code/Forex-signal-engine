@@ -289,7 +289,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             type="button"
             onClick={refresh}
             disabled={refreshing}
-            aria-label="Refresh scan manually"
+            aria-label="Refresh scan"
             className="shrink-0 rounded border border-zinc-700 bg-zinc-900/60 px-2 py-1 text-[9px] font-medium text-zinc-300 transition-colors hover:border-emerald-700/60 hover:bg-emerald-950/20 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:text-[10px]"
           >
             {refreshing ? "Syncing..." : "Refresh"}
