@@ -359,3 +359,203 @@ This will provide a controlled way to load real historical MT5/CSV data,
 validate coverage/quality, configure a replay window, run the backtest and
 persist/export the resulting validation report without contaminating the live
 or paper runtime.
+
+
+---
+
+## Phase 5.4 — Historical Data Import & Backtest Run Interface
+
+Phase 5.4 is the controlled entry point for real historical datasets. It sits
+outside the live scanner and Phase 4 paper runtime.
+
+### Import contract
+
+The first supported workflow accepts multiple `.csv` or `.txt` files.
+Each file name must identify both pair and timeframe, for example:
+
+- `EURUSD_D1.csv`
+- `EURUSD_H4.csv`
+- `EURUSD_H1.csv`
+- `EURUSD_M15.csv`
+
+Every imported pair requires D1, H4, H1 and M15 coverage.
+
+Supported row layouts include:
+
+- MT5-style DATE + TIME + OHLC + volume exports,
+- standard CSV with DATETIME/TIMESTAMP + OHLC,
+- epoch-second or epoch-millisecond timestamp columns,
+- comma, semicolon or tab delimiters.
+
+Historical files are normalized into the same canonical candle type used by
+Phase 5.1 before they can reach the replay engine.
+
+### MT5 timezone rule
+
+MT5 exports commonly use broker-server time. Phase 5.4 therefore requires an
+explicit source UTC offset in minutes.
+
+Examples:
+
+- `0` = UTC
+- `120` = UTC+2
+- `180` = UTC+3
+- `-300` = UTC-5
+
+Naive DATE/TIME rows are converted to UTC using that declared offset. A
+timezone-aware ISO timestamp keeps its own explicit timezone.
+
+The fixed-offset model is intentionally explicit and reproducible. It is not a
+DST-aware broker timezone calendar. A DST-aware historical timezone adapter
+would need to be versioned separately because it can alter signal timing.
+
+### Dataset validation
+
+Before replay, the importer validates:
+
+- file identity,
+- required columns,
+- finite/positive OHLC,
+- OHLC structural consistency,
+- non-negative volume,
+- required D1/H4/H1/M15 series,
+- common coverage window,
+- overlapping duplicate candles,
+- conflicting duplicate candles,
+- non-weekend gaps,
+- deterministic assumed spread.
+
+Identical overlapping candles are de-duplicated with a warning. Conflicting
+candles at the same timestamp fail closed.
+
+FX metadata is inferred from a six-letter FX symbol. The report explicitly
+warns that pip/lot metadata was inferred so broker-specific constraints can be
+reviewed.
+
+### Backtest run configuration
+
+The `/backtest` workstation allows configuration of:
+
+- dataset id/source label,
+- source UTC offset,
+- deterministic assumed spread,
+- optional start/end date,
+- initial balance,
+- risk percent,
+- maximum open positions,
+- maximum aggregate risk,
+- same-bar SL/TP policy.
+
+Blank start/end uses the common dataset coverage.
+
+The synchronous run interface has a default safety ceiling of **50,000 M15
+replay steps**. Larger requested windows fail before scanning so a browser/server
+process is not accidentally locked by an oversized replay.
+
+### Server isolation
+
+Historical uploads are processed by Node route handlers. Successful validation
+reports are persisted separately under:
+
+```
+.data/backtest-runs/
+```
+
+That directory is covered by the existing `/.data/` gitignore rule.
+
+Phase 5.4 never reads or writes:
+
+```
+.data/paper-trading.json
+```
+
+Persisted reports can be listed and reopened by the Backtest interface.
+
+### Backtest report
+
+A successful run stores/returns:
+
+- normalized run configuration,
+- dataset validation report,
+- historical orders/positions/trades,
+- mark-to-market equity history,
+- Phase 5.3 analytics,
+- pair segmentation,
+- run duration and dataset provenance.
+
+The UI can export the complete artifact as JSON.
+
+### UI
+
+The historical interface is available at:
+
+```
+/backtest
+```
+
+It is visually separated from the live Market Scanner and carries a
+`HISTORICAL · BACKTEST` header state.
+
+The workstation shows:
+
+- selected files and total upload size,
+- normalization/timezone settings,
+- replay/risk settings,
+- validation coverage by series,
+- blocking errors and warnings,
+- core performance metrics,
+- mark-to-market equity curve,
+- performance by pair,
+- persisted recent reports,
+- JSON export.
+
+### Safety limits
+
+Current synchronous upload limits:
+
+- 64 files maximum,
+- 20 MB maximum per file,
+- 128 MB combined upload,
+- 50,000 M15 replay steps by default.
+
+These are execution-safety limits for the first interactive interface, not
+strategy rules.
+
+### Explicitly out of scope
+
+Phase 5.4 does not add:
+
+- automatic downloading of broker history,
+- broker account credentials,
+- live broker execution,
+- parameter optimization,
+- genetic optimization,
+- Monte Carlo simulation,
+- DST-aware broker timezone reconstruction,
+- arbitrary non-FX instrument metadata,
+- distributed/background replay workers.
+
+### Phase 5.4 Definition of done
+
+1. MT5/standard CSV historical candles can be normalized into canonical data,
+2. naive broker timestamps require an explicit UTC offset,
+3. malformed OHLC/time rows fail closed,
+4. D1/H4/H1/M15 coverage is validated per pair,
+5. exact duplicates are explicitly de-duplicated and conflicting duplicates fail,
+6. requested replay windows cannot exceed dataset coverage,
+7. oversized synchronous runs are blocked before replay,
+8. validated uploads run through the existing 5.1 → 5.2 → 5.3 pipeline,
+9. successful reports persist outside Phase 4 paper storage,
+10. persisted reports can be listed/reopened,
+11. reports can be exported from the UI as JSON,
+12. live scanner and paper runtime remain unchanged,
+13. all earlier Phase tests remain green,
+14. typecheck, tests, lint and production build pass.
+
+### Next planned subphase
+
+**Phase 5.5 — Backtest Validation Workbench & Comparison**
+
+This can add richer comparison views across runs, forward-vs-historical
+side-by-side analysis, dataset/run tagging, additional segment filters and
+validation-oriented visualizations without changing the strategy itself.
