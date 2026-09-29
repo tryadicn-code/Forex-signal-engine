@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
    * If the workstation LAN address changes, update this entry to match the new
    * address shown by ipconfig / Next.js "Network" URL.
    */
-  allowedDevOrigins: ["192.168.1.5"],
+  allowedDevOrigins: ["192.168.1.25"],
 };
 
 export default nextConfig;
