@@ -73,6 +73,44 @@ export interface SignalLifecycleState {
   transitions: SignalStateTransition[];
 }
 
+/**
+ * Create a deterministic identity for a NEW trigger occurrence inside the same
+ * setup zone. The setup identity remains intact in the fields; only signalId
+ * gains the fresh trigger market timestamp as an occurrence discriminator.
+ *
+ * This is used only after the previous lifecycle is terminal CLOSED. It never
+ * revives or overwrites the closed record.
+ */
+export function freshTriggerOccurrenceIdentity(
+  base: SignalIdentity,
+  triggerTimestamp: number
+): SignalIdentity {
+  return {
+    ...base,
+    signalId: `${base.signalId}|trigger:${triggerTimestamp}`,
+  };
+}
+
+/**
+ * CLOSED is terminal, but a genuinely newer trigger is a new signal occurrence.
+ * Repeated scans of the same trigger resolve to the same deterministic id.
+ */
+export function resolveLifecycleIdentity(
+  base: SignalIdentity,
+  existing: SignalLifecycleState | null,
+  observedTriggerTimestamp: number | null
+): SignalIdentity {
+  if (
+    existing?.state === "CLOSED" &&
+    observedTriggerTimestamp !== null &&
+    (existing.triggerOriginTimestamp === null ||
+      observedTriggerTimestamp > existing.triggerOriginTimestamp)
+  ) {
+    return freshTriggerOccurrenceIdentity(base, observedTriggerTimestamp);
+  }
+  return base;
+}
+
 export function createLifecycle(
   identity: SignalIdentity,
   now: number
