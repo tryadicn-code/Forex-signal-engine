@@ -72,11 +72,11 @@ export function SignalDetailPanel({
       role="complementary"
       aria-label={detailLabel}
       className={cn(
-        "fixed inset-0 z-50 overflow-y-auto bg-[#0b0e14] shadow-2xl",
+        "fixed inset-x-0 bottom-0 top-12 z-40 overflow-y-auto border-t border-zinc-700 bg-[#0b0e14] shadow-2xl",
         "xl:sticky xl:top-16 xl:z-0 xl:max-h-[calc(100vh-5rem)] xl:rounded xl:border xl:border-zinc-800 xl:bg-zinc-900/30 xl:shadow-none"
       )}
     >
-      <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur xl:bg-zinc-900/95 xl:pt-3">
+      <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-4 py-3 backdrop-blur xl:bg-zinc-900/95">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-mono text-base font-semibold tracking-wide text-zinc-100">
@@ -97,7 +97,7 @@ export function SignalDetailPanel({
         </button>
       </header>
 
-      <div className="space-y-4 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="space-y-4 p-4">
         {failed ? (
           <FailureDetail result={result} />
         ) : (

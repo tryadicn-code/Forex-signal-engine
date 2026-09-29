@@ -50,13 +50,3 @@ summary {
     animation-iteration-count: 1 !important;
   }
 }
-
-
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
