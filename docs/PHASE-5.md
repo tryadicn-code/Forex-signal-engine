@@ -233,3 +233,129 @@ The only reused Phase 4 implementation detail is pure tested trade math
 This layer will derive equity curve, drawdown curve, expectancy, profit factor,
 R distribution, pair/direction/session/setup segmentation and forward-vs-history
 comparison from Phase 5.2 historical trades.
+
+
+---
+
+## Phase 5.3 — Backtest Performance Analytics
+
+Phase 5.3 derives deterministic validation metrics from the Phase 5.2
+historical execution state. It does not place trades and does not change any
+Phase 1–4 strategy decision.
+
+### Curves
+
+The execution simulator records one mark-to-market point after every replay
+step. Phase 5.3 derives:
+
+- realized balance curve,
+- mark-to-market equity curve,
+- equity peak,
+- balance peak,
+- equity drawdown amount / percent,
+- balance drawdown amount / percent,
+- maximum and current equity drawdown.
+
+This distinction is intentional: a backtest can experience a deep floating
+drawdown before a position closes, and a realized-only balance curve would hide
+that risk.
+
+### Core performance metrics
+
+Historical analytics include:
+
+- sample size,
+- wins / losses / break-even,
+- win rate / loss rate,
+- gross profit / gross loss,
+- net P/L and return percent,
+- average win / average loss,
+- payoff ratio,
+- profit factor,
+- expectancy in account currency,
+- net R,
+- average / median / standard deviation of R,
+- expectancy R,
+- best / worst trade in P/L and R,
+- average / median holding time,
+- consecutive win / loss streaks,
+- maximum/current equity drawdown,
+- maximum balance drawdown.
+
+Undefined ratios are represented as `null`, never `Infinity` or `NaN`.
+For example, a winning-only sample has no finite profit factor yet.
+
+### R distribution
+
+R results are grouped into deterministic bins so the distribution can later be
+visualized without recomputing trading logic in the UI.
+
+### Segmentation
+
+Each closed historical trade is classified by:
+
+- symbol,
+- LONG / SHORT direction,
+- engine bias label,
+- setup-score bucket,
+- entry-session bucket,
+- close reason.
+
+Every segment includes its own sample size, win/loss counts, win rate, net P/L,
+net R, average/expectancy R and profit factor.
+
+#### Session bucket note
+
+The default session classification uses fixed UTC buckets:
+
+- Asia: 00–08 UTC
+- London: 08–13 UTC
+- London/New York overlap: 13–17 UTC
+- New York: 17–22 UTC
+- Late: 22–24 UTC
+
+These are deterministic analysis buckets, not a DST-aware exchange calendar.
+Custom UTC bucket definitions can be supplied to the analytics function. A
+future DST-aware market-session calendar must be introduced explicitly and
+versioned because it can change historical segment results.
+
+### Historical vs forward comparison
+
+Phase 5.3 provides a pure comparison helper for normalized performance metrics.
+It does **not** read the Phase 4 paper store. A caller may explicitly supply a
+forward-test summary and compare:
+
+- sample size,
+- win rate,
+- profit factor,
+- expectancy R,
+- average R,
+- maximum drawdown percent,
+- net return percent.
+
+This preserves the rule that historical validation cannot silently mutate or
+depend on Paper Trading persistence.
+
+### Phase 5.3 Definition of done
+
+1. analytics derive only from Phase 5.2 historical state,
+2. equity drawdown includes mark-to-market floating P/L,
+3. balance drawdown remains separately visible,
+4. zero-trade and all-win/all-loss samples never produce NaN/Infinity,
+5. expectancy, profit factor and R statistics are unit-tested,
+6. R-distribution bins are mutually exclusive,
+7. segment sample sizes reconcile with underlying trades,
+8. symbol/direction/bias/setup/session/exit segmentation is deterministic,
+9. forward comparison is a pure opt-in calculation with no Paper Store access,
+10. ReplayRunner returns analytics only when historical execution is enabled,
+11. all previous Phase 1–5.2 tests remain green,
+12. typecheck, tests, lint and production build pass.
+
+### Next planned subphase
+
+**Phase 5.4 — Historical Data Import & Backtest Run Interface**
+
+This will provide a controlled way to load real historical MT5/CSV data,
+validate coverage/quality, configure a replay window, run the backtest and
+persist/export the resulting validation report without contaminating the live
+or paper runtime.
