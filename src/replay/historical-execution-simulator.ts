@@ -13,7 +13,7 @@ import type {
 } from "@/replay/execution-types";
 import type { ReplayDataset, ReplayStep } from "@/replay/types";
 import type { SymbolScanResult } from "@/scanner/scanner-result";
-import type { CanonicalCandle, SymbolMetadata } from "@/types/market-data";
+import type { CanonicalCandle } from "@/types/market-data";
 
 interface HistoricalExitDecision {
   exitPrice: number;
