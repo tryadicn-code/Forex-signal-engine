@@ -19,6 +19,11 @@ import {
   runtimeProviderId,
   runtimeUsesLiveMarketData,
 } from "@/server/runtime-market-data";
+import {
+  paperBalance,
+  processPaperSnapshot,
+  readPaperDashboard,
+} from "@/server/paper-trading-access";
 
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
@@ -31,6 +36,7 @@ function scanner(): ScannerApi {
     api = new ScannerApi(
       {
         providerId: runtimeProviderId(),
+        executionMode: "PAPER",
         ...(symbols ? { symbols } : {}),
       },
       {
@@ -42,7 +48,7 @@ function scanner(): ScannerApi {
   return api;
 }
 
-function dashboardView(inst: ScannerApi, scanError: string | null): DashboardData {
+async function dashboardView(inst: ScannerApi, scanError: string | null): Promise<DashboardData> {
   const allSignals = inst.getAllSignals();
   const signalHistory: DashboardData["signalHistory"] = {};
 
@@ -60,13 +66,16 @@ function dashboardView(inst: ScannerApi, scanError: string | null): DashboardDat
     scanError,
     providerId: runtimeProviderId(),
     liveMarketData: runtimeUsesLiveMarketData(),
+    paper: await readPaperDashboard(),
   };
 }
 
 async function runScanner(inst: ScannerApi, asOf: number): Promise<string | null> {
   try {
+    inst.setRuntimeAccountBalance(await paperBalance());
     await primeRuntimeConversionRates(asOf, inst.config.account.currency);
-    await inst.runScan(asOf);
+    const snapshot = await inst.runScan(asOf);
+    await processPaperSnapshot(snapshot);
     return null;
   } catch (error) {
     return error instanceof Error ? error.message : String(error);
@@ -83,7 +92,7 @@ export async function readDashboard(
     scanError = await runScanner(inst, asOf);
   }
 
-  return dashboardView(inst, scanError);
+  return await dashboardView(inst, scanError);
 }
 
 export async function refreshScanner(
@@ -91,7 +100,7 @@ export async function refreshScanner(
 ): Promise<DashboardData> {
   const inst = scanner();
   const scanError = await runScanner(inst, asOf);
-  return dashboardView(inst, scanError);
+  return await dashboardView(inst, scanError);
 }
 
 export function listUniverse(): string[] {
