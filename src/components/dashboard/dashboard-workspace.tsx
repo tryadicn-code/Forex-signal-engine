@@ -247,77 +247,69 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   return (
     <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4">
       <section id="overview" aria-labelledby="overview-title" className="scroll-mt-16">
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-400/80">
-                Phase 4 · Paper Trading
-              </p>
-              <Badge
-                tone={data.liveMarketData ? "bullish" : "info"}
-                glyph={data.liveMarketData ? "●" : "◌"}
-                className="text-[9px]"
-              >
-                {data.liveMarketData
-                  ? "Live · " + (data.providerId ?? "provider").toUpperCase()
-                  : "Mock data"}
-              </Badge>
-              {data.automation?.enabled && (
-                <Badge tone="info" glyph="↻" className="text-[9px]">
-                  AUTO
-                </Badge>
-              )}
-            </div>
-            <h1
-              id="overview-title"
-              className="mt-1 text-lg font-semibold tracking-tight text-zinc-100"
-            >
-              Market scanner
-            </h1>
-            <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-zinc-500 sm:text-xs">
-              FSE decisions with deterministic paper execution. No broker orders or real funds.
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-400/80 sm:text-[10px]">
+              Phase 4 · Paper Trading
             </p>
+            <Badge
+              tone={data.liveMarketData ? "bullish" : "info"}
+              glyph={data.liveMarketData ? "●" : "◌"}
+              className="text-[8px] sm:text-[9px]"
+            >
+              {data.liveMarketData
+                ? "Live · " + (data.providerId ?? "provider").toUpperCase()
+                : "Mock data"}
+            </Badge>
+            {data.automation?.enabled && (
+              <Badge tone="info" glyph="↻" className="text-[8px] sm:text-[9px]">
+                AUTO · {countdownSeconds === null ? "—" : countdownSeconds + "s"}
+              </Badge>
+            )}
           </div>
 
-          <div className="shrink-0 text-right">
-            <button
-              type="button"
-              onClick={refresh}
-              disabled={refreshing}
-              aria-label="Refresh scan"
-              className="rounded-md border border-emerald-700/60 bg-emerald-950/20 px-3 py-2 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-            >
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            aria-label="Refresh scan"
+            className="shrink-0 rounded-md border border-emerald-700/60 bg-emerald-950/20 px-2.5 py-1.5 text-[10px] font-medium text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:text-[11px]"
+          >
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+
+        <div className="mb-2">
+          <h1
+            id="overview-title"
+            className="text-[19px] font-semibold leading-tight tracking-tight text-zinc-100 sm:text-xl"
+          >
+            Market scanner
+          </h1>
+          <p className="mt-0.5 max-w-3xl text-[10px] leading-4 text-zinc-500 sm:text-[11px]">
+            FSE decisions with deterministic paper execution · no broker orders · no real funds
+          </p>
         </div>
 
         <div
           aria-live="polite"
-          className="mb-3 grid grid-cols-2 gap-2 rounded-md border border-zinc-800 bg-zinc-900/25 p-2 sm:flex sm:items-center sm:justify-between"
+          className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 border-y border-zinc-800/80 py-1.5 text-[9px] text-zinc-600 sm:text-[10px]"
         >
-          <div className="min-w-0">
-            <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-600">
-              Last scan
-            </div>
-            <div className="mt-0.5 truncate font-mono text-[11px] tabular-nums text-zinc-300">
-              {refreshing
-                ? "Scanning..."
-                : formatTime(data.health?.lastScanCompletedAt)}
-            </div>
-          </div>
-          <div className="min-w-0 text-right">
-            <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-600">
-              Next auto scan
-            </div>
-            <div className="mt-0.5 font-mono text-[13px] font-semibold tabular-nums text-emerald-300">
-              {data.automation?.enabled
-                ? countdownSeconds === null
-                  ? "—"
-                  : countdownSeconds + "s"
-                : "OFF"}
-            </div>
-          </div>
+          <span className="uppercase tracking-[0.12em]">Last scan</span>
+          <span className="font-mono tabular-nums text-zinc-300">
+            {refreshing
+              ? "Scanning..."
+              : formatTime(data.health?.lastScanCompletedAt)}
+          </span>
+          <span aria-hidden="true" className="text-zinc-700">·</span>
+          <span className="uppercase tracking-[0.12em]">Next</span>
+          <span className="font-mono font-semibold tabular-nums text-emerald-300">
+            {data.automation?.enabled
+              ? countdownSeconds === null
+                ? "—"
+                : countdownSeconds + "s"
+              : "OFF"}
+          </span>
         </div>
 
         <DashboardSummary
