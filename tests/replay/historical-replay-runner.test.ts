@@ -109,9 +109,12 @@ describe("HistoricalReplayRunner", () => {
     const enabled = await withExecution.run();
 
     expect(baseline.execution).toBeNull();
+    expect(baseline.analytics).toBeNull();
     expect(enabled.execution?.enabled).toBe(true);
     expect(enabled.execution?.initialBalance).toBe(10_000);
     expect(enabled.execution?.executionTimeframe).toBe("M15");
+    expect(enabled.analytics).not.toBeNull();
+    expect(enabled.analytics?.sampleSize).toBe(enabled.execution?.closedTradeCount);
   });
 
   it("keeps repositories isolated between replay runs", async () => {
