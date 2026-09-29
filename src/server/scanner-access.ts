@@ -28,12 +28,23 @@ import {
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
 
-let api: ScannerApi | null = null;
+type ScannerRuntimeGlobal = typeof globalThis & {
+  __fseScannerApi?: ScannerApi;
+};
 
+/**
+ * Next.js may evaluate server modules in separate route bundles during
+ * development. A module-local singleton can therefore split page reloads and
+ * /api/scanner refreshes into different in-memory scanner repositories.
+ *
+ * Store the runtime scanner on globalThis so every server bundle in this Node
+ * process reads and mutates the same snapshot/lifecycle source of truth.
+ */
 function scanner(): ScannerApi {
-  if (!api) {
+  const runtime = globalThis as ScannerRuntimeGlobal;
+  if (!runtime.__fseScannerApi) {
     const symbols = resolveRuntimeSymbols();
-    api = new ScannerApi(
+    runtime.__fseScannerApi = new ScannerApi(
       {
         providerId: runtimeProviderId(),
         executionMode: "PAPER",
@@ -45,7 +56,7 @@ function scanner(): ScannerApi {
       }
     );
   }
-  return api;
+  return runtime.__fseScannerApi;
 }
 
 async function dashboardView(inst: ScannerApi, scanError: string | null): Promise<DashboardData> {
