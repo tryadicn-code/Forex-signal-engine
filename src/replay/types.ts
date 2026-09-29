@@ -1,3 +1,4 @@
+import type { HistoricalBacktestAnalytics } from "@/replay/analytics-types";
 import type { HistoricalExecutionConfig, HistoricalExecutionSummary } from "@/replay/execution-types";
 import type { ScannerSnapshot } from "@/scanner/scanner-result";
 import type { Timeframe } from "@/types/market";
@@ -71,6 +72,8 @@ export interface ReplayRunResult {
   steps: ReplayStep[];
   /** Historical execution result when Phase 5.2 execution is enabled. */
   execution: HistoricalExecutionSummary | null;
+  /** Phase 5.3 analytics derived only from historical execution state. */
+  analytics: HistoricalBacktestAnalytics | null;
 }
 
 export type ReplayStepHandler = (step: ReplayStep) => void | Promise<void>;
