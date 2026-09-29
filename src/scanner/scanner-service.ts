@@ -399,11 +399,16 @@ export class ScannerService {
     const lifecycle =
       existing ??
       createLifecycle(lifecycleIdentity, asOf);
+    const freshTriggerOccurrence =
+      lifecycleIdentity.signalId !== identity.signalId;
 
     // Track where the current setup/trigger first appeared so TTL has an origin.
+    // A fresh trigger occurrence is a NEW lifecycle: it must not inherit the
+    // elapsed setup TTL of the already-closed occurrence. The old lifecycle
+    // remains terminal and preserved in history.
     const setupOrigin =
       lifecycle.setupOriginTimestamp ??
-      observedSetupOrigin;
+      (freshTriggerOccurrence ? latestSetupOpen : observedSetupOrigin);
     const triggerOrigin =
       lifecycle.triggerOriginTimestamp ??
       observedTriggerOrigin ??
