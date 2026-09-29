@@ -462,14 +462,14 @@ function RiskDetail({ result }: { result: SymbolScanResult }) {
           <p className="mt-1 text-[11px] opacity-75">{risk.rejectionReason}</p>
         )}
       </div>
-      <dl className="grid grid-cols-3 gap-px overflow-hidden rounded border border-zinc-800 bg-zinc-800">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded border border-zinc-800 bg-zinc-800 sm:grid-cols-4">
         <Metric
-          label="Stop distance"
-          value={
-            risk.stopDistancePips === null
-              ? NOT_AVAILABLE
-              : formatPips(risk.stopDistancePips) + " pips"
-          }
+          label="Entry"
+          value={formatPrice(result.symbol, risk.entryPrice ?? null)}
+        />
+        <Metric
+          label="Stop loss"
+          value={formatPrice(result.symbol, risk.stopLoss ?? null)}
         />
         <Metric label="TP1" value={formatPrice(result.symbol, risk.takeProfit1)} />
         <Metric label="TP2" value={formatPrice(result.symbol, risk.takeProfit2)} />
