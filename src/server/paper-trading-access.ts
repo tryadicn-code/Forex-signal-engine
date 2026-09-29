@@ -12,31 +12,48 @@ const storePath =
   process.env.FSE_PAPER_STORE_PATH ??
   join(process.cwd(), ".data", "paper-trading.json");
 
-const service = new PaperTradingService(
-  new JsonFilePaperStore(storePath),
-  DEFAULT_PAPER_TRADING_CONFIG
-);
+type PaperRuntimeGlobal = typeof globalThis & {
+  __fsePaperTradingService?: PaperTradingService;
+  __fsePaperLastError?: string | null;
+};
 
-let lastPaperError: string | null = null;
+function paperService(): PaperTradingService {
+  const runtime = globalThis as PaperRuntimeGlobal;
+  if (!runtime.__fsePaperTradingService) {
+    runtime.__fsePaperTradingService = new PaperTradingService(
+      new JsonFilePaperStore(storePath),
+      DEFAULT_PAPER_TRADING_CONFIG
+    );
+  }
+  return runtime.__fsePaperTradingService;
+}
+
+function getLastPaperError(): string | null {
+  return (globalThis as PaperRuntimeGlobal).__fsePaperLastError ?? null;
+}
+
+function setLastPaperError(error: string | null): void {
+  (globalThis as PaperRuntimeGlobal).__fsePaperLastError = error;
+}
 
 function withLastError(data: PaperDashboardData): PaperDashboardData {
   return {
     ...data,
-    persistenceError: lastPaperError ?? data.persistenceError,
+    persistenceError: getLastPaperError() ?? data.persistenceError,
   };
 }
 
 export async function readPaperDashboard(): Promise<PaperDashboardData> {
-  return withLastError(await service.getDashboard());
+  return withLastError(await paperService().getDashboard());
 }
 
 export async function paperBalance(): Promise<number> {
   try {
-    const balance = await service.getBalance();
-    lastPaperError = null;
+    const balance = await paperService().getBalance();
+    setLastPaperError(null);
     return balance;
   } catch (error) {
-    lastPaperError = error instanceof Error ? error.message : String(error);
+    setLastPaperError(error instanceof Error ? error.message : String(error));
     return DEFAULT_PAPER_TRADING_CONFIG.initialBalance;
   }
 }
@@ -45,25 +62,25 @@ export async function processPaperSnapshot(
   snapshot: ScannerSnapshot
 ): Promise<PaperDashboardData> {
   try {
-    const data = await service.processSnapshot(
+    const data = await paperService().processSnapshot(
       snapshot,
       runtimeMarketDataProvider()
     );
-    lastPaperError = null;
+    setLastPaperError(null);
     return data;
   } catch (error) {
-    lastPaperError = error instanceof Error ? error.message : String(error);
+    setLastPaperError(error instanceof Error ? error.message : String(error));
     return readPaperDashboard();
   }
 }
 
 export async function resetPaperAccount(): Promise<PaperDashboardData> {
   try {
-    const data = await service.reset();
-    lastPaperError = null;
+    const data = await paperService().reset();
+    setLastPaperError(null);
     return data;
   } catch (error) {
-    lastPaperError = error instanceof Error ? error.message : String(error);
+    setLastPaperError(error instanceof Error ? error.message : String(error));
     return readPaperDashboard();
   }
 }
