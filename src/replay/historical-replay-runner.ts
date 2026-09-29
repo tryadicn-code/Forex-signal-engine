@@ -117,13 +117,21 @@ export class HistoricalReplayRunner {
     let lastStepAt: number | null = null;
 
     for (const asOf of clock) {
+      // Candle exits at this boundary are realized BEFORE evaluating new
+      // signals at the same market time. The existing Risk Engine therefore
+      // sizes new entries from the correct realized historical balance.
+      if (this.executionSimulator) {
+        const beforeScan = this.executionSimulator.advanceTo(asOf);
+        this.scannerApi.setRuntimeAccountBalance(beforeScan.balance);
+      }
+
       const snapshot = await this.scannerApi.runScan(asOf);
       const step: ReplayStep = { index, asOf, snapshot };
 
       if (firstStepAt === null) firstStepAt = asOf;
       lastStepAt = asOf;
 
-      this.executionSimulator?.processStep(step);
+      this.executionSimulator?.consumeStep(step);
 
       if (collectSteps) {
         steps.push(step);
