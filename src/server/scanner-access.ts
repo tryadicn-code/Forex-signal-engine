@@ -33,6 +33,7 @@ type ScannerRuntimeGlobal = typeof globalThis & {
   __fseScannerApi?: ScannerApi;
   __fseScanInFlight?: Promise<string | null>;
   __fseAutoScanTimer?: ReturnType<typeof setInterval>;
+  __fseNextAutoScanAt?: number;
 };
 
 /**
@@ -85,6 +86,8 @@ async function dashboardView(inst: ScannerApi, scanError: string | null): Promis
       enabled: DEFAULT_PAPER_TRADING_CONFIG.autoScanEnabled,
       scanIntervalMs: DEFAULT_PAPER_TRADING_CONFIG.autoScanIntervalMs,
       dashboardSyncIntervalMs: DEFAULT_PAPER_TRADING_CONFIG.dashboardSyncIntervalMs,
+      nextScanAt:
+        (globalThis as ScannerRuntimeGlobal).__fseNextAutoScanAt ?? null,
     },
   };
 }
@@ -133,7 +136,12 @@ function ensureAutoScanner(inst: ScannerApi): void {
     DEFAULT_PAPER_TRADING_CONFIG.autoScanIntervalMs
   );
 
+  runtime.__fseNextAutoScanAt = Date.now() + interval;
+
   const timer = setInterval(() => {
+    // Advance the schedule before starting work so the UI can keep counting
+    // even while a scan is in progress.
+    runtime.__fseNextAutoScanAt = Date.now() + interval;
     void runScanner(inst, runtimeDefaultAsOf());
   }, interval);
 
