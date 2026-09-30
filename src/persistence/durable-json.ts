@@ -24,6 +24,89 @@ export function readPersistenceHealth(): DurableFileHealth[] {
     .sort((a, b) => a.path.localeCompare(b.path));
 }
 
+export async function inspectDurableJson(
+  filePath: string
+): Promise<DurableFileHealth> {
+  const checkedAt = Date.now();
+  try {
+    const raw = await fs.readFile(filePath, "utf8");
+    const normalized = raw.trimEnd();
+    JSON.parse(normalized);
+    const checksum = await optionalRead(checksumFilePath(filePath));
+    if (checksum !== null && checksum.trim() !== sha256(normalized)) {
+      throw new Error("Checksum mismatch for " + filePath + ".");
+    }
+    const stat = await fs.stat(filePath);
+    const health: DurableFileHealth = {
+      path: filePath,
+      state: checksum === null ? "LEGACY_UNVERIFIED" : "VERIFIED",
+      checkedAt,
+      lastWriteAt: stat.mtimeMs,
+      recoveredAt: null,
+      message:
+        checksum === null
+          ? "Valid legacy JSON without checksum sidecar."
+          : "Primary JSON and checksum are valid.",
+    };
+    recordHealth(health);
+    return health;
+  } catch (error) {
+    if (isNotFound(error)) {
+      const health: DurableFileHealth = {
+        path: filePath,
+        state: "MISSING",
+        checkedAt,
+        lastWriteAt: null,
+        recoveredAt: null,
+        message: "No persisted file exists yet.",
+      };
+      recordHealth(health);
+      return health;
+    }
+
+    try {
+      const backup = await fs.readFile(backupFilePath(filePath), "utf8");
+      const normalizedBackup = backup.trimEnd();
+      JSON.parse(normalizedBackup);
+      const backupChecksum = await optionalRead(
+        checksumFilePath(backupFilePath(filePath))
+      );
+      if (
+        backupChecksum !== null &&
+        backupChecksum.trim() !== sha256(normalizedBackup)
+      ) {
+        throw new Error("Backup checksum mismatch.");
+      }
+      const health: DurableFileHealth = {
+        path: filePath,
+        state: "RECOVERED",
+        checkedAt,
+        lastWriteAt: null,
+        recoveredAt: null,
+        message:
+          "Primary is invalid but a parseable previous-good backup is available. Domain read will recover it automatically.",
+      };
+      recordHealth(health);
+      return health;
+    } catch (backupError) {
+      const health: DurableFileHealth = {
+        path: filePath,
+        state: "CORRUPT",
+        checkedAt,
+        lastWriteAt: null,
+        recoveredAt: null,
+        message:
+          "Primary and backup are invalid. Primary: " +
+          errorMessage(error) +
+          " Backup: " +
+          errorMessage(backupError),
+      };
+      recordHealth(health);
+      return health;
+    }
+  }
+}
+
 export async function readDurableJson<T>(
   filePath: string,
   validate: (value: T) => void
