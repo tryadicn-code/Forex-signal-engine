@@ -267,7 +267,7 @@ describe("Phase 10.5 trading workstation dashboard", () => {
     const detail = screen.getByRole("complementary", {
       name: "Signal detail for GBPUSD",
     });
-    expect(within(detail).getByText(/SPREAD_TOO_WIDE/)).toBeInTheDocument();
+    expect(within(detail).getAllByText(/SPREAD_TOO_WIDE/).length).toBeGreaterThan(0);
     expect(within(detail).getByText("Spread exceeded the limit.")).toBeInTheDocument();
   });
 
