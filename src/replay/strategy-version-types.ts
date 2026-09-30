@@ -85,3 +85,10 @@ export interface DeprecateStrategyVersionInput {
   changedBy: string;
   reason: string;
 }
+
+
+export interface RollbackStrategyVersionInput {
+  version: string;
+  changedBy: string;
+  reason: string;
+}
