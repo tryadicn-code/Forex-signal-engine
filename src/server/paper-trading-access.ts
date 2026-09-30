@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { DEFAULT_PAPER_TRADING_CONFIG } from "@/config/paper";
 import { JsonFilePaperStore } from "@/paper/store";
 import { PaperTradingService } from "@/paper/paper-trading-service";
-import type { PaperDashboardData } from "@/paper/types";
+import type {
+  PaperDashboardData,
+  PaperReleaseIdentity,
+  PaperStoreState,
+} from "@/paper/types";
+import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
 import type { ScannerSnapshot } from "@/scanner/scanner-result";
 import { runtimeMarketDataProvider } from "@/server/runtime-market-data";
 
@@ -59,12 +64,14 @@ export async function paperBalance(): Promise<number> {
 }
 
 export async function processPaperSnapshot(
-  snapshot: ScannerSnapshot
+  snapshot: ScannerSnapshot,
+  releaseRuntime?: ReleaseRuntimeState
 ): Promise<PaperDashboardData> {
   try {
     const data = await paperService().processSnapshot(
       snapshot,
-      runtimeMarketDataProvider()
+      runtimeMarketDataProvider(),
+      toPaperReleaseIdentity(releaseRuntime)
     );
     setLastPaperError(null);
     return data;
@@ -83,4 +90,21 @@ export async function resetPaperAccount(): Promise<PaperDashboardData> {
     setLastPaperError(error instanceof Error ? error.message : String(error));
     return readPaperDashboard();
   }
+}
+
+
+export async function readPaperState(): Promise<PaperStoreState> {
+  return paperService().getStateSnapshot();
+}
+
+function toPaperReleaseIdentity(
+  state?: ReleaseRuntimeState
+): PaperReleaseIdentity | null {
+  if (!state || state.status !== "ACTIVE") return null;
+  return {
+    strategyVersion: state.version,
+    strategyManifestFingerprint: state.manifestFingerprint,
+    strategySourceReportId: state.sourceReportId,
+    strategyActivationAt: state.activationAt,
+  };
 }
