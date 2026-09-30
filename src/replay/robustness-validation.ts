@@ -1,4 +1,11 @@
 import type { BacktestRunArtifact } from "@/replay/backtest-run-types";
+import { defaultEngineConfig } from "@/core/config/engine-config";
+import {
+  DEFAULT_FRESHNESS_THRESHOLDS,
+  DEFAULT_SCANNER_CONFIG,
+  DEFAULT_SIGNAL_TTL,
+  DEFAULT_TIMEFRAME_ROLES,
+} from "@/config/scanner";
 import type { HistoricalTrade } from "@/replay/execution-types";
 import type {
   BacktestReproducibilityFingerprint,
@@ -139,6 +146,15 @@ export function buildBacktestReproducibilityFingerprint(
   const assumptionsPayload = stableStringify({
     protocolVersion: "phase-5.6-v1",
     config: artifact.config,
+    strategyBaseline: {
+      engineConfig: defaultEngineConfig,
+      scanner: {
+        timeframeRoles: DEFAULT_TIMEFRAME_ROLES,
+        signalTtl: DEFAULT_SIGNAL_TTL,
+        freshness: DEFAULT_FRESHNESS_THRESHOLDS,
+        candleLookback: DEFAULT_SCANNER_CONFIG.candleLookback,
+      },
+    },
     dataset: {
       id: artifact.validation.datasetId,
       source: artifact.validation.source,
