@@ -13,6 +13,7 @@ describe("Phase 11 notification configuration", () => {
     expect(config.whatsappAccessToken).toBeNull();
     expect(config.timeZone).toBe("Asia/Makassar");
     expect(config.nearExecuteTriggerScore).toBe(50);
+    expect(config.workerIntervalMs).toBe(5000);
   });
 
   it("parses deterministic near-execute thresholds and channels", () => {
