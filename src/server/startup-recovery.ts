@@ -1,6 +1,8 @@
 import "server-only";
 
 import { listPersistedBacktests } from "@/server/backtest-access";
+import { BROKER_EXECUTION_CONFIG } from "@/config/broker";
+import { readBrokerExecutionState } from "@/server/broker-execution-access";
 import {
   readForwardValidationStoreState,
 } from "@/server/forward-validation-access";
@@ -45,10 +47,17 @@ async function runStartupRecovery(): Promise<StartupRecoveryReport> {
     runCheck("backtestRuns", false, async () => {
       await listPersistedBacktests(20);
     }),
+    runCheck(
+      "brokerExecution",
+      BROKER_EXECUTION_CONFIG.mode === "live",
+      async () => {
+        await readBrokerExecutionState();
+      }
+    ),
   ]);
 
   return {
-    protocol: "phase-8-startup-recovery-v1",
+    protocol: "phase-10-startup-recovery-v1",
     completedAt: Date.now(),
     blocking: checks.some((item) => item.critical && !item.ok),
     checks,
