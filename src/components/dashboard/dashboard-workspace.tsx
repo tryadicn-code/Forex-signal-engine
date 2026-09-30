@@ -247,7 +247,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       <section id="overview" aria-labelledby="overview-title" className="scroll-mt-16">
         <div className="mb-1.5">
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-400/80 sm:text-[10px]">
-            Phase 4 · Paper Trading
+            Phase 6 · Release Runtime
           </p>
         </div>
 
@@ -259,7 +259,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             Market scanner
           </h1>
           <p className="mt-0.5 max-w-3xl text-[10px] leading-4 text-zinc-500 sm:text-[11px]">
-            FSE decisions with deterministic paper execution · no broker orders · no real funds
+            Version-pinned FSE decisions with deterministic paper execution · no broker orders · no real funds
           </p>
         </div>
 
@@ -295,6 +295,56 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             {refreshing ? "Syncing..." : "Refresh"}
           </button>
         </div>
+
+        {data.releaseRuntime && (
+          <div
+            className={
+              "mb-2 rounded border px-3 py-2 " +
+              (data.releaseRuntime.status === "BLOCKED"
+                ? "border-red-900/70 bg-red-950/20"
+                : data.releaseRuntime.status === "ACTIVE"
+                  ? "border-emerald-900/60 bg-emerald-950/15"
+                  : "border-amber-900/60 bg-amber-950/15")
+            }
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px]">
+                <span className="font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                  Strategy runtime
+                </span>
+                <span className="font-mono font-semibold text-zinc-200">
+                  {data.releaseRuntime.status}
+                </span>
+                <span className="text-zinc-700">·</span>
+                <span className="font-mono text-zinc-400">
+                  {data.releaseRuntime.version ?? "built-in defaults"}
+                </span>
+                {data.releaseRuntime.pinned && (
+                  <>
+                    <span className="text-zinc-700">·</span>
+                    <span className="text-emerald-300">PINNED</span>
+                  </>
+                )}
+                {data.releaseRuntime.defaultDrift && (
+                  <>
+                    <span className="text-zinc-700">·</span>
+                    <span className="text-amber-300">
+                      DEFAULT DRIFT {data.releaseRuntime.driftAreas.join(", ")}
+                    </span>
+                  </>
+                )}
+              </div>
+              {data.releaseRuntime.manifestFingerprint && (
+                <span className="font-mono text-[8px] text-zinc-700">
+                  FP {data.releaseRuntime.manifestFingerprint}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[9px] leading-relaxed text-zinc-600">
+              {data.releaseRuntime.message}
+            </p>
+          </div>
+        )}
 
         <DashboardSummary
           snapshot={data.snapshot}
