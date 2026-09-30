@@ -109,6 +109,7 @@ function toBridgeOrder(intent: BrokerOrderIntent) {
     symbol: intent.symbol,
     side: intent.side,
     volume: intent.volume,
+    expectedEntry: intent.expectedEntry,
     stopLoss: intent.stopLoss,
     takeProfit: intent.takeProfit,
     maxDeviationPoints: intent.maxDeviationPoints,
