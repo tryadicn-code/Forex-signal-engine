@@ -20,6 +20,7 @@ import type {
   PaperDirection,
   PaperOrder,
   PaperPosition,
+  PaperReleaseIdentity,
   PaperStoreState,
   PaperTrade,
 } from "@/paper/types";
@@ -54,6 +55,10 @@ export class PaperTradingService {
     return this.accountSummary(state).balance;
   }
 
+  async getStateSnapshot(): Promise<PaperStoreState> {
+    return structuredClone(await this.loadOrCreate(Date.now()));
+  }
+
   async reset(at: number = Date.now()): Promise<PaperDashboardData> {
     return this.serialize(async () => {
       const state = this.initialState(at);
@@ -64,14 +69,15 @@ export class PaperTradingService {
 
   async processSnapshot(
     snapshot: ScannerSnapshot,
-    marketData: MarketDataProvider
+    marketData: MarketDataProvider,
+    release: PaperReleaseIdentity | null = null
   ): Promise<PaperDashboardData> {
     return this.serialize(async () => {
       const asOf = snapshot.completedAt ?? snapshot.startedAt;
       const state = await this.loadOrCreate(asOf);
 
       await this.manageOpenPositions(state, snapshot, marketData, asOf);
-      this.consumeExecutions(state, snapshot, asOf);
+      this.consumeExecutions(state, snapshot, asOf, release);
 
       await this.store.save(state);
       return this.toDashboard(state, null);
@@ -196,7 +202,8 @@ export class PaperTradingService {
   private consumeExecutions(
     state: PaperStoreState,
     snapshot: ScannerSnapshot,
-    asOf: number
+    asOf: number,
+    release: PaperReleaseIdentity | null
   ): void {
     if (!this.config.enabled) return;
 
@@ -237,11 +244,11 @@ export class PaperTradingService {
 
       const rejection = this.validateCandidate(state, result);
       if (rejection) {
-        this.rejectOrder(state, result, executionKey, rejection, asOf);
+        this.rejectOrder(state, result, executionKey, rejection, asOf, release);
         continue;
       }
 
-      this.openPosition(state, result, executionKey, asOf);
+      this.openPosition(state, result, executionKey, asOf, release);
     }
   }
 
@@ -305,7 +312,8 @@ export class PaperTradingService {
     result: SymbolScanResult,
     executionKey: string,
     reason: string,
-    at: number
+    at: number,
+    release: PaperReleaseIdentity | null
   ): void {
     if (!result.signalId) return;
     const side: PaperDirection =
@@ -329,7 +337,7 @@ export class PaperTradingService {
       plannedRR: risk?.plannedRR ?? result.riskReward,
       status: "REJECTED",
       rejectionReason: reason,
-      engine: this.engineSnapshot(result),
+      engine: this.engineSnapshot(result, release),
     };
     state.orders.push(order);
     state.ledger.push({
@@ -347,7 +355,8 @@ export class PaperTradingService {
     state: PaperStoreState,
     result: SymbolScanResult,
     executionKey: string,
-    at: number
+    at: number,
+    release: PaperReleaseIdentity | null
   ): void {
     const signalId = result.signalId!;
     const risk = result.riskDetail!;
@@ -376,7 +385,7 @@ export class PaperTradingService {
       plannedRR: risk.plannedRR ?? null,
       status: "FILLED",
       rejectionReason: null,
-      engine: this.engineSnapshot(result),
+      engine: this.engineSnapshot(result, release),
     };
 
     const position: PaperPosition = {
@@ -488,7 +497,10 @@ export class PaperTradingService {
     if (index >= 0) state.positions[index] = position;
   }
 
-  private engineSnapshot(result: SymbolScanResult) {
+  private engineSnapshot(
+    result: SymbolScanResult,
+    release: PaperReleaseIdentity | null
+  ) {
     return {
       bias: result.bias,
       setupScore: result.setupScore,
@@ -496,6 +508,11 @@ export class PaperTradingService {
       freshness: "FRESH" as const,
       engineVersion: ENGINE_VERSION,
       paperConfigVersion: PAPER_CONFIG_VERSION,
+      strategyVersion: release?.strategyVersion ?? null,
+      strategyManifestFingerprint:
+        release?.strategyManifestFingerprint ?? null,
+      strategySourceReportId: release?.strategySourceReportId ?? null,
+      strategyActivationAt: release?.strategyActivationAt ?? null,
     };
   }
 
