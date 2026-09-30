@@ -185,7 +185,6 @@ function snapshot(result = candidate()): ScannerSnapshot {
       FRESH: 1,
       DELAYED: 0,
       STALE: 0,
-      UNKNOWN: 0,
     },
   };
 }
