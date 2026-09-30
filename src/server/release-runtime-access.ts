@@ -62,5 +62,6 @@ export function releaseRuntimeIdentity(
     state.reason,
     state.version ?? "none",
     state.manifestFingerprint ?? "none",
+    state.activationAt ?? "none",
   ].join(":");
 }
