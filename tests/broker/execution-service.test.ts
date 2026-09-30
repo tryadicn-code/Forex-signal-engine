@@ -94,6 +94,7 @@ function liveConfig() {
     FSE_BROKER_MODE: "live",
     FSE_BROKER_PROVIDER: "mt5",
     FSE_LIVE_EXECUTION_ENABLED: "true",
+    FSE_LIVE_EMERGENCY_STOP: "false",
     FSE_LIVE_ALLOWED_SYMBOLS: "EURUSD",
     FSE_LIVE_MAX_RISK_PERCENT: "0.25",
     FSE_LIVE_MAX_LOT: "0.10",
