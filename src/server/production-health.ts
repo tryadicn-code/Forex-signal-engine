@@ -96,16 +96,19 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
     id: "broker-controls",
     status:
       brokerMode === "LIVE" &&
-      (broker.controls.killSwitchEngaged ||
+      (BROKER_EXECUTION_CONFIG.emergencyStop ||
+        broker.controls.killSwitchEngaged ||
         !broker.controls.liveArm ||
         broker.unresolvedCount > 0)
         ? "WARN"
         : "PASS",
     message:
-      broker.unresolvedCount > 0
-        ? broker.unresolvedCount +
-          " live execution record(s) require reconciliation; new live orders are blocked."
-        : brokerMode !== "LIVE"
+      BROKER_EXECUTION_CONFIG.emergencyStop
+        ? "Environment emergency stop is engaged; live orders are blocked."
+        : broker.unresolvedCount > 0
+          ? broker.unresolvedCount +
+            " live execution record(s) require reconciliation; new live orders are blocked."
+          : brokerMode !== "LIVE"
           ? "Live broker controls are not active in the current mode."
           : broker.controls.killSwitchEngaged
             ? "Kill-switch is engaged; live orders are blocked."
@@ -287,6 +290,8 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
         TRANSACTIONAL_CONFIG.requireSharedStore,
       liveExecutionEnabled:
         BROKER_EXECUTION_CONFIG.liveExecutionEnabled,
+      liveEmergencyStop:
+        BROKER_EXECUTION_CONFIG.emergencyStop,
     },
     infrastructure: {
       mode: sharedMode ? "SHARED" : "LOCAL",
