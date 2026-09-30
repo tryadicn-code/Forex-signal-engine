@@ -8,6 +8,7 @@ on:
       - pre-phase-4-real-market-data
       - phase-4-paper-trading
       - phase-5-validation-backtest
+      - phase-6-release-runtime
   pull_request:
     branches:
       - master
