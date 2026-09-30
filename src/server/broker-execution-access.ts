@@ -56,6 +56,10 @@ export async function readBrokerExecutionDashboard(): Promise<BrokerExecutionDas
   return service.dashboard();
 }
 
+export async function readBrokerExecutionState(): Promise<BrokerExecutionStoreState> {
+  return store.read();
+}
+
 export async function processBrokerSnapshot(
   snapshot: ScannerSnapshot,
   release: ReleaseRuntimeState
