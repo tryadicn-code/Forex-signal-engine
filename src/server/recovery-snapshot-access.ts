@@ -14,6 +14,7 @@ const service = new RecoverySnapshotService(
     strategyRegistry: STORAGE_PATHS.strategyRegistry,
     releaseRuntimeAudit: STORAGE_PATHS.releaseRuntimeAudit,
     forwardValidation: STORAGE_PATHS.forwardValidation,
+    brokerExecution: STORAGE_PATHS.brokerExecution,
   },
   STORAGE_PATHS.snapshots,
   10
