@@ -3,6 +3,7 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { PRODUCTION_CONFIG } from "@/config/production";
+import { BROKER_EXECUTION_CONFIG } from "@/config/broker";
 import { TRANSACTIONAL_CONFIG } from "@/config/transactional";
 import { STORAGE_PATHS } from "@/config/storage";
 import { inspectDurableJson } from "@/persistence/durable-json";
@@ -19,6 +20,7 @@ import {
 } from "@/server/runtime-market-data";
 import { resolveRuntimeRelease } from "@/server/release-runtime-access";
 import { scannerRuntimeStatus } from "@/server/scanner-access";
+import { readBrokerExecutionDashboard } from "@/server/broker-execution-access";
 import { ensureStartupRecovery } from "@/server/startup-recovery";
 import {
   runtimeInstanceId,
@@ -30,7 +32,7 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
   const generatedAt = Date.now();
   const startupRecovery = await ensureStartupRecovery();
   const sharedMode = sharedTransactionalMode();
-  const [release, persistence, storageWritable, transactional] =
+  const [release, persistence, storageWritable, transactional, broker] =
     await Promise.all([
       resolveRuntimeRelease(),
       sharedMode ? Promise.resolve([]) : inspectCriticalPersistence(),
@@ -44,10 +46,69 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
       sharedMode
         ? transactionalStore().health()
         : Promise.resolve(null),
+      readBrokerExecutionDashboard(),
     ]);
   const provider = runtimeMarketDataProvider().getProviderStatus();
   const runtime = scannerRuntimeStatus();
   const checks: ProductionHealthCheck[] = [];
+
+  const brokerMode = BROKER_EXECUTION_CONFIG.mode.toUpperCase() as
+    | "OFF"
+    | "SHADOW"
+    | "LIVE";
+
+  checks.push({
+    id: "broker-execution",
+    status:
+      brokerMode !== "LIVE"
+        ? "PASS"
+        : !BROKER_EXECUTION_CONFIG.liveExecutionEnabled ||
+            !sharedMode ||
+            broker.providerId === "shadow" ||
+            !broker.brokerStatus.connected ||
+            !broker.brokerStatus.tradeAllowed
+          ? "FAIL"
+          : "PASS",
+    message:
+      brokerMode === "OFF"
+        ? "Broker execution is OFF; Paper Trading remains the only execution path."
+        : brokerMode === "SHADOW"
+          ? "Shadow broker evaluation is enabled; no real broker order can be transmitted."
+          : !BROKER_EXECUTION_CONFIG.liveExecutionEnabled
+            ? "LIVE broker mode is selected but FSE_LIVE_EXECUTION_ENABLED is false."
+            : !sharedMode
+              ? "LIVE broker mode requires shared transactional state."
+              : broker.providerId === "shadow"
+                ? "LIVE broker mode requires a real broker provider."
+                : !broker.brokerStatus.connected ||
+                    !broker.brokerStatus.tradeAllowed
+                  ? "LIVE broker provider is not connected/trade-ready."
+                  : "LIVE broker infrastructure gates are configured and trade-ready.",
+  });
+
+  checks.push({
+    id: "broker-controls",
+    status:
+      brokerMode === "LIVE" &&
+      (broker.controls.killSwitchEngaged ||
+        !broker.controls.liveArm ||
+        broker.unresolvedCount > 0)
+        ? "WARN"
+        : "PASS",
+    message:
+      broker.unresolvedCount > 0
+        ? broker.unresolvedCount +
+          " live execution record(s) require reconciliation; new live orders are blocked."
+        : brokerMode !== "LIVE"
+          ? "Live broker controls are not active in the current mode."
+          : broker.controls.killSwitchEngaged
+            ? "Kill-switch is engaged; live orders are blocked."
+            : !broker.controls.liveArm
+              ? "No live arm approval is active; live orders are blocked."
+              : "Live arm approval is active with " +
+                broker.controls.liveArm.remainingOrders +
+                " order(s) remaining.",
+  });
 
   checks.push({
     id: "transactional-store",
@@ -202,23 +263,31 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
 
   return {
     schemaVersion: 1,
-    protocol: "phase-9-health-v1",
+    protocol: "phase-10-health-v1",
     generatedAt,
     uptimeSeconds: Math.max(0, Math.floor(process.uptime())),
     readiness,
-    executionMode: "PAPER",
+    executionMode:
+      BROKER_EXECUTION_CONFIG.mode === "live"
+        ? "LIVE"
+        : BROKER_EXECUTION_CONFIG.mode === "shadow"
+          ? "SHADOW"
+          : "PAPER",
     safety: {
       maintenanceMode: PRODUCTION_CONFIG.maintenanceMode,
       requireActiveRelease: PRODUCTION_CONFIG.requireActiveRelease,
       requireLiveMarketData: PRODUCTION_CONFIG.requireLiveMarketData,
       requireSharedTransactionalStore:
         TRANSACTIONAL_CONFIG.requireSharedStore,
+      liveExecutionEnabled:
+        BROKER_EXECUTION_CONFIG.liveExecutionEnabled,
     },
     infrastructure: {
       mode: sharedMode ? "SHARED" : "LOCAL",
       instanceId: runtimeInstanceId(),
       transactional,
     },
+    broker,
     providerId: runtimeProviderId(),
     liveMarketData: runtimeUsesLiveMarketData(),
     provider,
