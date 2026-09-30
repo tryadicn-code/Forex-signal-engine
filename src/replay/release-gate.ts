@@ -4,7 +4,7 @@ import {
   calculateSequentialValidation,
   calculateTemporalHoldout,
 } from "@/replay/robustness-validation";
-import { calculateBacktestStatisticalDiagnostics } from "@/replay/statistical-diagnostics";
+import { buildSampleAdequacyWarnings } from "@/replay/statistical-diagnostics";
 import { toComparableHistoricalPerformance } from "@/replay/backtest-analytics";
 import type {
   BacktestReleaseReview,
@@ -18,7 +18,7 @@ export function buildReleaseEvidenceReview(
   options: { forwardEvidenceAvailable?: boolean } = {}
 ): ReleaseEvidenceReview {
   const fingerprint = buildBacktestReproducibilityFingerprint(artifact);
-  const diagnostics = calculateBacktestStatisticalDiagnostics(artifact);
+  const sampleWarnings = buildSampleAdequacyWarnings(artifact);
   const holdout = calculateTemporalHoldout(artifact, 0.7);
   const sequential = calculateSequentialValidation(artifact, 4);
   const items: ReleaseEvidenceItem[] = [];
@@ -110,7 +110,7 @@ export function buildReleaseEvidenceReview(
       " fold(s) are empty.",
   });
 
-  const warningCount = diagnostics.sampleWarnings.filter(
+  const warningCount = sampleWarnings.filter(
     (warning) => warning.severity === "WARNING"
   ).length;
   items.push({
@@ -118,13 +118,13 @@ export function buildReleaseEvidenceReview(
     category: "STATISTICS",
     label: "Statistical diagnostics",
     status:
-      diagnostics.sampleSize === 0
+      artifact.analytics.sampleSize === 0
         ? "MISSING"
         : warningCount > 0
           ? "ATTENTION"
           : "SATISFIED",
     detail:
-      diagnostics.sampleSize === 0
+      artifact.analytics.sampleSize === 0
         ? "No closed trades are available for confidence/resampling diagnostics."
         : "Wilson, bootstrap and trade-order diagnostics are available with " +
           warningCount +
