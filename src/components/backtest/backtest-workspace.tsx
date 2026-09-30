@@ -160,7 +160,7 @@ export function BacktestWorkspace() {
       <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
         <header className="border-b border-zinc-800 px-3 py-3">
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
-            Phase 5.8 · Evidence Release Gate
+            Phase 5.9 · Strategy Version Registry
           </p>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
             <div>
@@ -168,7 +168,7 @@ export function BacktestWorkspace() {
                 Historical backtest
               </h1>
               <p className="mt-0.5 max-w-3xl text-[11px] leading-relaxed text-zinc-500">
-                Import and validate historical data, then consolidate evidence, review robustness and record a human release decision without changing strategy logic.
+                Import and validate historical data, complete human evidence review, and register immutable validated strategy versions without changing strategy logic.
               </p>
             </div>
             <Link
