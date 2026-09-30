@@ -106,14 +106,14 @@ export function SignalDetailPanel({
           <FailureDetail result={result} />
         ) : (
           <>
-            <SignalExecutiveSummary result={result} />
-
             <section aria-labelledby="price-chart-title">
               <SectionTitle id="price-chart-title">Price chart</SectionTitle>
               <div className="mt-2">
                 <PriceChart symbol={result.symbol} asOf={result.updatedAt} />
               </div>
             </section>
+
+            <SignalExecutiveSummary result={result} />
 
             <PaperExecutionDetail
               result={result}
