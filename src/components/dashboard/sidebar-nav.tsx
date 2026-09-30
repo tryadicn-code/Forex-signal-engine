@@ -12,10 +12,10 @@ const NAV_ITEMS = [
 
 function navClassName(primary = false): string {
   return [
-    "flex min-w-0 flex-col items-center justify-center gap-1 rounded px-1 py-1.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
+    "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded px-1 py-1.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
     "md:flex-row md:justify-start md:gap-2 md:px-2.5 md:text-xs",
     primary
-      ? "text-amber-300"
+      ? "-top-6 z-20 text-amber-300 md:top-0"
       : "text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-100",
   ].join(" ");
 }
@@ -37,7 +37,7 @@ function NavLabel({
         aria-hidden="true"
         className={
           primary
-            ? "relative z-10 flex h-12 w-12 items-center justify-center rounded-full border border-amber-500/60 bg-[#0b0e14] text-2xl leading-none text-amber-300 shadow-md shadow-amber-950/30 md:h-auto md:w-auto md:border-0 md:bg-transparent md:text-base md:shadow-none"
+            ? "flex h-14 w-14 items-center justify-center rounded-full border border-amber-500/70 bg-[#0b0e14] text-[28px] leading-none text-amber-300 shadow-lg shadow-amber-950/40 md:h-auto md:w-auto md:border-0 md:bg-transparent md:text-base md:shadow-none"
             : "text-base leading-none md:text-sm"
         }
       >
@@ -73,22 +73,20 @@ export function SidebarNav() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:w-52 md:grid-cols-1 md:content-start md:border-r md:border-zinc-800 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
     >
-      <div
+      <svg
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 hidden h-px md:block"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-0 right-1/2 top-0 mr-7 border-t border-zinc-800 md:hidden"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 right-0 top-0 ml-7 border-t border-zinc-800 md:hidden"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-0 hidden h-7 w-14 -translate-x-1/2 -translate-y-px rounded-b-full border-x border-b border-zinc-800 bg-[#0b0e14] md:hidden"
-      />
+        viewBox="0 0 1000 32"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-x-0 top-0 h-8 w-full overflow-visible md:hidden"
+      >
+        <path
+          d="M0 1 H430 C455 1 455 31 500 31 C545 31 545 1 570 1 H1000"
+          fill="none"
+          stroke="rgb(39 39 42)"
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
 
       {NAV_ITEMS.map((item) => {
         const primary = "primary" in item && item.primary === true;
