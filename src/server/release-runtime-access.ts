@@ -3,6 +3,14 @@ import "server-only";
 import { JsonFileStrategyVersionStore } from "@/server/strategy-version-store";
 import { JsonFileReleaseRuntimeAuditStore } from "@/server/release-runtime-audit-store";
 import {
+  TransactionalReleaseRuntimeAuditStore,
+  TransactionalStrategyVersionStore,
+} from "@/transactional/domain-stores";
+import {
+  sharedTransactionalMode,
+  transactionalStore,
+} from "@/transactional/runtime";
+import {
   blockedReleaseRuntime,
   resolveReleaseRuntimeFromRegistry,
 } from "@/runtime/release-runtime";
@@ -11,8 +19,12 @@ import type {
   ReleaseRuntimeResolution,
 } from "@/runtime/release-runtime-types";
 
-const registry = new JsonFileStrategyVersionStore();
-const audit = new JsonFileReleaseRuntimeAuditStore();
+const registry = sharedTransactionalMode()
+  ? new TransactionalStrategyVersionStore(transactionalStore())
+  : new JsonFileStrategyVersionStore();
+const audit = sharedTransactionalMode()
+  ? new TransactionalReleaseRuntimeAuditStore(transactionalStore())
+  : new JsonFileReleaseRuntimeAuditStore();
 
 type ReleaseRuntimeGlobal = typeof globalThis & {
   __fseReleaseAuditQueue?: Promise<void>;
