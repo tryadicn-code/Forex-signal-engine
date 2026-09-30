@@ -164,7 +164,7 @@ function ScannerCard({
               </span>
 
               <span className="whitespace-nowrap text-zinc-500">
-                Potential{" "}
+                TP{" "}
                 <span className="font-mono tabular-nums text-emerald-300">
                   {pips === null ? "—" : formatPips(pips, true) + " pips"}
                 </span>
@@ -190,28 +190,30 @@ function ScannerCard({
               </span>
             </div>
 
-            <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2 text-[10px] leading-5">
-              <span className={cn("truncate text-right font-medium", biasTone(result.bias))}>
+            <div className="mt-1.5 flex items-center gap-2 text-[10px] leading-5">
+              <span className={cn("truncate font-medium", biasTone(result.bias))}>
                 {bias}
               </span>
 
-              <span className="whitespace-nowrap text-right text-zinc-600">
-                Engine{" "}
-                <span className={cn("font-mono", engineTone(result.executionDecision))}>
-                  {result.executionDecision ?? "—"}
+              <div className="ml-auto flex items-center justify-end gap-2">
+                <span className="whitespace-nowrap text-right text-zinc-600">
+                  Engine{" "}
+                  <span className={cn("font-mono", engineTone(result.executionDecision))}>
+                    {result.executionDecision ?? "—"}
+                  </span>
                 </span>
-              </span>
 
-              <span className="whitespace-nowrap text-right text-zinc-600">
-                Lifecycle{" "}
-                <span className="font-mono text-zinc-400">
-                  {result.signalState ?? "—"}
+                <span className="whitespace-nowrap text-right text-zinc-600">
+                  Lifecycle{" "}
+                  <span className="font-mono text-zinc-400">
+                    {result.signalState ?? "—"}
+                  </span>
                 </span>
-              </span>
 
-              <span className="whitespace-nowrap text-right font-mono tabular-nums text-zinc-600">
-                {formatTimeShort(result.updatedAt)}
-              </span>
+                <span className="whitespace-nowrap text-right font-mono tabular-nums text-zinc-600">
+                  {formatTimeShort(result.updatedAt)}
+                </span>
+              </div>
             </div>
           </>
         )}
