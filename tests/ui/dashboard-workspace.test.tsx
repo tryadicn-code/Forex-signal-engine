@@ -296,6 +296,7 @@ describe("Phase 3 dashboard workspace", () => {
       title: "Validated baseline",
       manifestFingerprint: "abcdef1234567890",
       sourceReportId: "report-1",
+      activationAt: T0 - 1000,
       registryUpdatedAt: T0,
       resolvedAt: T0,
       pinned: true,
