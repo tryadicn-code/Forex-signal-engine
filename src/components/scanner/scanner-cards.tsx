@@ -13,9 +13,7 @@ import {
   formatScore,
   formatTimeShort,
 } from "@/lib/format";
-import {
-  workstationStatus,
-} from "@/lib/workstation-status";
+import { workstationStatus } from "@/lib/workstation-status";
 import { cn } from "@/lib/utils";
 
 export function ScannerCards({
@@ -62,6 +60,33 @@ function potentialPips(result: SymbolScanResult): number | null {
   return Math.abs(risk.takeProfit1 - risk.entryPrice) / risk.pipSize;
 }
 
+function setupChipClass(score: number | null): string {
+  if (score === null || !Number.isFinite(score)) {
+    return "border-zinc-700 bg-zinc-900/50 text-zinc-400";
+  }
+  if (score >= 80) {
+    return "border-emerald-700/70 bg-emerald-950/25 text-emerald-300";
+  }
+  if (score >= 60) {
+    return "border-amber-700/70 bg-amber-950/25 text-amber-300";
+  }
+  return "border-rose-800/70 bg-rose-950/25 text-rose-300";
+}
+
+function engineTone(decision: string | null): string {
+  if (decision === "EXECUTE") return "text-emerald-300";
+  if (decision === "WAIT") return "text-amber-300";
+  if (decision === "BLOCKED") return "text-red-300";
+  if (decision === "INVALIDATED") return "text-zinc-500";
+  return "text-zinc-400";
+}
+
+function biasTone(bias: string | null): string {
+  if (bias === "STRONG_LONG") return "text-emerald-300";
+  if (bias === "STRONG_SHORT") return "text-red-300";
+  return "text-zinc-400";
+}
+
 function ScannerCard({
   result,
   selected,
@@ -79,8 +104,9 @@ function ScannerCard({
 
   return (
     <li
+      data-signal-symbol={result.symbol}
       className={cn(
-        "border-b border-zinc-700/70 border-l-2 bg-zinc-950/10 transition-colors last:border-b-0",
+        "border-b border-zinc-700/80 border-l-2 bg-zinc-950/10 transition-colors last:border-b-0",
         status.tone === "ready"
           ? "border-l-emerald-500"
           : status.tone === "waiting"
@@ -104,23 +130,23 @@ function ScannerCard({
           </span>
           <DirectionBadge direction={result.biasDirection} className="text-[9px]" />
           <FreshnessBadge status={result.freshness} className="text-[9px]" />
-          <span className="ml-auto font-mono text-[10px] tabular-nums text-zinc-600">
-            {formatTimeShort(result.updatedAt)}
-          </span>
           <span
-            className="min-w-6 text-center font-mono text-xs font-semibold tabular-nums text-zinc-300"
+            className={cn(
+              "rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums",
+              setupChipClass(result.setupScore)
+            )}
             title="Setup score"
           >
             {formatScore(result.setupScore)}
           </span>
-          <span className="min-w-[5.3rem] text-right font-mono text-base font-semibold tabular-nums text-zinc-100">
+          <span className="ml-auto min-w-[5.3rem] text-right font-mono text-base font-semibold tabular-nums text-zinc-100">
             {formatPrice(result.symbol, result.latestPrice)}
           </span>
         </div>
 
         {failed ? (
           <>
-            <div className="mt-2 truncate text-[11px] text-red-300">
+            <div className="mt-2 truncate border-t border-zinc-800/70 pt-2 text-[11px] text-red-300">
               Data issue · {result.reason}
             </div>
             <div className="mt-1 font-mono text-[10px] text-zinc-600">
@@ -129,20 +155,34 @@ function ScannerCard({
           </>
         ) : (
           <>
-            <div className="mt-2 grid grid-cols-[1fr_1.25fr_auto] items-center gap-2 border-t border-zinc-800/70 pt-2 text-[10px] sm:text-[11px]">
-              <span className="min-w-0 truncate text-zinc-500">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-zinc-800/70 pt-2 text-[10px] sm:text-[11px]">
+              <span className="whitespace-nowrap text-zinc-500">
                 Entry{" "}
                 <span className="font-mono tabular-nums text-zinc-300">
                   {formatPrice(result.symbol, risk?.entryPrice ?? null)}
                 </span>
               </span>
-              <span className="min-w-0 truncate text-zinc-500">
+
+              <span className="whitespace-nowrap text-zinc-500">
                 Potential{" "}
                 <span className="font-mono tabular-nums text-emerald-300">
                   {pips === null ? "—" : formatPips(pips, true) + " pips"}
                 </span>
+                {risk?.takeProfit1 !== null && risk?.takeProfit1 !== undefined && (
+                  <span className="font-mono tabular-nums text-zinc-400">
+                    {" "}({formatPrice(result.symbol, risk.takeProfit1)})
+                  </span>
+                )}
               </span>
+
               <span className="whitespace-nowrap text-zinc-500">
+                SL{" "}
+                <span className="font-mono tabular-nums text-red-300">
+                  {formatPrice(result.symbol, risk?.stopLoss ?? null)}
+                </span>
+              </span>
+
+              <span className="ml-auto whitespace-nowrap text-zinc-500">
                 R:R{" "}
                 <span className="font-mono tabular-nums text-zinc-300">
                   {formatRatio(result.riskReward)}
@@ -150,19 +190,27 @@ function ScannerCard({
               </span>
             </div>
 
-            <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 text-[10px] leading-5">
-              <span className="truncate font-medium text-zinc-400">{bias}</span>
-              <span className="whitespace-nowrap text-zinc-600">
+            <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-2 text-[10px] leading-5">
+              <span className={cn("truncate text-right font-medium", biasTone(result.bias))}>
+                {bias}
+              </span>
+
+              <span className="whitespace-nowrap text-right text-zinc-600">
                 Engine{" "}
-                <span className="font-mono text-zinc-400">
+                <span className={cn("font-mono", engineTone(result.executionDecision))}>
                   {result.executionDecision ?? "—"}
                 </span>
               </span>
-              <span className="whitespace-nowrap text-zinc-600">
+
+              <span className="whitespace-nowrap text-right text-zinc-600">
                 Lifecycle{" "}
                 <span className="font-mono text-zinc-400">
                   {result.signalState ?? "—"}
                 </span>
+              </span>
+
+              <span className="whitespace-nowrap text-right font-mono tabular-nums text-zinc-600">
+                {formatTimeShort(result.updatedAt)}
               </span>
             </div>
           </>
