@@ -30,10 +30,10 @@ export function DashboardShell({
         <div className="flex min-w-0 items-center gap-2.5">
           <Link
             href="/#overview"
-            aria-label="Forex Scanner Engine dashboard"
+            aria-label="Forex Signal Engine dashboard"
             className="truncate text-sm font-semibold tracking-wide text-zinc-100 sm:text-base"
           >
-            Forex Scanner Engine
+            FOREX SIGNAL ENGINE
           </Link>
 
           {statusLabel && (
