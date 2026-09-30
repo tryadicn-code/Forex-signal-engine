@@ -200,7 +200,7 @@ function bootstrapExpectancy(
       lower,
       upper,
     },
-    probabilityPositive: positive / iterations,
+    positiveResampleFraction: positive / iterations,
   };
 }
 
