@@ -9,6 +9,7 @@ import {
 import type {
   DeprecateStrategyVersionInput,
   RegisterStrategyVersionInput,
+  RollbackStrategyVersionInput,
   StrategyVersionEntry,
   StrategyVersionManifest,
   StrategyVersionRegistry,
@@ -107,6 +108,74 @@ export class JsonFileStrategyVersionStore {
     const next: StrategyVersionRegistry = {
       schemaVersion: 1,
       protocol: "phase-5.9-v1",
+      updatedAt: now,
+      entries: sortEntries(entries),
+    };
+    await this.write(next);
+    return next;
+  }
+
+  async rollback(
+    input: RollbackStrategyVersionInput
+  ): Promise<StrategyVersionRegistry> {
+    const registry = await this.read();
+    const version = normalizeStrategyVersion(input.version);
+    const changedBy = normalizeActor(input.changedBy);
+    const reason = input.reason.trim();
+    if (!reason) {
+      throw new Error("Rolling back a strategy version requires a reason.");
+    }
+    if (reason.length > 1000) {
+      throw new Error("Rollback reason must be 1000 characters or fewer.");
+    }
+
+    const entries = registry.entries.map((entry) => cloneEntry(entry));
+    const target = entries.find(
+      (entry) => entry.manifest.version === version
+    );
+    if (!target) {
+      throw new Error("Strategy version " + version + " was not found.");
+    }
+    if (target.currentStatus === "DEPRECATED") {
+      throw new Error("A DEPRECATED strategy version cannot be reactivated.");
+    }
+    if (target.currentStatus === "ACTIVE") {
+      throw new Error("Strategy version " + version + " is already ACTIVE.");
+    }
+    if (target.currentStatus !== "SUPERSEDED") {
+      throw new Error("Only a SUPERSEDED version can be used as a rollback target.");
+    }
+
+    const activeVersion = findActiveStrategyVersion(registry);
+    const now = Date.now();
+
+    if (activeVersion !== null) {
+      const current = entries.find(
+        (entry) => entry.manifest.version === activeVersion
+      );
+      if (!current) {
+        throw new Error("ACTIVE strategy version could not be resolved.");
+      }
+      appendStatus(current, {
+        status: "SUPERSEDED",
+        changedAt: now,
+        changedBy,
+        reason: "Rolled back to " + version + ": " + reason,
+      });
+    }
+
+    appendStatus(target, {
+      status: "ACTIVE",
+      changedAt: now,
+      changedBy,
+      reason:
+        activeVersion === null
+          ? "Reactivated by controlled rollback: " + reason
+          : "Rollback from " + activeVersion + ": " + reason,
+    });
+
+    const next: StrategyVersionRegistry = {
+      ...registry,
       updatedAt: now,
       entries: sortEntries(entries),
     };
