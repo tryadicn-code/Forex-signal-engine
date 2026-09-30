@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { BacktestRunArtifact, BacktestRunListItem } from "@/replay/backtest-run-types";
 import type { HistoricalDatasetValidation } from "@/replay/import-types";
+import { ValidationWorkbench } from "@/components/backtest/validation-workbench";
 
 type ApiRunResponse =
   | { ok: true; artifact: BacktestRunArtifact }
@@ -159,7 +160,7 @@ export function BacktestWorkspace() {
       <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
         <header className="border-b border-zinc-800 px-3 py-3">
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
-            Phase 5.4 · Historical Validation
+            Phase 5.5 · Validation Workbench
           </p>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
             <div>
@@ -167,7 +168,7 @@ export function BacktestWorkspace() {
                 Historical backtest
               </h1>
               <p className="mt-0.5 max-w-3xl text-[11px] leading-relaxed text-zinc-500">
-                Import normalized MT5/CSV history, validate coverage, replay the existing FSE engine, and persist an isolated validation report.
+                Import and validate historical data, then organize, segment and compare FSE validation evidence without changing strategy logic.
               </p>
             </div>
             <Link
@@ -388,7 +389,16 @@ export function BacktestWorkspace() {
           <BacktestResultHeader artifact={artifact} onExport={exportReport} />
           <BacktestMetrics artifact={artifact} />
           <EquityCurve artifact={artifact} />
-          <SegmentTable artifact={artifact} />
+          <ValidationWorkbench
+            key={artifact.id}
+            artifact={artifact}
+            recentRuns={recentRuns}
+            onArtifactUpdated={(next) => {
+              setArtifact(next);
+              setValidation(next.validation);
+            }}
+            onRecentRunsRefresh={refreshRecent}
+          />
         </>
       )}
     </div>
@@ -668,56 +678,6 @@ function EquityCurve({ artifact }: { artifact: BacktestRunArtifact }) {
   );
 }
 
-function SegmentTable({ artifact }: { artifact: BacktestRunArtifact }) {
-  const rows = artifact.analytics.segments.bySymbol;
-  return (
-    <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
-      <header className="border-b border-zinc-800 px-3 py-2.5">
-        <h2 className="text-sm font-semibold text-zinc-100">Performance by pair</h2>
-        <p className="mt-0.5 text-[10px] text-zinc-600">
-          Sample size remains visible so small groups are not mistaken for robust conclusions.
-        </p>
-      </header>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[620px] text-left text-[10px]">
-          <thead className="bg-zinc-950/60 text-zinc-600">
-            <tr>
-              <th className="px-3 py-2">Pair</th>
-              <th className="px-3 py-2">N</th>
-              <th className="px-3 py-2">Win rate</th>
-              <th className="px-3 py-2">Net R</th>
-              <th className="px-3 py-2">Avg R</th>
-              <th className="px-3 py-2">PF</th>
-              <th className="px-3 py-2">Net P/L</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-3 py-4 text-center text-zinc-600">
-                  No closed historical trades in this run.
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => (
-                <tr key={row.key} className="border-t border-zinc-800 text-zinc-400">
-                  <td className="px-3 py-2 font-mono font-semibold text-zinc-200">{row.label}</td>
-                  <td className="px-3 py-2 font-mono">{row.sampleSize}</td>
-                  <td className="px-3 py-2 font-mono">{formatPercent(row.winRate)}</td>
-                  <td className="px-3 py-2 font-mono">{formatSigned(row.netR, 2)}</td>
-                  <td className="px-3 py-2 font-mono">{formatSigned(row.averageR, 2)}</td>
-                  <td className="px-3 py-2 font-mono">{formatNumber(row.profitFactor, 2)}</td>
-                  <td className="px-3 py-2 font-mono">{formatSigned(row.netPnL, 2)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
 function RecentRuns({
   runs,
   loadingRunId,
@@ -753,12 +713,24 @@ function RecentRuns({
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate font-mono text-[10px] font-semibold text-zinc-300">
-                  {run.datasetId}
+                  {run.label || run.datasetId}
                 </span>
                 <span className="shrink-0 font-mono text-[9px] text-zinc-600">
                   N {run.sampleSize}
                 </span>
               </div>
+              {run.tags.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {run.tags.slice(0, 3).map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[8px] text-zinc-600"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] text-zinc-600">
                 <span>{run.symbols.join(", ")}</span>
                 <span>{signedPercent(run.netReturnPercent)}</span>
