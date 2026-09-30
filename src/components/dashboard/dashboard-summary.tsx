@@ -76,10 +76,10 @@ function Meta({
 }) {
   return (
     <div className="min-w-0 text-center">
-      <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+      <div className="text-[11px] font-medium text-zinc-500 sm:text-xs">
         {label}
       </div>
-      <div className="mt-1 truncate font-mono text-xs tabular-nums text-zinc-300">
+      <div className="mt-1 truncate font-mono text-sm tabular-nums text-zinc-200">
         {value}
       </div>
     </div>
