@@ -1,11 +1,3 @@
-/**
- * Application shell for the Phase 4 paper-trading workstation.
- *
- * Mobile keeps the chrome intentionally quiet: brand + execution mode on top,
- * fixed bottom navigation, and no duplicate provider strip. Desktop retains the
- * fuller workstation status bar and side navigation.
- */
-
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SystemStatusBar } from "@/components/dashboard/system-status-bar";
 import { Badge } from "@/components/common/badges";
@@ -25,36 +17,58 @@ export function DashboardShell({
   releaseLabel?: string;
   releaseBlocked?: boolean;
 }) {
+  const marketLabel = statusLabel
+    ? statusLabel
+    : liveMarketData
+      ? (providerId ?? "provider").toUpperCase()
+      : "MOCK";
+
+  const strategyLabel = releaseLabel
+    ? releaseLabel.replace(/^STRAT\s*·\s*/i, "")
+    : null;
+
   return (
     <div className="flex min-h-screen flex-col bg-[#0b0e14] text-zinc-200">
-      <header className="sticky top-0 z-30 flex h-12 items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 backdrop-blur sm:px-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <span aria-hidden="true" className="shrink-0 text-sm leading-none text-emerald-400">
-            ◈
-          </span>
-          <span className="hidden truncate text-xs font-semibold tracking-[0.16em] text-zinc-100 sm:inline">
-            FOREX SCANNER ENGINE
-          </span>
-          <span className="truncate text-[10px] font-semibold tracking-[0.12em] text-zinc-100 sm:hidden">
-            FOREX SCANNER ENGINE
-          </span>
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 backdrop-blur sm:px-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <a
+            href="/#overview"
+            aria-label="FSE dashboard"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 font-mono text-xs font-bold text-zinc-100"
+          >
+            FSE
+          </a>
+
+          <div className="hidden min-w-0 sm:block">
+            <div className="truncate text-xs font-semibold tracking-[0.12em] text-zinc-100">
+              FOREX SIGNAL ENGINE
+            </div>
+            <div className="mt-0.5 text-[10px] text-zinc-600">
+              Trading workstation
+            </div>
+          </div>
+
           <Badge
             tone={statusLabel ? "info" : liveMarketData ? "bullish" : "info"}
             glyph={statusLabel ? "◷" : liveMarketData ? "●" : "◌"}
             className="text-[9px]"
           >
-            {statusLabel ??
-              (liveMarketData
-                ? "LIVE · " + (providerId ?? "provider").toUpperCase()
-                : "MOCK DATA")}
+            {marketLabel}
           </Badge>
-          {releaseLabel && (
+
+          {!statusLabel && (
+            <Badge tone="neutral" className="text-[9px]">
+              PAPER
+            </Badge>
+          )}
+
+          {strategyLabel && (
             <Badge
-              tone={releaseBlocked ? "bearish" : "info"}
-              glyph={releaseBlocked ? "!" : "◆"}
-              className="hidden text-[9px] sm:inline-flex"
+              tone={releaseBlocked ? "danger" : strategyLabel === "UNVERSIONED" ? "warning" : "info"}
+              glyph={releaseBlocked ? "!" : strategyLabel === "UNVERSIONED" ? "!" : "◆"}
+              className="hidden text-[9px] md:inline-flex"
             >
-              {releaseLabel}
+              {strategyLabel}
             </Badge>
           )}
         </div>
