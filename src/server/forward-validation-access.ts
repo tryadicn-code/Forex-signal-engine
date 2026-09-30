@@ -4,6 +4,11 @@ import { DEFAULT_FORWARD_VALIDATION_CONFIG } from "@/config/forward-validation";
 import { STORAGE_PATHS } from "@/config/storage";
 import { buildForwardValidationReport } from "@/forward-validation/analyzer";
 import { JsonFileForwardValidationStore } from "@/forward-validation/store";
+import { TransactionalForwardValidationStore } from "@/transactional/domain-stores";
+import {
+  sharedTransactionalMode,
+  transactionalStore,
+} from "@/transactional/runtime";
 import type {
   ForwardValidationObservation,
   ForwardValidationSnapshot,
@@ -16,10 +21,15 @@ import { resolveRuntimeRelease } from "@/server/release-runtime-access";
 import { readStrategyVersionRegistry } from "@/server/strategy-version-access";
 import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
 
-const store = new JsonFileForwardValidationStore(
-  STORAGE_PATHS.forwardValidation,
-  DEFAULT_FORWARD_VALIDATION_CONFIG.maxObservations
-);
+const store = sharedTransactionalMode()
+  ? new TransactionalForwardValidationStore(
+      transactionalStore(),
+      DEFAULT_FORWARD_VALIDATION_CONFIG.maxObservations
+    )
+  : new JsonFileForwardValidationStore(
+      STORAGE_PATHS.forwardValidation,
+      DEFAULT_FORWARD_VALIDATION_CONFIG.maxObservations
+    );
 
 export async function recordForwardValidationObservation(
   snapshot: ScannerSnapshot,
