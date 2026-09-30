@@ -15,7 +15,7 @@ function navClassName(primary = false): string {
     "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded px-1 py-1.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
     "md:flex-row md:justify-start md:gap-2 md:px-2.5 md:text-xs",
     primary
-      ? "-top-[26px] z-20 text-amber-300 md:top-0"
+      ? "-top-7 z-20 text-amber-300 md:top-0"
       : "text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-100",
   ].join(" ");
 }
@@ -71,16 +71,20 @@ export function SidebarNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:w-52 md:grid-cols-1 md:content-start md:border-r md:border-zinc-800 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
+      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 bg-transparent px-1 pb-[env(safe-area-inset-bottom)] md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:w-52 md:grid-cols-1 md:content-start md:border-r md:border-zinc-800 md:bg-transparent md:px-2 md:py-4"
     >
       <svg
         aria-hidden="true"
-        viewBox="0 0 1000 42"
+        viewBox="0 0 1000 80"
         preserveAspectRatio="none"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[42px] w-full overflow-visible md:hidden"
+        className="pointer-events-none absolute inset-x-0 top-0 h-full w-full md:hidden"
       >
         <path
-          d="M0 1 H430 C448 1 451 11 458 22 C467 36 480 40 500 40 C520 40 533 36 542 22 C549 11 552 1 570 1 H1000"
+          d="M0 0 H425 C450 0 452 10 459 21 C468 35 481 42 500 42 C519 42 532 35 541 21 C548 10 550 0 575 0 H1000 V80 H0 Z"
+          fill="rgb(11 14 20 / 0.985)"
+        />
+        <path
+          d="M0 0 H425 C450 0 452 10 459 21 C468 35 481 42 500 42 C519 42 532 35 541 21 C548 10 550 0 575 0 H1000"
           fill="none"
           stroke="rgb(63 63 70)"
           strokeWidth="1.25"
