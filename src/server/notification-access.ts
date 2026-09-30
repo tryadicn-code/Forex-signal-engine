@@ -161,9 +161,9 @@ export async function drainNotificationDeliveries(): Promise<number> {
   return withDeliveryLease(async () => service.drainDueDeliveries(5));
 }
 
-async function withDeliveryLease<T>(
-  work: () => Promise<T>
-): Promise<T> {
+async function withDeliveryLease(
+  work: () => Promise<number>
+): Promise<number> {
   if (!sharedTransactionalMode()) {
     return work();
   }
@@ -178,7 +178,7 @@ async function withDeliveryLease<T>(
     )
   );
   if (!grant) {
-    return 0 as T;
+    return 0;
   }
 
   try {
