@@ -61,7 +61,7 @@ export function calculateBacktestStatisticalDiagnostics(
             monteCarloIterations,
             seed ^ 0x5a5a5a5a
           ),
-    sampleWarnings: sampleWarnings(artifact),
+    sampleWarnings: buildSampleAdequacyWarnings(artifact),
   };
 }
 
@@ -241,7 +241,7 @@ function tradeOrderMonteCarlo(
   };
 }
 
-function sampleWarnings(
+export function buildSampleAdequacyWarnings(
   artifact: BacktestRunArtifact
 ): SampleAdequacyWarning[] {
   const warnings: SampleAdequacyWarning[] = [];
