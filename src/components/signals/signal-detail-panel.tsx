@@ -14,7 +14,7 @@ import { EvidenceList } from "@/components/signals/evidence-list";
 import { MtfContext } from "@/components/signals/mtf-context";
 import { SignalLifecycle } from "@/components/signals/signal-lifecycle";
 import { TransitionHistory } from "@/components/signals/transition-history";
-import { PriceChart } from "@/components/signals/price-chart";
+import { PriceChart } from "@/components/signals/price-chart";\nimport { SignalExecutiveSummary } from "@/components/signals/signal-executive-summary";
 import {
   formatFixed,
   formatPips,
@@ -94,7 +94,7 @@ export function SignalDetailPanel({
             <DirectionBadge direction={result.biasDirection} />
             <FreshnessBadge status={result.freshness} />
           </div>
-          <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{result.reason}</p>
+          <p className="mt-1 text-xs leading-relaxed text-zinc-500">{result.reason}</p>
         </div>
         <button
           type="button"
@@ -106,7 +106,7 @@ export function SignalDetailPanel({
         </button>
       </header>
 
-      <div className="space-y-4 p-4">
+      <div className="space-y-4 p-3 sm:p-4">
         {failed ? (
           <FailureDetail result={result} />
         ) : (
@@ -116,58 +116,6 @@ export function SignalDetailPanel({
               <div className="mt-2">
                 <PriceChart symbol={result.symbol} asOf={result.updatedAt} />
               </div>
-            </section>
-
-            <section aria-labelledby="decision-title">
-              <SectionTitle id="decision-title">Decision state</SectionTitle>
-              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <DecisionDatum
-                  label="Engine decision"
-                  value={<DecisionBadge decision={result.executionDecision} />}
-                />
-                <DecisionDatum
-                  label="Signal lifecycle"
-                  value={<StateBadge state={result.signalState} />}
-                />
-                <DecisionDatum
-                  label="Bias"
-                  value={<BiasBadge bias={result.bias} />}
-                  className="col-span-2 sm:col-span-1"
-                />
-              </div>
-              {result.executionDecision === "EXECUTE" &&
-                result.signalState !== "EXECUTE" && (
-                  <div
-                    role="status"
-                    className="mt-2 rounded border border-amber-700/50 bg-amber-950/20 px-3 py-2"
-                  >
-                    <div className="font-mono text-[10px] font-semibold uppercase tracking-wide text-amber-300">
-                      Engine / lifecycle mismatch
-                    </div>
-                    <p className="mt-1 text-[11px] leading-relaxed text-amber-200/70">
-                      The engine currently says EXECUTE, but this signal lifecycle is{" "}
-                      <span className="font-mono font-semibold">
-                        {result.signalState ?? "not executable"}
-                      </span>
-                      . Paper Trading will not open a position unless both are executable.
-                    </p>
-                  </div>
-                )}
-              <dl className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded border border-zinc-800 bg-zinc-800 sm:grid-cols-3">
-                <Metric label="Price" value={formatPrice(result.symbol, result.latestPrice)} />
-                <Metric
-                  label="Spread"
-                  value={
-                    result.spreadPips === null
-                      ? NOT_AVAILABLE
-                      : formatPips(result.spreadPips) + " pips"
-                  }
-                />
-                <Metric label="R:R" value={formatRatio(result.riskReward)} />
-                <Metric label="Bias score" value={formatFixed(result.biasScore, 0)} />
-                <Metric label="Setup score" value={formatFixed(result.setupScore, 0)} />
-                <Metric label="Position size" value={formatFixed(result.positionSize, 2)} />
-              </dl>
             </section>
 
             <PaperExecutionDetail
