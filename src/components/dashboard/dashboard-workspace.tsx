@@ -2,18 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
-import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
-import { PaperTradingPanel } from "@/components/paper/paper-trading-panel";
 import { PaperTradingOverlay } from "@/components/paper/paper-trading-overlay";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
 import { ScannerTable } from "@/components/scanner/scanner-table";
 import { SignalDetailPanel } from "@/components/signals/signal-detail-panel";
-import { TransitionHistory } from "@/components/signals/transition-history";
-import { ForwardValidationPanel } from "@/components/forward-validation/forward-validation-panel";
-import { ProductionHealthPanel } from "@/components/production/production-health-panel";
-import { BrokerExecutionPanel } from "@/components/broker/broker-execution-panel";
 import {
   DEFAULT_QUERY,
   DEFAULT_SORT,
@@ -53,12 +47,23 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       : [];
 
   useEffect(() => {
-    if (!data.automation?.enabled) return;
+    const saved = window.localStorage.getItem("fse:selected-symbol");
+    if (saved && allResults.some((result) => result.symbol === saved)) {
+      setSelectedSymbol(saved);
+    }
+  }, []);
 
+  useEffect(() => {
+    if (selectedSymbol) {
+      window.localStorage.setItem("fse:selected-symbol", selectedSymbol);
+    }
+  }, [selectedSymbol]);
+
+  useEffect(() => {
+    if (!data.automation?.enabled) return;
     const tick = () => setClockNow(Date.now());
     const initialTick = window.setTimeout(tick, 0);
     const timer = window.setInterval(tick, 1_000);
-
     return () => {
       window.clearTimeout(initialTick);
       window.clearInterval(timer);
@@ -72,76 +77,32 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         setPaperOverlay(detail.panel);
       }
     };
-
-    const navigateSignals = () => {
-      const current =
-        (selectedSymbol && allResults.find((item) => item.symbol === selectedSymbol)) ??
-        visibleResults.find((item) => item.signalId) ??
-        allResults.find((item) => item.signalId) ??
-        null;
-
-      if (current) {
-        setSelectedSymbol(current.symbol);
-        requestAnimationFrame(() => {
-          document.getElementById("signals")?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        });
-        return;
-      }
-
-      document.getElementById("scanner")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    };
-
     window.addEventListener("fse:open-paper-panel", openPaper);
-    window.addEventListener("fse:navigate-signals", navigateSignals);
-    return () => {
-      window.removeEventListener("fse:open-paper-panel", openPaper);
-      window.removeEventListener("fse:navigate-signals", navigateSignals);
-    };
-  }, [allResults, selectedSymbol, visibleResults]);
+    return () => window.removeEventListener("fse:open-paper-panel", openPaper);
+  }, []);
 
   useEffect(() => {
     if (!data.automation?.enabled) return;
-
-    const intervalMs = Math.max(
-      5_000,
-      data.automation.dashboardSyncIntervalMs
-    );
+    const intervalMs = Math.max(5_000, data.automation.dashboardSyncIntervalMs);
     let inFlight = false;
 
     const syncLatestView = async () => {
       if (inFlight || document.visibilityState === "hidden") return;
       inFlight = true;
       try {
-        const response = await fetch("/api/scanner", {
-          method: "GET",
-          cache: "no-store",
-        });
+        const response = await fetch("/api/scanner", { method: "GET", cache: "no-store" });
         if (!response.ok) return;
-        const next = (await response.json()) as DashboardData;
-        setData(next);
+        setData((await response.json()) as DashboardData);
       } catch {
-        // Read-only sync failure must not replace the last good workstation
-        // state or interfere with the server-side paper scanner.
+        // Preserve the last good workstation state on read-only sync failure.
       } finally {
         inFlight = false;
       }
     };
 
-    const timer = window.setInterval(() => {
-      void syncLatestView();
-    }, intervalMs);
-
+    const timer = window.setInterval(() => void syncLatestView(), intervalMs);
     return () => window.clearInterval(timer);
-  }, [
-    data.automation?.dashboardSyncIntervalMs,
-    data.automation?.enabled,
-  ]);
+  }, [data.automation?.dashboardSyncIntervalMs, data.automation?.enabled]);
 
   const nextScanAt = data.automation?.nextScanAt ?? null;
   const countdownSeconds =
@@ -150,43 +111,22 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       : null;
 
   useEffect(() => {
-    if (
-      !data.automation?.enabled ||
-      countdownSeconds !== 0 ||
-      nextScanAt === null
-    ) {
-      return;
-    }
-
+    if (!data.automation?.enabled || countdownSeconds !== 0 || nextScanAt === null) return;
     let cancelled = false;
-    const syncAfterDeadline = async () => {
+    const timer = window.setTimeout(async () => {
       try {
-        const response = await fetch("/api/scanner", {
-          method: "GET",
-          cache: "no-store",
-        });
+        const response = await fetch("/api/scanner", { method: "GET", cache: "no-store" });
         if (!response.ok || cancelled) return;
-        const next = (await response.json()) as DashboardData;
-        if (!cancelled) setData(next);
+        setData((await response.json()) as DashboardData);
       } catch {
-        // The normal read-only polling loop will retry. A missed countdown
-        // refresh must never affect the server-side scanner.
+        // Normal polling will retry.
       }
-    };
-
-    const timer = window.setTimeout(() => {
-      void syncAfterDeadline();
     }, 750);
-
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [
-    countdownSeconds,
-    data.automation?.enabled,
-    nextScanAt,
-  ]);
+  }, [countdownSeconds, data.automation?.enabled, nextScanAt]);
 
   const clearFilters = () => {
     setQuery(DEFAULT_QUERY);
@@ -197,21 +137,12 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     if (refreshing) return;
     setRefreshing(true);
     setRequestError(null);
-
     try {
-      const response = await fetch("/api/scanner", {
-        method: "POST",
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        throw new Error("Scanner refresh failed with HTTP " + response.status + ".");
-      }
+      const response = await fetch("/api/scanner", { method: "POST", cache: "no-store" });
+      if (!response.ok) throw new Error("Scanner refresh failed with HTTP " + response.status + ".");
       const next = (await response.json()) as DashboardData;
       setData(next);
-      if (
-        selectedSymbol &&
-        !next.snapshot?.results.some((result) => result.symbol === selectedSymbol)
-      ) {
+      if (selectedSymbol && !next.snapshot?.results.some((result) => result.symbol === selectedSymbol)) {
         setSelectedSymbol(null);
       }
     } catch (error) {
@@ -227,13 +158,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     setResettingPaper(true);
     setRequestError(null);
     try {
-      const response = await fetch("/api/paper", {
-        method: "DELETE",
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        throw new Error("Paper reset failed with HTTP " + response.status + ".");
-      }
+      const response = await fetch("/api/paper", { method: "DELETE", cache: "no-store" });
+      if (!response.ok) throw new Error("Paper reset failed with HTTP " + response.status + ".");
       const paper = await response.json();
       setData((current) => ({ ...current, paper }));
     } catch (error) {
@@ -244,151 +170,89 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   };
 
   const errorMessage = requestError ?? data.scanError;
+  const runtimeIssue =
+    data.releaseRuntime && data.releaseRuntime.status !== "ACTIVE"
+      ? data.releaseRuntime
+      : null;
 
   return (
-    <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4">
-      <section id="overview" aria-labelledby="overview-title" className="scroll-mt-16">
-        <div className="mb-1.5">
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-400/80 sm:text-[10px]">
-            Phase 10 · Broker Execution Safety
-          </p>
-        </div>
-
-        <div className="mb-2">
-          <h1
-            id="overview-title"
-            className="text-[19px] font-semibold leading-tight tracking-tight text-zinc-100 sm:text-xl"
-          >
-            Market scanner
-          </h1>
-          <p className="mt-0.5 max-w-3xl text-[10px] leading-4 text-zinc-500 sm:text-[11px]">
-            Production-hardened, version-pinned FSE decisions · PAPER baseline · broker mode {data.broker?.mode ?? "OFF"}
-          </p>
-        </div>
-
-        <div
-          aria-live="polite"
-          className="mb-2 flex items-center justify-between gap-2 border-y border-zinc-800/80 py-1.5"
-        >
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-zinc-600 sm:text-[10px]">
-            <span className="uppercase tracking-[0.12em]">Last scan</span>
-            <span className="font-mono tabular-nums text-zinc-300">
-              {refreshing
-                ? "Scanning..."
-                : formatTime(data.health?.lastScanCompletedAt)}
-            </span>
-            <span aria-hidden="true" className="text-zinc-700">·</span>
-            <span className="uppercase tracking-[0.12em]">Next sync</span>
-            <span className="font-mono font-semibold tabular-nums text-emerald-300">
-              {data.automation?.enabled
-                ? countdownSeconds === null
-                  ? "—"
-                  : countdownSeconds + "s"
-                : "OFF"}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={refreshing}
-            aria-label="Refresh scan"
-            className="shrink-0 rounded border border-zinc-700 bg-zinc-900/60 px-2 py-1 text-[9px] font-medium text-zinc-300 transition-colors hover:border-emerald-700/60 hover:bg-emerald-950/20 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 sm:text-[10px]"
-          >
-            {refreshing ? "Syncing..." : "Refresh"}
-          </button>
-        </div>
-
-        {data.releaseRuntime && (
-          <div
-            className={
-              "mb-2 rounded border px-3 py-2 " +
-              (data.releaseRuntime.status === "BLOCKED"
-                ? "border-red-900/70 bg-red-950/20"
-                : data.releaseRuntime.status === "ACTIVE"
-                  ? "border-emerald-900/60 bg-emerald-950/15"
-                  : "border-amber-900/60 bg-amber-950/15")
-            }
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px]">
-                <span className="font-semibold uppercase tracking-[0.1em] text-zinc-500">
-                  Strategy runtime
-                </span>
-                <span className="font-mono font-semibold text-zinc-200">
-                  {data.releaseRuntime.status}
-                </span>
-                <span className="text-zinc-700">·</span>
-                <span className="font-mono text-zinc-400">
-                  {data.releaseRuntime.version ?? "built-in defaults"}
-                </span>
-                {data.releaseRuntime.pinned && (
-                  <>
-                    <span className="text-zinc-700">·</span>
-                    <span className="text-emerald-300">PINNED</span>
-                  </>
-                )}
-                {data.releaseRuntime.defaultDrift && (
-                  <>
-                    <span className="text-zinc-700">·</span>
-                    <span className="text-amber-300">
-                      DEFAULT DRIFT {data.releaseRuntime.driftAreas.join(", ")}
-                    </span>
-                  </>
-                )}
-              </div>
-              {data.releaseRuntime.manifestFingerprint && (
-                <span className="font-mono text-[8px] text-zinc-700">
-                  FP {data.releaseRuntime.manifestFingerprint}
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-[9px] leading-relaxed text-zinc-600">
-              {data.releaseRuntime.message}
+    <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4 lg:p-5">
+      <section id="overview" aria-labelledby="overview-title" className="scroll-mt-20">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 id="overview-title" className="text-2xl font-semibold tracking-tight text-zinc-100">
+              Market opportunities
+            </h1>
+            <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
+              Find what needs attention now. Engine decisions remain unchanged.
             </p>
           </div>
-        )}
+
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-zinc-600">Last sync</span>
+            <span className="font-mono tabular-nums text-zinc-300">
+              {refreshing ? "Syncing…" : formatTime(data.health?.lastScanCompletedAt)}
+            </span>
+            {data.automation?.enabled && (
+              <span className="hidden font-mono tabular-nums text-zinc-600 sm:inline">
+                · next {countdownSeconds ?? "—"}s
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={refreshing}
+              className="rounded-md border border-zinc-700 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-emerald-700/60 hover:text-emerald-300 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+            >
+              {refreshing ? "Syncing…" : "Refresh"}
+            </button>
+          </div>
+        </div>
 
         <DashboardSummary
           snapshot={data.snapshot}
           health={data.health}
           activeSignals={data.activeSignals}
         />
+
+        {runtimeIssue && (
+          <a
+            href="/system"
+            className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-amber-900/60 bg-amber-950/15 px-3 py-2.5 text-xs"
+          >
+            <span>
+              <strong className="text-amber-300">Strategy needs attention.</strong>{" "}
+              <span className="text-zinc-500">{runtimeIssue.message}</span>
+            </span>
+            <span className="shrink-0 text-amber-300">System ›</span>
+          </a>
+        )}
       </section>
 
       {errorMessage && (
-        <div
-          role="alert"
-          className="rounded-md border border-orange-700/50 bg-orange-950/20 px-3 py-2 text-xs text-orange-200"
-        >
-          <span className="font-mono font-semibold">SCANNER ERROR</span>
-          <span className="ml-2 text-orange-200/70">{errorMessage}</span>
+        <div role="alert" className="rounded-lg border border-red-900/60 bg-red-950/20 px-3 py-2.5 text-xs text-red-200">
+          <span className="font-semibold">Scanner issue:</span>{" "}
+          <span className="text-red-200/70">{errorMessage}</span>
         </div>
       )}
 
-      <ProductionHealthPanel />
-
-      <BrokerExecutionPanel broker={data.broker} />
-
-      <ForwardValidationPanel />
-
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_430px]">
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] 2xl:grid-cols-[minmax(0,2.1fr)_minmax(400px,1fr)]">
         <section
           id="scanner"
           aria-labelledby="scanner-title"
-          className="min-w-0 scroll-mt-16 overflow-hidden rounded-md border border-zinc-800 bg-zinc-900/30"
+          className="min-w-0 scroll-mt-20 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/25"
         >
-          <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-3">
+          <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-3.5 sm:px-4">
             <div>
-              <h2 id="scanner-title" className="text-sm font-semibold text-zinc-100">
+              <h2 id="scanner-title" className="text-base font-semibold text-zinc-100">
                 Scanner
               </h2>
-              <p className="mt-0.5 hidden text-[11px] text-zinc-500 sm:block">
-                Select a pair to inspect evidence and execution gates.
+              <p className="mt-0.5 text-xs text-zinc-500">
+                Select a pair to inspect its current trading state.
               </p>
             </div>
-            <span className="font-mono text-[11px] text-zinc-600">
-              {allResults.length} pairs
+            <span className="font-mono text-xs text-zinc-600">
+              {visibleResults.length}/{allResults.length}
             </span>
           </header>
 
@@ -404,11 +268,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           <div aria-busy={refreshing} className={refreshing ? "opacity-60" : undefined}>
             {!data.snapshot ? (
               <div className="p-3">
-                <ScannerEmptyState
-                  kind={errorMessage ? "scan-error" : "no-scan"}
-                  detail={errorMessage}
-                  onRefresh={refresh}
-                />
+                <ScannerEmptyState kind={errorMessage ? "scan-error" : "no-scan"} detail={errorMessage} onRefresh={refresh} />
               </div>
             ) : allResults.length === 0 ? (
               <div className="p-3">
@@ -416,33 +276,22 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
               </div>
             ) : visibleResults.length === 0 ? (
               <div className="p-3">
-                <ScannerEmptyState
-                  kind="no-matches"
-                  onClearFilters={clearFilters}
-                />
+                <ScannerEmptyState kind="no-matches" onClearFilters={clearFilters} />
               </div>
             ) : (
               <>
                 <div className="hidden xl:block">
-                  <ScannerTable
-                    results={visibleResults}
-                    selectedSymbol={selectedSymbol}
-                    onSelect={setSelectedSymbol}
-                  />
+                  <ScannerTable results={visibleResults} selectedSymbol={selectedSymbol} onSelect={setSelectedSymbol} />
                 </div>
                 <div className="xl:hidden">
-                  <ScannerCards
-                    results={visibleResults}
-                    selectedSymbol={selectedSymbol}
-                    onSelect={setSelectedSymbol}
-                  />
+                  <ScannerCards results={visibleResults} selectedSymbol={selectedSymbol} onSelect={setSelectedSymbol} />
                 </div>
               </>
             )}
           </div>
         </section>
 
-        <div id="signals" className="min-w-0 scroll-mt-16">
+        <div id="signals" className="min-w-0 scroll-mt-20 xl:sticky xl:top-[4.5rem] xl:self-start">
           <SignalDetailPanel
             result={selectedResult}
             signal={selectedSignal}
@@ -455,69 +304,22 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         </div>
       </div>
 
-      <div className="hidden md:block">
-        <PaperTradingPanel
-          paper={data.paper}
-          onReset={resetPaper}
-          resetting={resettingPaper}
-        />
-      </div>
-
       <PaperTradingOverlay
         open={paperOverlay !== null}
-        view={paperOverlay ?? "portfolio"}
+        view={paperOverlay ?? "journal"}
         paper={data.paper}
         onClose={() => setPaperOverlay(null)}
         onReset={resetPaper}
         resetting={resettingPaper}
       />
 
-      <section
-        id="markets"
-        aria-label="Market data and signal history"
-        className="grid scroll-mt-16 gap-4 lg:grid-cols-2"
-      >
-        <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
-
-        <section
-          aria-labelledby="recent-transitions-title"
-          className="hidden rounded-md border border-zinc-800 bg-zinc-900/30 sm:block"
-        >
-          <header className="border-b border-zinc-800 px-3 py-2.5">
-            <h2 id="recent-transitions-title" className="text-sm font-semibold text-zinc-100">
-              Recent signal transitions
-            </h2>
-            <p className="mt-0.5 text-[11px] text-zinc-500">
-              Repository audit trail across the current scanner session.
-            </p>
-          </header>
-          <div className="p-3">
-            <TransitionHistory
-              transitions={data.recentTransitions}
-              emptyLabel="No state transitions have been recorded yet."
-            />
-          </div>
-        </section>
-
-        <details className="rounded-md border border-zinc-800 bg-zinc-900/30 sm:hidden">
-          <summary className="cursor-pointer list-none px-3 py-3 text-sm font-semibold text-zinc-200">
-            <span className="flex items-center justify-between">
-              Recent signal transitions
-              <span aria-hidden="true" className="text-zinc-600">›</span>
-            </span>
-          </summary>
-          <div className="border-t border-zinc-800 p-3">
-            <TransitionHistory
-              transitions={data.recentTransitions}
-              emptyLabel="No state transitions have been recorded yet."
-            />
-          </div>
-        </details>
-      </section>
-
-      <footer className="border-t border-zinc-800 pt-3 text-[10px] leading-relaxed text-zinc-600">
-        {(data.liveMarketData ? (data.providerId ?? "live").toUpperCase() : "Mock") +
-          " provider"} · broker mode {data.broker?.mode ?? "OFF"} · filtering and sorting never modify engine decisions.
+      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-3 text-[11px] text-zinc-600">
+        <span>
+          {(data.liveMarketData ? (data.providerId ?? "live").toUpperCase() : "Mock") + " provider"} · broker {data.broker?.mode ?? "OFF"}
+        </span>
+        <a href="/system" className="text-zinc-400 hover:text-zinc-200">
+          System & diagnostics ›
+        </a>
       </footer>
     </div>
   );
