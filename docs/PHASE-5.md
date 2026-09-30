@@ -1148,3 +1148,208 @@ A later phase can register reviewed strategy versions, preserve immutable
 release manifests, track which validation report/fingerprint supports each
 version, and record superseded/deprecated versions without introducing live
 broker execution or automatic strategy selection.
+
+
+---
+
+## Phase 5.9 — Validation Governance & Strategy Version Registry
+
+Phase 5.9 closes Phase 5 by converting a manually promoted validation report
+into an immutable, auditable strategy-version manifest.
+
+It does not change the strategy and it does not activate broker execution.
+
+### Registration eligibility
+
+A validation report can register a strategy version only when:
+
+1. a Phase 5.8 release review exists,
+2. that review is still current for the report fingerprint,
+3. the manual reviewer decision is `PROMOTE`.
+
+A `PENDING`, `HOLD`, missing or stale review cannot register a strategy
+version.
+
+### Semantic version identity
+
+Versions use canonical semantic format:
+
+```
+vMAJOR.MINOR.PATCH
+```
+
+Examples:
+
+```
+v1.0.0
+v1.1.0
+v2.0.0
+```
+
+Each version is unique inside the registry.
+
+### Immutable strategy manifest
+
+Registration captures a self-contained manifest containing:
+
+- semantic version,
+- title and registration note,
+- registration actor/time,
+- source validation report,
+- source dataset and symbols,
+- validation window,
+- release reviewer/time/fingerprint,
+- assumptions/outcomes/combined reproducibility fingerprints,
+- full centralized `defaultEngineConfig` snapshot,
+- scanner timeframe-role snapshot,
+- signal TTL snapshot,
+- freshness thresholds,
+- candle lookback,
+- Phase 5.7 validation summary,
+- Phase 5.8 release-gate audit record,
+- deterministic manifest fingerprint.
+
+The manifest is never edited after registration.
+
+If any manifest content is changed outside the registry contract, manifest
+fingerprint verification fails.
+
+### Registry persistence
+
+The registry is stored separately at:
+
+```
+.data/strategy-version-registry.json
+```
+
+It does not mutate historical report files or Phase 4 Paper persistence.
+
+### Single ACTIVE version
+
+The registry allows at most one `ACTIVE` strategy version.
+
+If an ACTIVE version already exists, registration of another version must
+explicitly declare that exact ACTIVE version as `supersedesVersion`.
+
+The transition is atomic:
+
+```
+old ACTIVE
+   ↓
+SUPERSEDED
+
+new version
+   ↓
+ACTIVE
+```
+
+There is no silent replacement of an ACTIVE version.
+
+### Lifecycle
+
+Supported lifecycle states:
+
+- `ACTIVE`
+- `SUPERSEDED`
+- `DEPRECATED`
+
+Lifecycle changes are append-only status events containing:
+
+- status,
+- timestamp,
+- actor,
+- reason.
+
+Changing lifecycle status never rewrites the immutable validation manifest.
+
+`DEPRECATED` is terminal in Phase 5.9. Versions are not deleted and cannot be
+reactivated through the Phase 5 registry.
+
+### User interface
+
+The Phase 5 workbench exposes a **Strategy Version Registry** panel.
+
+It supports:
+
+- viewing all registered versions,
+- seeing ACTIVE/SUPERSEDED/DEPRECATED status,
+- registering an eligible promoted report,
+- explicitly selecting the version being superseded,
+- viewing report/fingerprint provenance,
+- viewing status history,
+- exporting one immutable strategy manifest as JSON,
+- explicitly deprecating a version with actor + reason.
+
+There is intentionally no edit/delete action for manifests.
+
+### Governance boundary
+
+A registered ACTIVE version means:
+
+> this exact strategy/scanner configuration is backed by the attached Phase 5
+> validation evidence and has passed the recorded human release review.
+
+It does **not** mean:
+
+- guaranteed profitability,
+- live-broker approval,
+- automatic production deployment,
+- permission to place real orders.
+
+Those belong to later phases.
+
+### Phase 5.9 Definition of done
+
+1. only current manual PROMOTE reports can register a version,
+2. strategy version names use canonical semantic versioning,
+3. version identifiers are unique,
+4. strategy/scanner parameters are frozen into the manifest,
+5. validation/release evidence is frozen into the manifest,
+6. manifest integrity has its own deterministic fingerprint,
+7. manifest content is immutable after registration,
+8. registry contains at most one ACTIVE version,
+9. replacing ACTIVE requires explicit supersession,
+10. supersession is recorded in lifecycle history,
+11. deprecation requires actor + reason,
+12. lifecycle changes do not mutate manifests,
+13. registry persistence is isolated from Paper Trading and backtest reports,
+14. registry UI exposes provenance, lifecycle and manifest export,
+15. all previous Phase 1–5.8 tests remain green,
+16. typecheck, tests, lint and production build pass.
+
+---
+
+# Phase 5 Completion
+
+**Phase 5 — Historical Validation / Backtest is complete after Phase 5.9.**
+
+The completed validation pipeline is:
+
+```
+Historical Data Import
+        ↓
+5.1 Deterministic Historical Replay
+        ↓
+Existing FSE Strategy Pipeline
+        ↓
+5.2 Historical Execution
+        ↓
+5.3 Performance Analytics
+        ↓
+5.4 Import / Run Interface
+        ↓
+5.5 Validation Workbench
+        ↓
+5.6 Robustness & OOS
+        ↓
+5.7 Statistical Diagnostics
+        ↓
+5.8 Human Evidence Review / Release Gate
+        ↓
+5.9 Immutable Strategy Version Registry
+```
+
+Phase 5 establishes reproducible historical validation, evidence review and
+strategy-version governance. It deliberately ends before live broker execution.
+
+The next major milestone is **Phase 6 — Strategy Governance / Release Runtime**.
