@@ -14,7 +14,6 @@ import {
   type ScannerQuery,
   type ScannerSort,
 } from "@/lib/scanner-query";
-import { formatTime } from "@/lib/format";
 import type { DashboardData } from "@/types/dashboard";
 
 export function DashboardWorkspace({ initialData }: { initialData: DashboardData }) {
@@ -200,15 +199,18 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-zinc-600">Last sync</span>
-            <span className="font-mono tabular-nums text-zinc-300">
-              {refreshing
-                ? "Syncing…"
-                : formatTime(data.health?.lastScanCompletedAt)}
-            </span>
-            {data.automation?.enabled && (
-              <span className="hidden font-mono tabular-nums text-zinc-600 sm:inline">
-                · next {countdownSeconds ?? "—"}s
+            {data.automation?.enabled ? (
+              <div className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/50 px-2.5 py-1.5">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Auto sync {Math.round(data.automation.scanIntervalMs / 1000)}s
+                </span>
+                <span className="font-mono tabular-nums text-emerald-300">
+                  {countdownSeconds ?? "—"}s
+                </span>
+              </div>
+            ) : (
+              <span className="text-[10px] uppercase tracking-wide text-zinc-600">
+                Auto sync off
               </span>
             )}
             <button
