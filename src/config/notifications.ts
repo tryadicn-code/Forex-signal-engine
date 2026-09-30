@@ -15,6 +15,7 @@ export interface NotificationConfig {
   maxAttempts: number;
   retryBaseMs: number;
   requestTimeoutMs: number;
+  timeZone: string;
   telegramEnabled: boolean;
   telegramBotToken: string | null;
   telegramChatId: string | null;
@@ -65,6 +66,7 @@ export function resolveNotificationConfig(
       env.FSE_ALERT_REQUEST_TIMEOUT_MS,
       8_000
     ),
+    timeZone: optional(env.FSE_ALERT_TIME_ZONE) ?? "Asia/Makassar",
     telegramEnabled: parseBoolean(
       env.FSE_TELEGRAM_ENABLED,
       false
