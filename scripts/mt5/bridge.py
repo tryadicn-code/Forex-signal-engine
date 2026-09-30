@@ -661,7 +661,10 @@ def _reconcile_trade_tag(client_tag: str) -> dict[str, Any]:
     positions = mt5.positions_get()
     if positions is not None:
         for item in positions:
-            if str(getattr(item, "comment", "")) == client_tag:
+            if (
+                str(getattr(item, "comment", "")) == client_tag
+                and int(getattr(item, "magic", -1)) == TRADE_MAGIC
+            ):
                 return {
                     "found": True,
                     "state": "OPEN_POSITION",
@@ -675,7 +678,10 @@ def _reconcile_trade_tag(client_tag: str) -> dict[str, Any]:
     orders = mt5.orders_get()
     if orders is not None:
         for item in orders:
-            if str(getattr(item, "comment", "")) == client_tag:
+            if (
+                str(getattr(item, "comment", "")) == client_tag
+                and int(getattr(item, "magic", -1)) == TRADE_MAGIC
+            ):
                 return {
                     "found": True,
                     "state": "ACTIVE_ORDER",
@@ -695,7 +701,10 @@ def _reconcile_trade_tag(client_tag: str) -> dict[str, Any]:
     history_orders = mt5.history_orders_get(date_from, date_to)
     if history_orders is not None:
         for item in reversed(history_orders):
-            if str(getattr(item, "comment", "")) == client_tag:
+            if (
+                str(getattr(item, "comment", "")) == client_tag
+                and int(getattr(item, "magic", -1)) == TRADE_MAGIC
+            ):
                 return {
                     "found": True,
                     "state": "HISTORY_ORDER",
@@ -712,7 +721,10 @@ def _reconcile_trade_tag(client_tag: str) -> dict[str, Any]:
     history_deals = mt5.history_deals_get(date_from, date_to)
     if history_deals is not None:
         for item in reversed(history_deals):
-            if str(getattr(item, "comment", "")) == client_tag:
+            if (
+                str(getattr(item, "comment", "")) == client_tag
+                and int(getattr(item, "magic", -1)) == TRADE_MAGIC
+            ):
                 return {
                     "found": True,
                     "state": "HISTORY_DEAL",
