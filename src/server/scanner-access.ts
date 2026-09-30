@@ -1,8 +1,9 @@
 /**
  * Server-side scanner access.
  *
- * Runtime provider selection lives in server/runtime-market-data. Phase 1/2
- * remain provider-agnostic and receive only canonical market data.
+ * Phase 6 resolves the immutable ACTIVE strategy release before constructing
+ * the scanner. Operational provider selection remains server-owned while
+ * strategy/scanner thresholds come from the validated release manifest.
  */
 
 import "server-only";
@@ -25,81 +26,120 @@ import {
   readPaperDashboard,
 } from "@/server/paper-trading-access";
 import { DEFAULT_PAPER_TRADING_CONFIG } from "@/config/paper";
+import {
+  releaseRuntimeIdentity,
+  resolveRuntimeRelease,
+} from "@/server/release-runtime-access";
+import type { ReleaseRuntimeResolution } from "@/runtime/release-runtime-types";
+import type { DeepPartial } from "@/core/config/engine-config";
+import type { ScannerConfig } from "@/config/scanner";
 
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
 
 type ScannerRuntimeGlobal = typeof globalThis & {
   __fseScannerApi?: ScannerApi;
+  __fseScannerReleaseIdentity?: string;
   __fseScanInFlight?: Promise<string | null>;
+  __fseScanInFlightIdentity?: string;
   __fseAutoScanTimer?: ReturnType<typeof setInterval>;
   __fseNextAutoScanAt?: number;
 };
 
-/**
- * Next.js may evaluate server modules in separate route bundles during
- * development. A module-local singleton can therefore split page reloads and
- * /api/scanner refreshes into different in-memory scanner repositories.
- *
- * Store the runtime scanner on globalThis so every server bundle in this Node
- * process reads and mutates the same snapshot/lifecycle source of truth.
- */
-function scanner(): ScannerApi {
+async function scannerForRelease(
+  release: ReleaseRuntimeResolution
+): Promise<ScannerApi | null> {
+  if (!release.state.canScan) return null;
+
   const runtime = globalThis as ScannerRuntimeGlobal;
-  if (!runtime.__fseScannerApi) {
-    const symbols = resolveRuntimeSymbols();
-    runtime.__fseScannerApi = new ScannerApi(
-      {
-        providerId: runtimeProviderId(),
-        executionMode: "PAPER",
-        ...(symbols ? { symbols } : {}),
-      },
-      {
-        marketData: runtimeMarketDataProvider(),
-        conversionResolver: runtimeConversionResolver(),
-      }
-    );
+  const identity = releaseRuntimeIdentity(release);
+  if (
+    runtime.__fseScannerApi &&
+    runtime.__fseScannerReleaseIdentity === identity
+  ) {
+    return runtime.__fseScannerApi;
   }
+
+  // Do not swap scanner state in the middle of an existing analysis cycle.
+  if (runtime.__fseScanInFlight) {
+    await runtime.__fseScanInFlight;
+  }
+
+  const runtimeSymbols =
+    release.state.status === "ACTIVE" ? null : resolveRuntimeSymbols();
+  const releaseOverrides =
+    release.scannerOverrides ?? ({} as DeepPartial<ScannerConfig>);
+  const overrides: DeepPartial<ScannerConfig> = {
+    ...releaseOverrides,
+    providerId: runtimeProviderId(),
+    executionMode: "PAPER",
+    ...(runtimeSymbols ? { symbols: runtimeSymbols } : {}),
+  };
+
+  runtime.__fseScannerApi = new ScannerApi(overrides, {
+    marketData: runtimeMarketDataProvider(),
+    conversionResolver: runtimeConversionResolver(),
+  });
+  runtime.__fseScannerReleaseIdentity = identity;
   return runtime.__fseScannerApi;
 }
 
-async function dashboardView(inst: ScannerApi, scanError: string | null): Promise<DashboardData> {
-  const allSignals = inst.getAllSignals();
+async function dashboardView(
+  inst: ScannerApi | null,
+  scanError: string | null,
+  release: ReleaseRuntimeResolution
+): Promise<DashboardData> {
+  const allSignals = inst?.getAllSignals() ?? [];
   const signalHistory: DashboardData["signalHistory"] = {};
 
-  for (const signal of allSignals) {
-    signalHistory[signal.signalId] = inst.getSignalHistory(signal.signalId);
+  if (inst) {
+    for (const signal of allSignals) {
+      signalHistory[signal.signalId] = inst.getSignalHistory(signal.signalId);
+    }
   }
 
   return {
-    snapshot: inst.getLatestSnapshot(),
-    health: inst.getHealth(),
-    activeSignals: allSignals.filter((signal) => !isTerminalState(signal.state)),
+    snapshot: inst?.getLatestSnapshot() ?? null,
+    health: inst?.getHealth() ?? null,
+    activeSignals: allSignals.filter(
+      (signal) => !isTerminalState(signal.state)
+    ),
     allSignals,
-    recentTransitions: inst.getRecentTransitions(RECENT_TRANSITIONS),
+    recentTransitions: inst?.getRecentTransitions(RECENT_TRANSITIONS) ?? [],
     signalHistory,
     scanError,
     providerId: runtimeProviderId(),
     liveMarketData: runtimeUsesLiveMarketData(),
     paper: await readPaperDashboard(),
+    releaseRuntime: release.state,
     automation: {
-      enabled: DEFAULT_PAPER_TRADING_CONFIG.autoScanEnabled,
+      enabled:
+        DEFAULT_PAPER_TRADING_CONFIG.autoScanEnabled &&
+        release.state.canScan,
       scanIntervalMs: DEFAULT_PAPER_TRADING_CONFIG.autoScanIntervalMs,
-      dashboardSyncIntervalMs: DEFAULT_PAPER_TRADING_CONFIG.dashboardSyncIntervalMs,
+      dashboardSyncIntervalMs:
+        DEFAULT_PAPER_TRADING_CONFIG.dashboardSyncIntervalMs,
       nextScanAt:
-        (globalThis as ScannerRuntimeGlobal).__fseNextAutoScanAt ?? null,
+        release.state.canScan
+          ? (globalThis as ScannerRuntimeGlobal).__fseNextAutoScanAt ?? null
+          : null,
     },
   };
 }
 
-async function runScanner(inst: ScannerApi, asOf: number): Promise<string | null> {
+async function runScanner(
+  inst: ScannerApi,
+  asOf: number,
+  release: ReleaseRuntimeResolution
+): Promise<string | null> {
   const runtime = globalThis as ScannerRuntimeGlobal;
+  const expectedIdentity = releaseRuntimeIdentity(release);
 
-  // Manual refresh and the automatic forward-test loop may fire together.
-  // Coalesce them into one scan so market data, lifecycle transitions and paper
-  // execution cannot race or create duplicate work.
   if (runtime.__fseScanInFlight) {
-    return runtime.__fseScanInFlight;
+    if (runtime.__fseScanInFlightIdentity === expectedIdentity) {
+      return runtime.__fseScanInFlight;
+    }
+    await runtime.__fseScanInFlight;
   }
 
   const work = (async (): Promise<string | null> => {
@@ -107,6 +147,17 @@ async function runScanner(inst: ScannerApi, asOf: number): Promise<string | null
       inst.setRuntimeAccountBalance(await paperBalance());
       await primeRuntimeConversionRates(asOf, inst.config.account.currency);
       const snapshot = await inst.runScan(asOf);
+
+      // Re-resolve governance before creating Paper orders. A registry change
+      // during analysis invalidates this scan for execution purposes.
+      const currentRelease = await resolveRuntimeRelease();
+      if (
+        !currentRelease.state.canScan ||
+        releaseRuntimeIdentity(currentRelease) !== expectedIdentity
+      ) {
+        return "Strategy release changed during scan; Paper execution was not applied. Refresh to run under the current release.";
+      }
+
       await processPaperSnapshot(snapshot);
       return null;
     } catch (error) {
@@ -115,17 +166,19 @@ async function runScanner(inst: ScannerApi, asOf: number): Promise<string | null
   })();
 
   runtime.__fseScanInFlight = work;
+  runtime.__fseScanInFlightIdentity = expectedIdentity;
 
   try {
     return await work;
   } finally {
     if (runtime.__fseScanInFlight === work) {
       runtime.__fseScanInFlight = undefined;
+      runtime.__fseScanInFlightIdentity = undefined;
     }
   }
 }
 
-function ensureAutoScanner(inst: ScannerApi): void {
+function ensureAutoScanner(): void {
   if (!DEFAULT_PAPER_TRADING_CONFIG.autoScanEnabled) return;
 
   const runtime = globalThis as ScannerRuntimeGlobal;
@@ -139,13 +192,15 @@ function ensureAutoScanner(inst: ScannerApi): void {
   runtime.__fseNextAutoScanAt = Date.now() + interval;
 
   const timer = setInterval(() => {
-    // Advance the schedule before starting work so the UI can keep counting
-    // even while a scan is in progress.
     runtime.__fseNextAutoScanAt = Date.now() + interval;
-    void runScanner(inst, runtimeDefaultAsOf());
+    void (async () => {
+      const release = await resolveRuntimeRelease();
+      const inst = await scannerForRelease(release);
+      if (!inst) return;
+      await runScanner(inst, runtimeDefaultAsOf(), release);
+    })();
   }, interval);
 
-  // Do not keep the Node process alive solely because of the scanner timer.
   if (typeof timer === "object" && "unref" in timer) {
     timer.unref();
   }
@@ -156,26 +211,43 @@ function ensureAutoScanner(inst: ScannerApi): void {
 export async function readDashboard(
   asOf: number = runtimeDefaultAsOf()
 ): Promise<DashboardData> {
-  const inst = scanner();
-  ensureAutoScanner(inst);
-  let scanError: string | null = null;
+  ensureAutoScanner();
+  const release = await resolveRuntimeRelease();
+  const inst = await scannerForRelease(release);
 
-  if (!inst.getLatestSnapshot()) {
-    scanError = await runScanner(inst, asOf);
+  if (!inst) {
+    return dashboardView(inst, release.state.message, release);
   }
 
-  return await dashboardView(inst, scanError);
+  let scanError: string | null = null;
+  if (!inst.getLatestSnapshot()) {
+    scanError = await runScanner(inst, asOf, release);
+  }
+
+  const currentRelease = await resolveRuntimeRelease();
+  const currentInst = await scannerForRelease(currentRelease);
+  return dashboardView(currentInst, scanError, currentRelease);
 }
 
 export async function refreshScanner(
   asOf: number = runtimeDefaultAsOf()
 ): Promise<DashboardData> {
-  const inst = scanner();
-  ensureAutoScanner(inst);
-  const scanError = await runScanner(inst, asOf);
-  return await dashboardView(inst, scanError);
+  ensureAutoScanner();
+  const release = await resolveRuntimeRelease();
+  const inst = await scannerForRelease(release);
+
+  if (!inst) {
+    return dashboardView(inst, release.state.message, release);
+  }
+
+  const scanError = await runScanner(inst, asOf, release);
+  const currentRelease = await resolveRuntimeRelease();
+  const currentInst = await scannerForRelease(currentRelease);
+  return dashboardView(currentInst, scanError, currentRelease);
 }
 
-export function listUniverse(): string[] {
-  return scanner().listSymbols();
+export async function listUniverse(): Promise<string[]> {
+  const release = await resolveRuntimeRelease();
+  const inst = await scannerForRelease(release);
+  return inst?.listSymbols() ?? [];
 }
