@@ -92,6 +92,11 @@ export class BrokerExecutionService {
           "Live execution environment gate is disabled."
         );
       }
+      if (this.options.config.emergencyStop) {
+        throw new Error(
+          "Environment emergency stop is engaged."
+        );
+      }
     }
 
     return this.options.store.update((state) => {
@@ -116,6 +121,9 @@ export class BrokerExecutionService {
     }
     if (!this.options.config.liveExecutionEnabled) {
       throw new Error("FSE_LIVE_EXECUTION_ENABLED is false.");
+    }
+    if (this.options.config.emergencyStop) {
+      throw new Error("FSE_LIVE_EMERGENCY_STOP is engaged.");
     }
     if (!this.options.sharedTransactional) {
       throw new Error(
@@ -556,6 +564,9 @@ export class BrokerExecutionService {
     }
     if (!this.options.config.liveExecutionEnabled) {
       blockers.push("Live execution environment gate is disabled.");
+    }
+    if (this.options.config.emergencyStop) {
+      blockers.push("Environment emergency stop is engaged.");
     }
     if (!this.options.sharedTransactional) {
       blockers.push("Shared transactional state is required.");
