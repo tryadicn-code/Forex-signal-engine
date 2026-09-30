@@ -4,6 +4,7 @@ import {
   listRecoverySnapshots,
   verifyRecoverySnapshot,
 } from "@/server/recovery-snapshot-access";
+import { sharedTransactionalMode } from "@/transactional/runtime";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -38,6 +39,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (sharedTransactionalMode()) {
+      throw new Error(
+        "Local recovery snapshots are disabled in SHARED mode. Use PostgreSQL backup/PITR for authoritative recovery."
+      );
+    }
     const body = (await request.json()) as Record<string, unknown>;
     const createdBy = requiredString(body.createdBy, "createdBy");
     const reason = requiredString(body.reason, "reason");
@@ -57,7 +63,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { ok: false, error: message },
       {
-        status: /maintenance mode/i.test(message) ? 409 : 400,
+        status:
+          /maintenance mode|shared mode/i.test(message)
+            ? 409
+            : 400,
       }
     );
   }
