@@ -47,7 +47,7 @@ export function resolveNotificationConfig(
     ),
     nearExecuteTriggerScore: parseNonNegativeNumber(
       env.FSE_ALERT_NEAR_EXECUTE_TRIGGER_SCORE,
-      75
+      50
     ),
     nearExecuteMinRiskReward: parseNonNegativeNumber(
       env.FSE_ALERT_NEAR_EXECUTE_MIN_RR,
