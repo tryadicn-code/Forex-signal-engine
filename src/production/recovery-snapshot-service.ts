@@ -13,6 +13,7 @@ export interface RecoverySourcePaths {
   strategyRegistry: string;
   releaseRuntimeAudit: string;
   forwardValidation: string;
+  brokerExecution?: string;
 }
 
 export class RecoverySnapshotService {
