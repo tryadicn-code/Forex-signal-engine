@@ -3,7 +3,8 @@ export interface RecoverySnapshotFile {
     | "paper"
     | "strategyRegistry"
     | "releaseRuntimeAudit"
-    | "forwardValidation";
+    | "forwardValidation"
+    | "brokerExecution";
   sourceName: string;
   present: boolean;
   bytes: number;
