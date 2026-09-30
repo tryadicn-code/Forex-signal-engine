@@ -101,6 +101,7 @@ export interface NotificationDashboard {
     minRiskReward: number;
   };
   cooldownMs: number;
+  error: string | null;
 }
 
 export interface NotificationSendResult {
