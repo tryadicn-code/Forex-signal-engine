@@ -5,7 +5,6 @@ import type {
 import type { PaperTrade } from "@/paper/types";
 
 export type ForwardValidationStatus =
-  | "NO_ACTIVE_RELEASE"
   | "COLLECTING"
   | "MONITORING"
   | "ATTENTION";
