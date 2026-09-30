@@ -1,6 +1,7 @@
 import type { DurableFileHealth } from "@/persistence/types";
 import type { ProviderStatus } from "@/types/market-data";
 import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
+import type { StartupRecoveryReport } from "@/production/startup-recovery-types";
 
 export type ProductionReadiness = "READY" | "DEGRADED" | "BLOCKED";
 
@@ -21,6 +22,7 @@ export interface ProductionHealthSnapshot {
   liveMarketData: boolean;
   provider: ProviderStatus;
   releaseRuntime: ReleaseRuntimeState;
+  startupRecovery: StartupRecoveryReport;
   persistence: DurableFileHealth[];
   checks: ProductionHealthCheck[];
 }
