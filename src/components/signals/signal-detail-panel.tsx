@@ -3,11 +3,8 @@
 import { useEffect } from "react";
 import {
   Badge,
-  BiasBadge,
-  DecisionBadge,
   DirectionBadge,
   FreshnessBadge,
-  StateBadge,
 } from "@/components/common/badges";
 import { ConflictList } from "@/components/signals/conflict-list";
 import { EvidenceList } from "@/components/signals/evidence-list";
@@ -18,11 +15,8 @@ import { PriceChart } from "@/components/signals/price-chart";
 import { SignalExecutiveSummary } from "@/components/signals/signal-executive-summary";
 import {
   formatFixed,
-  formatPips,
   formatPrice,
-  formatRatio,
   formatTime,
-  NOT_AVAILABLE,
 } from "@/lib/format";
 import type { SignalView } from "@/scanner/scanner-api";
 import type { SymbolScanResult } from "@/scanner/scanner-result";
@@ -112,6 +106,8 @@ export function SignalDetailPanel({
           <FailureDetail result={result} />
         ) : (
           <>
+            <SignalExecutiveSummary result={result} />
+
             <section aria-labelledby="price-chart-title">
               <SectionTitle id="price-chart-title">Price chart</SectionTitle>
               <div className="mt-2">
@@ -476,25 +472,6 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
     <h3 id={id} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
       {children}
     </h3>
-  );
-}
-
-function DecisionDatum({
-  label,
-  value,
-  className,
-}: {
-  label: string;
-  value: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("rounded border border-zinc-800 bg-zinc-900/30 px-2.5 py-2", className)}>
-      <div className="mb-1.5 text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-600">
-        {label}
-      </div>
-      {value}
-    </div>
   );
 }
 
