@@ -1,3 +1,4 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveProductionConfig } from "@/config/production";
 import { resolveStoragePaths } from "@/config/storage";
@@ -42,19 +43,24 @@ describe("Phase 8 production configuration", () => {
       FSE_DATA_DIR: "/tmp/fse-data",
     });
 
-    expect(paths.dataDirectory).toBe("/tmp/fse-data");
-    expect(paths.paper).toBe("/tmp/fse-data/paper-trading.json");
+    const root = path.resolve("/tmp/fse-data");
+
+    expect(paths.dataDirectory).toBe(root);
+    expect(paths.paper).toBe(path.join(root, "paper-trading.json"));
     expect(paths.strategyRegistry).toBe(
-      "/tmp/fse-data/strategy-version-registry.json"
+      path.join(root, "strategy-version-registry.json")
     );
     expect(paths.releaseRuntimeAudit).toBe(
-      "/tmp/fse-data/release-runtime-audit.json"
+      path.join(root, "release-runtime-audit.json")
     );
     expect(paths.forwardValidation).toBe(
-      "/tmp/fse-data/forward-validation.json"
+      path.join(root, "forward-validation.json")
     );
-    expect(paths.backtestRuns).toBe("/tmp/fse-data/backtest-runs");
-    expect(paths.snapshots).toBe("/tmp/fse-data/snapshots");
+    expect(paths.backtestRuns).toBe(path.join(root, "backtest-runs"));
+    expect(paths.snapshots).toBe(path.join(root, "snapshots"));
+    expect(paths.brokerExecution).toBe(
+      path.join(root, "broker-execution.json")
+    );
   });
 
   it("preserves explicit Paper/forward file overrides inside a custom data root", () => {
@@ -67,7 +73,10 @@ describe("Phase 8 production configuration", () => {
     expect(paths.paper).toBe("/mnt/paper/custom.json");
     expect(paths.forwardValidation).toBe("/mnt/forward/custom.json");
     expect(paths.strategyRegistry).toBe(
-      "/tmp/fse-data/strategy-version-registry.json"
+      path.join(
+        path.resolve("/tmp/fse-data"),
+        "strategy-version-registry.json"
+      )
     );
   });
 });
