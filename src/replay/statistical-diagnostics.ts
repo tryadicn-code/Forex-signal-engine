@@ -66,12 +66,14 @@ export function calculateBacktestStatisticalDiagnostics(
 }
 
 export function buildValidationSummary(
-  artifact: BacktestRunArtifact
+  artifact: BacktestRunArtifact,
+  precomputedDiagnostics?: BacktestStatisticalDiagnostics
 ): ValidationSummaryExport {
   const fingerprint = buildBacktestReproducibilityFingerprint(artifact);
   const holdout = calculateTemporalHoldout(artifact, 0.7);
   const sequential = calculateSequentialValidation(artifact, 4);
-  const diagnostics = calculateBacktestStatisticalDiagnostics(artifact);
+  const diagnostics =
+    precomputedDiagnostics ?? calculateBacktestStatisticalDiagnostics(artifact);
 
   return {
     schemaVersion: 1,
