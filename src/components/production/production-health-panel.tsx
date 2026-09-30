@@ -20,7 +20,7 @@ export function ProductionHealthPanel() {
         | { error?: string };
       if (
         !("protocol" in payload) ||
-        payload.protocol !== "phase-8-health-v1"
+        payload.protocol !== "phase-9-health-v1"
       ) {
         throw new Error(
           "error" in payload && payload.error
@@ -66,13 +66,13 @@ export function ProductionHealthPanel() {
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-violet-400/80">
-            Phase 8 · Production Health
+            Phase 9 · Production Health
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
-            Reliability & recovery
+            Transactional infrastructure
           </h2>
           <p className="mt-0.5 text-[10px] text-zinc-600">
-            Readiness, persistence integrity, startup recovery and deployment safety.
+            Shared state, lease ownership, persistence integrity and deployment safety.
           </p>
         </div>
         <button
@@ -97,9 +97,10 @@ export function ProductionHealthPanel() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2 border-b border-zinc-800 p-3 sm:grid-cols-4 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2 border-b border-zinc-800 p-3 sm:grid-cols-4 lg:grid-cols-7">
             <Fact label="Readiness" value={health.readiness} tone={health.readiness} />
             <Fact label="Execution" value={health.executionMode} />
+            <Fact label="Infra" value={health.infrastructure.mode} />
             <Fact label="Provider" value={health.providerId.toUpperCase()} />
             <Fact label="Provider state" value={health.provider.state} />
             <Fact
@@ -155,6 +156,22 @@ export function ProductionHealthPanel() {
                   <Fact
                     label="Startup recovery"
                     value={health.startupRecovery.blocking ? "BLOCKED" : "OK"}
+                  />
+                  <Fact
+                    label="Shared required"
+                    value={
+                      health.safety.requireSharedTransactionalStore
+                        ? "YES"
+                        : "NO"
+                    }
+                  />
+                  <Fact
+                    label="TX latency"
+                    value={
+                      health.infrastructure.transactional
+                        ? health.infrastructure.transactional.latencyMs + "ms"
+                        : "LOCAL"
+                    }
                   />
                 </dl>
               </section>
