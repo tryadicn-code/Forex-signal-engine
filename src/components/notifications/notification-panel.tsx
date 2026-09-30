@@ -42,6 +42,12 @@ export function NotificationPanel({
         </span>
       </header>
 
+      {notifications.error && (
+        <div className="border-b border-amber-900/60 bg-amber-950/20 px-3 py-2 text-[9px] text-amber-300">
+          Notification state warning: {notifications.error}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-2 border-b border-zinc-800 p-3 sm:grid-cols-4 lg:grid-cols-8">
         <Fact
           label="Channels"
