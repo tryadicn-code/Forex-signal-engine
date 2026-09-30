@@ -379,6 +379,20 @@ export class BrokerExecutionService {
         return;
       }
 
+      if (
+        preflight.normalizedVolume == null ||
+        Math.abs(preflight.normalizedVolume - intent.volume) > 1e-9
+      ) {
+        await this.markRecord(
+          intent.idempotencyKey,
+          "LIVE_PREFLIGHT_REJECTED",
+          "Broker volume normalization differs from the frozen execution intent.",
+          preflight,
+          null
+        );
+        return;
+      }
+
       await this.markRecord(
         intent.idempotencyKey,
         "LIVE_SUBMITTING",
@@ -658,6 +672,15 @@ export class BrokerExecutionService {
       );
     }
     if (
+      !brokerStatus.accountCurrency ||
+      brokerStatus.accountCurrency.toUpperCase() !==
+        intent.accountCurrency.toUpperCase()
+    ) {
+      blockers.push(
+        "Broker account currency does not match the risk-engine account currency."
+      );
+    }
+    if (
       this.options.config.allowedSymbols.length === 0 ||
       !this.options.config.allowedSymbols.includes(intent.symbol)
     ) {
@@ -794,6 +817,7 @@ function buildIntent(
     stopLoss: stop,
     takeProfit: risk.takeProfit1 ?? null,
     riskPercent,
+    accountCurrency: risk.accountCurrency ?? "",
     maxDeviationPoints: config.mt5MaxDeviationPoints,
     requestedAt: Date.now(),
     strategyVersion: release.version,
