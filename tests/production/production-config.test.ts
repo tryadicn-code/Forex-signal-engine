@@ -61,6 +61,9 @@ describe("Phase 8 production configuration", () => {
     expect(paths.brokerExecution).toBe(
       path.join(root, "broker-execution.json")
     );
+    expect(paths.notifications).toBe(
+      path.join(root, "notifications.json")
+    );
   });
 
   it("preserves explicit Paper/forward file overrides inside a custom data root", () => {
