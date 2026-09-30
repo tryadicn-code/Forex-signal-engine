@@ -57,7 +57,7 @@ export async function paperBalance(): Promise<number> {
     return balance;
   } catch (error) {
     setLastPaperError(error instanceof Error ? error.message : String(error));
-    return DEFAULT_PAPER_TRADING_CONFIG.initialBalance;
+    throw error;
   }
 }
 
@@ -75,7 +75,7 @@ export async function processPaperSnapshot(
     return data;
   } catch (error) {
     setLastPaperError(error instanceof Error ? error.message : String(error));
-    return readPaperDashboard();
+    throw error;
   }
 }
 
