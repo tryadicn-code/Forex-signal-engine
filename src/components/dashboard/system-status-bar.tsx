@@ -10,7 +10,7 @@ import { ProviderStateBadge } from "@/components/common/badges";
 import { formatTime, formatDuration } from "@/lib/format";
 
 export async function SystemStatusBar() {
-  const { health } = await readDashboard();
+  const { health, releaseRuntime } = await readDashboard();
   const providerState = health?.providerStatus?.state ?? null;
   const lastScan = health?.lastScanCompletedAt ?? null;
   const failed = health?.symbolsFailed ?? 0;
@@ -34,6 +34,25 @@ export async function SystemStatusBar() {
           Scan time
         </span>
         <span className="font-mono text-xs text-zinc-300">{formatDuration(health?.durationMs)}</span>
+      </div>
+      <div className="hidden items-center gap-1.5 xl:flex">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+          Strategy
+        </span>
+        <span
+          className={
+            "font-mono text-xs " +
+            (releaseRuntime?.status === "BLOCKED"
+              ? "text-red-300"
+              : releaseRuntime?.status === "ACTIVE"
+                ? "text-emerald-300"
+                : "text-amber-300")
+          }
+        >
+          {releaseRuntime?.status === "ACTIVE"
+            ? releaseRuntime.version
+            : releaseRuntime?.status ?? "UNVERSIONED"}
+        </span>
       </div>
       {failed > 0 && (
         <span className="font-mono text-xs text-orange-300" title="Symbols that failed in the last cycle">
