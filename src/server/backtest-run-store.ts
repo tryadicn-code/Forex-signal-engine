@@ -1,5 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import {
+  readDurableJson,
+  writeDurableJson,
+} from "@/persistence/durable-json";
 import type {
   BacktestRunArtifact,
   BacktestRunListItem,
@@ -24,23 +28,16 @@ export class JsonFileBacktestRunStore {
   constructor(private readonly directory: string = DEFAULT_DIRECTORY) {}
 
   async save(artifact: BacktestRunArtifact): Promise<void> {
-    await fs.mkdir(this.directory, { recursive: true });
-    const filePath = this.filePath(artifact.id);
-    const tempPath = filePath + ".tmp";
-    const payload = JSON.stringify(artifact, null, 2);
-    await fs.writeFile(tempPath, payload, "utf8");
-    await fs.rename(tempPath, filePath);
+    validateArtifact(artifact);
+    await writeDurableJson(this.filePath(artifact.id), artifact);
   }
 
   async read(id: string): Promise<BacktestRunArtifact | null> {
-    const filePath = this.filePath(id);
-    try {
-      const raw = await fs.readFile(filePath, "utf8");
-      return JSON.parse(raw) as BacktestRunArtifact;
-    } catch (error) {
-      if (isNotFound(error)) return null;
-      throw error;
-    }
+    const result = await readDurableJson(
+      this.filePath(id),
+      validateArtifact
+    );
+    return result.value;
   }
 
   async updateMetadata(
@@ -117,10 +114,13 @@ export class JsonFileBacktestRunStore {
     const artifacts: BacktestRunArtifact[] = [];
     for (const entry of entries.filter((name) => name.endsWith(".json"))) {
       try {
-        const raw = await fs.readFile(path.join(this.directory, entry), "utf8");
-        artifacts.push(JSON.parse(raw) as BacktestRunArtifact);
+        const result = await readDurableJson(
+          path.join(this.directory, entry),
+          validateArtifact
+        );
+        if (result.value) artifacts.push(result.value);
       } catch {
-        // One corrupt report must not hide every other persisted run.
+        // One unrecoverable report must not hide every other persisted run.
       }
     }
 
@@ -135,6 +135,19 @@ export class JsonFileBacktestRunStore {
       throw new Error("Invalid backtest run id.");
     }
     return path.join(this.directory, id + ".json");
+  }
+}
+
+function validateArtifact(artifact: BacktestRunArtifact): void {
+  if (
+    artifact.schemaVersion !== 1 ||
+    typeof artifact.id !== "string" ||
+    !artifact.config ||
+    !artifact.validation ||
+    !artifact.execution ||
+    !artifact.analytics
+  ) {
+    throw new Error("Invalid backtest run artifact.");
   }
 }
 
