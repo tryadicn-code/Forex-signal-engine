@@ -33,6 +33,7 @@ export interface BrokerOrderIntent {
   stopLoss: number;
   takeProfit: number | null;
   riskPercent: number;
+  accountCurrency: string;
   maxDeviationPoints: number;
   requestedAt: number;
   strategyVersion: string;
