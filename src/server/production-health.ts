@@ -173,6 +173,11 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
     uptimeSeconds: Math.max(0, Math.floor(process.uptime())),
     readiness,
     executionMode: "PAPER",
+    safety: {
+      maintenanceMode: PRODUCTION_CONFIG.maintenanceMode,
+      requireActiveRelease: PRODUCTION_CONFIG.requireActiveRelease,
+      requireLiveMarketData: PRODUCTION_CONFIG.requireLiveMarketData,
+    },
     providerId: runtimeProviderId(),
     liveMarketData: runtimeUsesLiveMarketData(),
     provider,
