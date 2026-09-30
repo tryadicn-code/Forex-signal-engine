@@ -69,6 +69,7 @@ function toEvent(state: ReleaseRuntimeState): ReleaseRuntimeAuditEvent {
     reason: state.reason,
     version: state.version,
     manifestFingerprint: state.manifestFingerprint,
+    activationAt: state.activationAt,
     defaultDrift: state.defaultDrift,
     driftAreas: [...state.driftAreas],
     message: state.message,
@@ -84,6 +85,7 @@ function sameEvent(
     left.reason === right.reason &&
     left.version === right.version &&
     left.manifestFingerprint === right.manifestFingerprint &&
+    left.activationAt === right.activationAt &&
     left.defaultDrift === right.defaultDrift &&
     left.driftAreas.join("|") === right.driftAreas.join("|") &&
     left.message === right.message
