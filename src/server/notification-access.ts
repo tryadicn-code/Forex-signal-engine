@@ -152,13 +152,13 @@ export async function retryNotificationDeliveries(): Promise<{
 }> {
   const requeued = await service.retryFailed();
   const delivered = await withDeliveryLease(async () =>
-    service.drainDueDeliveries(50)
+    service.drainDueDeliveries(5)
   );
   return { requeued, delivered };
 }
 
 export async function drainNotificationDeliveries(): Promise<number> {
-  return withDeliveryLease(async () => service.drainDueDeliveries(50));
+  return withDeliveryLease(async () => service.drainDueDeliveries(5));
 }
 
 async function withDeliveryLease<T>(
@@ -172,7 +172,8 @@ async function withDeliveryLease<T>(
     "notification-delivery",
     runtimeInstanceId(),
     Math.max(
-      NOTIFICATION_CONFIG.requestTimeoutMs * 4,
+      NOTIFICATION_CONFIG.requestTimeoutMs * 8,
+      NOTIFICATION_CONFIG.workerIntervalMs * 4,
       60_000
     )
   );
