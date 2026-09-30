@@ -8,6 +8,7 @@ export interface StoragePaths {
   forwardValidation: string;
   backtestRuns: string;
   snapshots: string;
+  brokerExecution: string;
 }
 
 export function resolveStoragePaths(
@@ -36,6 +37,7 @@ export function resolveStoragePaths(
       path.join(dataDirectory, "forward-validation.json"),
     backtestRuns: path.join(dataDirectory, "backtest-runs"),
     snapshots: path.join(dataDirectory, "snapshots"),
+    brokerExecution: path.join(dataDirectory, "broker-execution.json"),
   };
 }
 
