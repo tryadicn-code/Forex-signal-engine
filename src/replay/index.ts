@@ -73,3 +73,17 @@ export {
 export type {
   BacktestRunMetadata,
 } from "@/replay/backtest-run-types";
+
+export {
+  buildBacktestReproducibilityFingerprint,
+  calculateSequentialValidation,
+  calculateTemporalHoldout,
+} from "@/replay/robustness-validation";
+export type {
+  BacktestReproducibilityFingerprint,
+  RobustnessPeriodMetrics,
+  SequentialValidationDiagnostics,
+  SequentialValidationFold,
+  SequentialValidationResult,
+  TemporalHoldoutResult,
+} from "@/replay/robustness-types";
