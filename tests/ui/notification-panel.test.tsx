@@ -64,6 +64,7 @@ function dashboard(): NotificationDashboard {
       minRiskReward: 1.5,
     },
     cooldownMs: 300_000,
+    error: null,
   };
 }
 
