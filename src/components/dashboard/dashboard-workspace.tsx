@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
+import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
@@ -181,6 +182,10 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     data.releaseRuntime && data.releaseRuntime.status !== "ACTIVE"
       ? data.releaseRuntime
       : null;
+  const runtimeIssueTitle =
+    runtimeIssue?.status === "BLOCKED" ? "Strategy blocked" : "Strategy not versioned";
+  const runtimeIssueDetail =
+    runtimeIssue?.status === "BLOCKED" ? runtimeIssue.message : "Using built-in defaults";
 
   return (
     <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4 lg:p-5">
@@ -234,11 +239,12 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         {runtimeIssue && (
           <a
             href="/system"
-            className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-amber-900/60 bg-amber-950/15 px-3 py-2.5 text-xs"
+            className="mt-2 flex items-center justify-between gap-3 rounded-md border border-amber-900/50 bg-amber-950/10 px-3 py-2 text-[11px] sm:text-xs"
           >
-            <span>
-              <strong className="text-amber-300">Strategy needs attention.</strong>{" "}
-              <span className="text-zinc-500">{runtimeIssue.message}</span>
+            <span className="min-w-0 truncate">
+              <strong className="text-amber-300">⚠ {runtimeIssueTitle}</strong>
+              <span className="text-zinc-600"> · </span>
+              <span className="text-zinc-500">{runtimeIssueDetail}</span>
             </span>
             <span className="shrink-0 text-amber-300">System ›</span>
           </a>
@@ -343,6 +349,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           />
         </div>
       </div>
+
+      <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
 
       <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-3 text-[11px] text-zinc-600">
         <span>
