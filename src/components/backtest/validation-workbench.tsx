@@ -6,7 +6,6 @@ import { StatisticalDiagnosticsWorkbench } from "@/components/backtest/statistic
 import { ReleaseGateWorkbench } from "@/components/backtest/release-gate-workbench";
 import { StrategyVersionRegistryWorkbench } from "@/components/backtest/strategy-version-registry-workbench";
 import {
-  compareHistoricalToForward,
   toComparableHistoricalPerformance,
 } from "@/replay/backtest-analytics";
 import type {
@@ -20,9 +19,8 @@ import type {
 import {
   getHistoricalSegmentRows,
   segmentDimensionLabel,
-  toComparablePaperPerformance,
 } from "@/replay/validation-workbench";
-import type { DashboardData } from "@/types/dashboard";
+import type { ForwardValidationSnapshot } from "@/forward-validation/types";
 
 const SEGMENTS: HistoricalSegmentDimension[] = [
   "symbol",
@@ -116,21 +114,41 @@ export function ValidationWorkbench({
     setForwardLoading(true);
     setForwardError(null);
     try {
-      const response = await fetch("/api/scanner", {
+      const response = await fetch("/api/forward-validation", {
         method: "GET",
         cache: "no-store",
       });
-      if (!response.ok) {
-        throw new Error("Unable to read current Paper Trading summary.");
+      const payload = (await response.json()) as
+        | { ok: true; report: ForwardValidationSnapshot }
+        | { ok: false; error: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(
+          payload.ok ? "Unable to read forward validation report." : payload.error
+        );
       }
-      const dashboard = (await response.json()) as DashboardData;
-      if (!dashboard.paper) {
-        throw new Error("Paper Trading summary is unavailable.");
+      if (payload.report.status === "NO_ACTIVE_RELEASE") {
+        throw new Error(payload.report.message);
+      }
+      if (payload.report.release.sourceReportId !== artifact.id) {
+        throw new Error(
+          "The ACTIVE forward release belongs to historical report " +
+            payload.report.release.sourceReportId +
+            ", not this report."
+        );
       }
 
-      const historical = toComparableHistoricalPerformance(artifact.analytics);
-      const forward = toComparablePaperPerformance(dashboard.paper);
-      setForwardComparison(compareHistoricalToForward(historical, forward));
+      const expectedHistorical = toComparableHistoricalPerformance(
+        artifact.analytics
+      );
+      if (
+        expectedHistorical.sampleSize !==
+          payload.report.comparison.historical.sampleSize
+      ) {
+        throw new Error(
+          "Forward validation historical reference does not match this report."
+        );
+      }
+      setForwardComparison(payload.report.comparison);
     } catch (error) {
       setForwardError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -143,13 +161,13 @@ export function ValidationWorkbench({
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
-            Phase 5.9
+            Phase 7
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             Validation workbench
           </h2>
           <p className="mt-0.5 text-[10px] text-zinc-600">
-            Organize, segment and compare validation evidence without changing strategy logic.
+            Review historical evidence alongside release-scoped forward Paper validation without changing strategy logic.
           </p>
         </div>
         <span className="rounded border border-zinc-800 bg-zinc-950/40 px-2 py-1 font-mono text-[9px] text-zinc-500">
