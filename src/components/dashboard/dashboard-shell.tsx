@@ -15,11 +15,15 @@ export function DashboardShell({
   providerId,
   liveMarketData,
   statusLabel,
+  releaseLabel,
+  releaseBlocked,
 }: {
   children: React.ReactNode;
   providerId?: string;
   liveMarketData?: boolean;
   statusLabel?: string;
+  releaseLabel?: string;
+  releaseBlocked?: boolean;
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-[#0b0e14] text-zinc-200">
@@ -44,6 +48,15 @@ export function DashboardShell({
                 ? "LIVE · " + (providerId ?? "provider").toUpperCase()
                 : "MOCK DATA")}
           </Badge>
+          {releaseLabel && (
+            <Badge
+              tone={releaseBlocked ? "bearish" : "info"}
+              glyph={releaseBlocked ? "!" : "◆"}
+              className="hidden text-[9px] sm:inline-flex"
+            >
+              {releaseLabel}
+            </Badge>
+          )}
         </div>
 
         <div className="hidden lg:block">
