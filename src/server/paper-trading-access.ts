@@ -1,7 +1,7 @@
 import "server-only";
 
-import { join } from "node:path";
 import { DEFAULT_PAPER_TRADING_CONFIG } from "@/config/paper";
+import { STORAGE_PATHS } from "@/config/storage";
 import { JsonFilePaperStore } from "@/paper/store";
 import { PaperTradingService } from "@/paper/paper-trading-service";
 import type {
@@ -13,9 +13,7 @@ import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
 import type { ScannerSnapshot } from "@/scanner/scanner-result";
 import { runtimeMarketDataProvider } from "@/server/runtime-market-data";
 
-const storePath =
-  process.env.FSE_PAPER_STORE_PATH ??
-  join(process.cwd(), ".data", "paper-trading.json");
+const storePath = STORAGE_PATHS.paper;
 
 type PaperRuntimeGlobal = typeof globalThis & {
   __fsePaperTradingService?: PaperTradingService;
