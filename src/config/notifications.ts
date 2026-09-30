@@ -26,6 +26,8 @@ export interface NotificationConfig {
   whatsappPhoneNumberId: string | null;
   whatsappRecipient: string | null;
   whatsappGraphApiVersion: string | null;
+  whatsappTemplateName: string | null;
+  whatsappTemplateLanguage: string;
 }
 
 export function resolveNotificationConfig(
@@ -96,6 +98,11 @@ export function resolveNotificationConfig(
     whatsappGraphApiVersion: optional(
       env.FSE_WHATSAPP_GRAPH_API_VERSION
     ),
+    whatsappTemplateName: optional(
+      env.FSE_WHATSAPP_TEMPLATE_NAME
+    ),
+    whatsappTemplateLanguage:
+      optional(env.FSE_WHATSAPP_TEMPLATE_LANGUAGE) ?? "id",
   };
 }
 
