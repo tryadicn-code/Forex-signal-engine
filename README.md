@@ -4,12 +4,13 @@ Automated **Forex scanner + signal dashboard**. The system ingests market data,
 runs it through a strictly ordered decision pipeline, and emits explainable
 trade signals.
 
-> **Status: Phase 8 — Production Hardening, Reliability & Recovery COMPLETE.**
+> **Status: Phase 9 — Transactional Infrastructure & Deployment Architecture COMPLETE.**
 > The project includes the core strategy engine, multi-pair scanner/dashboard,
 > deterministic Paper Trading, historical + forward validation, immutable
-> strategy releases, durable checksummed persistence, previous-good recovery,
-> startup recovery barriers, readiness/liveness probes and maintenance-safe
-> recovery snapshots. Live broker execution is intentionally not enabled.
+> strategy releases, Phase 8 local recovery, shared transactional persistence,
+> distributed scanner leases/fencing, durable jobs, structured telemetry and
+> multi-instance deployment controls. Live broker execution is intentionally
+> not enabled.
 
 ## Pipeline
 
@@ -26,8 +27,9 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the responsibility of each layer.
 - **Tailwind CSS** for styling
 - **ESLint** for linting
 - **Vitest** + **Testing Library** for tests
-- PostgreSQL + Prisma and TradingView Lightweight Charts are planned for later
-  phases and are **not** installed yet.
+- **PostgreSQL/PostgREST-compatible transactional backend** is supported in
+  Phase 9 without adding a database SDK dependency to the application.
+- Prisma and TradingView Lightweight Charts are not installed.
 
 ## Getting started
 
@@ -75,12 +77,11 @@ tests/               Test suite mirroring the source tree
 ```
 
 The repository now contains provider, scanner, Paper Trading, historical
-validation, release-runtime governance, forward-validation and production
-reliability layers. Phase 8 keeps the existing domain boundaries while adding
-checksummed durable writes, previous-good backups, startup recovery, health
-probes, maintenance controls and bounded recovery snapshots. The default state
-root remains `.data/` and can be moved to persistent storage with
-`FSE_DATA_DIR`.
+validation, release-runtime governance, forward-validation, Phase 8 local
+reliability and Phase 9 shared transactional infrastructure. LOCAL mode keeps
+the durable `.data/` path for single-node development; SHARED mode moves
+authoritative operational state to a transactional backend with revision CAS,
+distributed scanner lease fencing, durable jobs and structured telemetry.
 
 ## Engineering principles
 
@@ -96,10 +97,13 @@ root remains `.data/` and can be moved to persistent storage with
 
 The FSE can scan, validate signals, simulate Paper Trading, run deterministic
 historical validation, operate under an immutable ACTIVE strategy release,
-monitor forward drift, and recover critical single-node state conservatively.
-It still does **not** send real broker orders. Persistence or startup-recovery
-failures block new Paper execution rather than failing open.
+monitor forward drift, recover conservatively in LOCAL mode, and coordinate
+shared multi-instance state in SHARED mode. It still does **not** send real
+broker orders. Persistence, lease or startup-recovery failures block new Paper
+execution rather than failing open.
 
 See [docs/PHASE-6.md](./docs/PHASE-6.md) for release runtime/governance,
-[docs/PHASE-7.md](./docs/PHASE-7.md) for forward validation, and
-[docs/PHASE-8.md](./docs/PHASE-8.md) for production reliability/recovery.
+[docs/PHASE-7.md](./docs/PHASE-7.md) for forward validation,
+[docs/PHASE-8.md](./docs/PHASE-8.md) for production reliability/recovery, and
+[docs/PHASE-9.md](./docs/PHASE-9.md) for transactional infrastructure and
+deployment architecture.
