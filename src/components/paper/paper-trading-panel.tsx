@@ -184,14 +184,14 @@ export function PaperTradingPanel({
                       value={formatPrice(position.symbol, position.currentPrice)}
                     />
                     <InlineDatum
-                      label="SL"
-                      value={formatPrice(position.symbol, position.stopLoss)}
-                      tone="negative"
-                    />
-                    <InlineDatum
                       label="TP"
                       value={formatPrice(position.symbol, position.takeProfit)}
                       tone="positive"
+                    />
+                    <InlineDatum
+                      label="SL"
+                      value={formatPrice(position.symbol, position.stopLoss)}
+                      tone="negative"
                     />
                   </div>
                 </article>
@@ -316,13 +316,13 @@ function InlineDatum({
         : "text-zinc-300";
 
   return (
-    <div className="min-w-0">
-      <div className={tone === "neutral" ? "text-zinc-600" : toneClass}>
+    <div className="min-w-0 whitespace-nowrap text-center">
+      <span className={tone === "neutral" ? "text-zinc-600" : toneClass}>
         {label}
-      </div>
-      <div className={"mt-0.5 truncate font-mono tabular-nums " + toneClass}>
+      </span>
+      <span className={"ml-1 font-mono tabular-nums " + toneClass}>
         {value}
-      </div>
+      </span>
     </div>
   );
 }
