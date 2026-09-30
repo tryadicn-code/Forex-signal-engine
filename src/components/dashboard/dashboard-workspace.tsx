@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
@@ -24,7 +24,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [clockNow, setClockNow] = useState<number | null>(null);
+  const [clockNow, setClockNow] = useState<number | null>(null);\n  const restoredSelectionRef = useRef(false);
 
   const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
   const visibleResults = useMemo(
@@ -44,15 +44,14 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       : [];
 
   useEffect(() => {
+    if (restoredSelectionRef.current || allResults.length === 0) return;
+    restoredSelectionRef.current = true;
+
     const saved = window.localStorage.getItem("fse:selected-symbol");
-    if (
-      saved &&
-      selectedSymbol === null &&
-      allResults.some((result) => result.symbol === saved)
-    ) {
+    if (saved && allResults.some((result) => result.symbol === saved)) {
       setSelectedSymbol(saved);
     }
-  }, [allResults, selectedSymbol]);
+  }, [allResults]);
 
   useEffect(() => {
     if (selectedSymbol) {
