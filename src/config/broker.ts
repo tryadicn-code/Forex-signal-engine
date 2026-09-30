@@ -5,6 +5,7 @@ export interface BrokerExecutionConfig {
   mode: BrokerExecutionMode;
   providerId: BrokerProviderId;
   liveExecutionEnabled: boolean;
+  emergencyStop: boolean;
   approvalSecret: string | null;
   allowedSymbols: string[];
   maxRiskPercent: number;
@@ -37,6 +38,10 @@ export function resolveBrokerExecutionConfig(
     liveExecutionEnabled: parseBoolean(
       env.FSE_LIVE_EXECUTION_ENABLED,
       false
+    ),
+    emergencyStop: parseBoolean(
+      env.FSE_LIVE_EMERGENCY_STOP,
+      true
     ),
     approvalSecret: normalizeOptional(env.FSE_LIVE_APPROVAL_SECRET),
     allowedSymbols: parseSymbols(env.FSE_LIVE_ALLOWED_SYMBOLS),
