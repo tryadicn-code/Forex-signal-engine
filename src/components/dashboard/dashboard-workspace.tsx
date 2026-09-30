@@ -198,11 +198,11 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
+          <div className="ml-auto flex w-full items-center justify-end gap-2 text-xs sm:w-auto">
             {data.automation?.enabled ? (
               <div className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/50 px-2.5 py-1.5">
                 <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                  Auto sync {Math.round(data.automation.scanIntervalMs / 1000)}s
+                  Auto sync
                 </span>
                 <span className="font-mono tabular-nums text-emerald-300">
                   {countdownSeconds ?? "—"}s
