@@ -3,6 +3,11 @@ import "server-only";
 import { DEFAULT_PAPER_TRADING_CONFIG } from "@/config/paper";
 import { STORAGE_PATHS } from "@/config/storage";
 import { JsonFilePaperStore } from "@/paper/store";
+import { TransactionalPaperStore } from "@/transactional/domain-stores";
+import {
+  sharedTransactionalMode,
+  transactionalStore,
+} from "@/transactional/runtime";
 import { PaperTradingService } from "@/paper/paper-trading-service";
 import type {
   PaperDashboardData,
@@ -24,7 +29,9 @@ function paperService(): PaperTradingService {
   const runtime = globalThis as PaperRuntimeGlobal;
   if (!runtime.__fsePaperTradingService) {
     runtime.__fsePaperTradingService = new PaperTradingService(
-      new JsonFilePaperStore(storePath),
+      sharedTransactionalMode()
+        ? new TransactionalPaperStore(transactionalStore())
+        : new JsonFilePaperStore(storePath),
       DEFAULT_PAPER_TRADING_CONFIG
     );
   }
