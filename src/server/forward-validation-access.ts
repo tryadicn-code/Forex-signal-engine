@@ -86,6 +86,14 @@ export async function recordForwardValidationObservation(
   await store.append(observation);
 }
 
+export async function assertForwardValidationPersistenceHealthy(): Promise<void> {
+  await store.read();
+}
+
+export async function readForwardValidationStoreState() {
+  return store.read();
+}
+
 export async function readForwardValidationSnapshot(): Promise<ForwardValidationSnapshot> {
   const generatedAt = Date.now();
   const release = await resolveRuntimeRelease();
