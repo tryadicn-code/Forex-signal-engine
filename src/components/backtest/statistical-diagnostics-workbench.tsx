@@ -16,7 +16,10 @@ export function StatisticalDiagnosticsWorkbench({
     () => calculateBacktestStatisticalDiagnostics(artifact),
     [artifact]
   );
-  const summary = useMemo(() => buildValidationSummary(artifact), [artifact]);
+  const summary = useMemo(
+    () => buildValidationSummary(artifact, diagnostics),
+    [artifact, diagnostics]
+  );
 
   const exportSummary = () => {
     const blob = new Blob([JSON.stringify(summary, null, 2)], {
