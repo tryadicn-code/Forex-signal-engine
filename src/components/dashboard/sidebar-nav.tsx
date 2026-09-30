@@ -88,11 +88,11 @@ export function SidebarNav() {
           className="pointer-events-none absolute inset-0 h-full w-full"
         >
           <path
-            d="M0 0 H404 C432 0 438 34 500 34 C562 34 568 0 596 0 H1000 V80 H0 Z"
+            d="M0 0 H396 C428 0 438 37 500 37 C562 37 572 0 604 0 H1000 V80 H0 Z"
             fill="rgb(11 14 20 / 0.985)"
           />
           <path
-            d="M0 0 H404 C432 0 438 34 500 34 C562 34 568 0 596 0 H1000"
+            d="M0 0 H396 C428 0 438 37 500 37 C562 37 572 0 604 0 H1000"
             fill="none"
             stroke="rgb(63 63 70)"
             strokeWidth="1.25"
@@ -142,7 +142,7 @@ export function SidebarNav() {
           type="button"
           onClick={focusReadySignal}
           aria-label="Go to first ready signal"
-          className="absolute left-1/2 top-0 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-amber-500/70 bg-[#0b0e14] text-[28px] leading-none text-amber-300 shadow-lg shadow-amber-950/40 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          className="absolute left-1/2 -top-0.5 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-amber-500/70 bg-[#0b0e14] text-[28px] leading-none text-amber-300 shadow-lg shadow-amber-950/40 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <span aria-hidden="true">⚡</span>
         </button>
