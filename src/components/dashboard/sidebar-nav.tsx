@@ -37,7 +37,7 @@ function NavLabel({
         aria-hidden="true"
         className={
           primary
-            ? "flex h-9 w-9 items-center justify-center rounded-full border border-amber-500/50 bg-[#11151d] text-lg leading-none text-amber-300 shadow-sm shadow-amber-950/30 md:h-auto md:w-auto md:border-0 md:bg-transparent md:text-base md:shadow-none"
+            ? "relative z-10 flex h-12 w-12 items-center justify-center rounded-full border border-amber-500/60 bg-[#0b0e14] text-2xl leading-none text-amber-300 shadow-md shadow-amber-950/30 md:h-auto md:w-auto md:border-0 md:bg-transparent md:text-base md:shadow-none"
             : "text-base leading-none md:text-sm"
         }
       >
@@ -71,8 +71,25 @@ export function SidebarNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t border-zinc-800 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:w-52 md:grid-cols-1 md:content-start md:border-t-0 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
+      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:w-52 md:grid-cols-1 md:content-start md:border-r md:border-zinc-800 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 hidden h-px md:block"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-0 right-1/2 top-0 mr-7 border-t border-zinc-800 md:hidden"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 right-0 top-0 ml-7 border-t border-zinc-800 md:hidden"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 hidden h-7 w-14 -translate-x-1/2 -translate-y-px rounded-b-full border-x border-b border-zinc-800 bg-[#0b0e14] md:hidden"
+      />
+
       {NAV_ITEMS.map((item) => {
         const primary = "primary" in item && item.primary === true;
 
