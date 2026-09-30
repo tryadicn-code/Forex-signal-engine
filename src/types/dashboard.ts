@@ -3,6 +3,7 @@ import type { ScannerHealth, ScannerSnapshot } from "@/scanner/scanner-result";
 import type { SignalStateTransition } from "@/types/market-data";
 import type { PaperDashboardData } from "@/paper/types";
 import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
+import type { BrokerExecutionDashboard } from "@/broker/types";
 
 /**
  * Serializable application-facing payload for the dashboard.
@@ -23,6 +24,8 @@ export interface DashboardData {
   paper?: PaperDashboardData;
   /** Phase 6 strategy release runtime state. */
   releaseRuntime?: ReleaseRuntimeState;
+  /** Phase 10 broker execution safety state. */
+  broker?: BrokerExecutionDashboard;
   /** Runtime automation status. Optional for older fixtures/backward compatibility. */
   automation?: {
     enabled: boolean;
