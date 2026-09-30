@@ -8,6 +8,7 @@ import { JsonFileForwardValidationStore } from "@/forward-validation/store";
 import { JsonFileStrategyVersionStore } from "@/server/strategy-version-store";
 import { JsonFileReleaseRuntimeAuditStore } from "@/server/release-runtime-audit-store";
 import { JsonFileBacktestRunStore } from "@/server/backtest-run-store";
+import { JsonFileBrokerExecutionStore } from "@/broker/execution-store";
 import {
   sharedTransactionalMode,
   transactionalStore,
@@ -92,6 +93,17 @@ export async function migrateLocalStateToShared(
   await seed(
     "state/forward-validation",
     forward,
+    remote,
+    seeded,
+    alreadyEquivalent
+  );
+
+  const brokerExecution = await new JsonFileBrokerExecutionStore(
+    STORAGE_PATHS.brokerExecution
+  ).read();
+  await seed(
+    "state/broker-execution",
+    brokerExecution,
     remote,
     seeded,
     alreadyEquivalent
