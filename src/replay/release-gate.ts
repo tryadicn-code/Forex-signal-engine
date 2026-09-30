@@ -5,6 +5,7 @@ import {
   calculateTemporalHoldout,
 } from "@/replay/robustness-validation";
 import { calculateBacktestStatisticalDiagnostics } from "@/replay/statistical-diagnostics";
+import { toComparableHistoricalPerformance } from "@/replay/backtest-analytics";
 import type {
   BacktestReleaseReview,
   ReleaseEvidenceItem,
@@ -130,10 +131,12 @@ export function buildReleaseEvidenceReview(
           " sample warning(s).",
   });
 
+  const persistedForwardIsCurrent =
+    artifact.releaseReview?.reviewedFingerprint === fingerprint.combined &&
+    artifact.releaseReview.forwardEvidence !== null &&
+    artifact.releaseReview.forwardEvidence !== undefined;
   const forwardAvailable =
-    options.forwardEvidenceAvailable ||
-    artifact.releaseReview?.forwardEvidence !== null &&
-      artifact.releaseReview?.forwardEvidence !== undefined;
+    options.forwardEvidenceAvailable || persistedForwardIsCurrent;
   items.push({
     id: "forward-paper",
     category: "FORWARD",
@@ -192,6 +195,21 @@ export function validateReleaseReviewForPersistence(
     );
   }
 
+  if (review.forwardEvidence !== null) {
+    const expectedHistorical =
+      toComparableHistoricalPerformance(artifact.analytics);
+    if (
+      !sameComparable(
+        review.forwardEvidence.comparison.historical,
+        expectedHistorical
+      )
+    ) {
+      throw new Error(
+        "Forward Paper snapshot does not match the current historical report."
+      );
+    }
+  }
+
   if (review.decision === "PROMOTE") {
     const checklist = review.checklist;
     const coreReviewed =
@@ -229,4 +247,20 @@ function countStatuses(
 function formatMetric(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return "—";
   return (value > 0 ? "+" : "") + value.toFixed(2);
+}
+
+
+function sameComparable(
+  left: ReturnType<typeof toComparableHistoricalPerformance>,
+  right: ReturnType<typeof toComparableHistoricalPerformance>
+): boolean {
+  return (
+    left.sampleSize === right.sampleSize &&
+    left.winRate === right.winRate &&
+    left.profitFactor === right.profitFactor &&
+    left.expectancyR === right.expectancyR &&
+    left.averageR === right.averageR &&
+    left.maxDrawdownPercent === right.maxDrawdownPercent &&
+    left.netReturnPercent === right.netReturnPercent
+  );
 }
