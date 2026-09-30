@@ -350,6 +350,26 @@ export class BrokerExecutionService {
     }
 
     try {
+      // Re-read broker state after obtaining the external-side-effect lease.
+      // This narrows the race window between exposure checks and submission.
+      const freshStatus = await this.safeStatus();
+      const freshPositions = freshStatus.connected
+        ? await this.safePositions()
+        : [];
+      const freshBlockers = this.intentLiveBlockers(
+        intent,
+        release,
+        freshStatus,
+        freshPositions
+      );
+      if (freshBlockers.length > 0) {
+        await this.recordLiveRejection(
+          intent,
+          freshBlockers.join("; ")
+        );
+        return;
+      }
+
       const reserved = await this.reserveLiveAttempt(intent);
       if (!reserved) return;
 
@@ -436,6 +456,14 @@ export class BrokerExecutionService {
         state.records.some(
           (record) =>
             record.idempotencyKey === intent.idempotencyKey
+        )
+      ) {
+        return { next: state, result: false };
+      }
+      if (
+        state.records.some(
+          (record) =>
+            record.status === "RECONCILIATION_REQUIRED"
         )
       ) {
         return { next: state, result: false };
@@ -578,6 +606,12 @@ export class BrokerExecutionService {
     }
     if (!this.options.config.liveExecutionEnabled) {
       blockers.push("Live execution environment gate is disabled.");
+    }
+    if (!this.options.config.approvalSecret) {
+      blockers.push("Live approval secret is not configured.");
+    }
+    if (this.options.config.allowedSymbols.length === 0) {
+      blockers.push("Live symbol allowlist is empty.");
     }
     if (this.options.config.emergencyStop) {
       blockers.push("Environment emergency stop is engaged.");
