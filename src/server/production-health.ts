@@ -63,6 +63,8 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
       brokerMode !== "LIVE"
         ? "PASS"
         : !BROKER_EXECUTION_CONFIG.liveExecutionEnabled ||
+            !BROKER_EXECUTION_CONFIG.approvalSecret ||
+            BROKER_EXECUTION_CONFIG.allowedSymbols.length === 0 ||
             !sharedMode ||
             broker.providerId === "shadow" ||
             !broker.brokerStatus.connected ||
@@ -76,14 +78,18 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
           ? "Shadow broker evaluation is enabled; no real broker order can be transmitted."
           : !BROKER_EXECUTION_CONFIG.liveExecutionEnabled
             ? "LIVE broker mode is selected but FSE_LIVE_EXECUTION_ENABLED is false."
-            : !sharedMode
-              ? "LIVE broker mode requires shared transactional state."
-              : broker.providerId === "shadow"
-                ? "LIVE broker mode requires a real broker provider."
-                : !broker.brokerStatus.connected ||
-                    !broker.brokerStatus.tradeAllowed
-                  ? "LIVE broker provider is not connected/trade-ready."
-                  : "LIVE broker infrastructure gates are configured and trade-ready.",
+            : !BROKER_EXECUTION_CONFIG.approvalSecret
+              ? "LIVE broker mode requires FSE_LIVE_APPROVAL_SECRET."
+              : BROKER_EXECUTION_CONFIG.allowedSymbols.length === 0
+                ? "LIVE broker mode requires an explicit non-empty symbol allowlist."
+                : !sharedMode
+                  ? "LIVE broker mode requires shared transactional state."
+                  : broker.providerId === "shadow"
+                    ? "LIVE broker mode requires a real broker provider."
+                    : !broker.brokerStatus.connected ||
+                        !broker.brokerStatus.tradeAllowed
+                      ? "LIVE broker provider is not connected/trade-ready."
+                      : "LIVE broker infrastructure gates are configured and trade-ready.",
   });
 
   checks.push({
