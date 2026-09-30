@@ -315,7 +315,7 @@ describe("Phase 10.5 trading workstation dashboard", () => {
 
     expect(screen.queryByText("Strategy runtime")).not.toBeInTheDocument();
     expect(screen.queryByText("Strategy needs attention.")).not.toBeInTheDocument();
-    expect(screen.getByText("Market opportunities")).toBeInTheDocument();
+    expect(screen.getByLabelText("Market overview")).toBeInTheDocument();
   });
 
   it("surfaces a scan-level error instead of silently clearing the dashboard", () => {
