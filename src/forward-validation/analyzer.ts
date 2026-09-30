@@ -73,12 +73,46 @@ export function buildForwardValidationReport(input: {
     input.manifest.validationSummary.statisticalDiagnostics
       .tradeOrderMonteCarlo?.p95MaxDrawdownR ?? null;
   const operational = summarizeOperations(observations);
+
+  const monitoringTrades = trades.slice(-config.monitoringWindowTrades);
+  const monitoringObservations = observations.slice(
+    -config.monitoringWindowObservations
+  );
+  const monitoringPerformance = calculatePerformance(
+    monitoringTrades,
+    input.paper.account.initialBalance
+  );
+  const monitoringForward: ComparablePerformance = {
+    sampleSize: monitoringPerformance.totalTrades,
+    winRate: monitoringPerformance.winRate,
+    profitFactor: monitoringPerformance.profitFactor,
+    expectancyR: monitoringPerformance.expectancyR,
+    averageR: monitoringPerformance.averageR,
+    maxDrawdownPercent: monitoringPerformance.maxDrawdownPercent,
+    netReturnPercent:
+      input.paper.account.initialBalance > 0
+        ? (monitoringPerformance.netPnL /
+            input.paper.account.initialBalance) *
+          100
+        : 0,
+  };
+  const monitoringComparison = compareHistoricalToForward(
+    historical,
+    monitoringForward
+  );
+  const monitoringOperational = summarizeOperations(
+    monitoringObservations
+  );
+  const monitoringMaxDrawdownR = maxCumulativeRDrawdown(
+    monitoringTrades.map((trade) => trade.realizedR)
+  );
+
   const indicators = buildIndicators({
     manifest: input.manifest,
-    forward,
-    forwardMaxDrawdownR,
+    forward: monitoringForward,
+    forwardMaxDrawdownR: monitoringMaxDrawdownR,
     historicalP95DrawdownR,
-    operational,
+    operational: monitoringOperational,
     config,
   });
 
@@ -126,6 +160,14 @@ export function buildForwardValidationReport(input: {
     historical,
     forward,
     comparison,
+    monitoringWindow: {
+      tradeCount: monitoringTrades.length,
+      observationCount: monitoringObservations.length,
+      forward: monitoringForward,
+      comparison: monitoringComparison,
+      operational: monitoringOperational,
+      maxDrawdownR: monitoringMaxDrawdownR,
+    },
     operational,
     forwardMaxDrawdownR,
     historicalP95DrawdownR,
@@ -134,6 +176,7 @@ export function buildForwardValidationReport(input: {
     interpretationNotes: [
       "Phase 7 compares only Paper trades tagged with the exact ACTIVE strategy version, manifest fingerprint and activation epoch.",
       "Forward drift statuses are descriptive monitoring evidence, not an automatic strategy promotion, rollback or parameter-change decision.",
+      "Performance drift indicators use the most recent configured trade window so new behavior is not diluted by older forward outcomes; cumulative forward metrics remain available separately.",
       "Win-rate and expectancy checks use confidence intervals preserved in the immutable historical validation manifest.",
       "Forward path drawdown in R is compared with the historical trade-order Monte Carlo p95 drawdown reference when available.",
       "Different market regimes can move forward metrics outside historical reference ranges even when implementation is functioning correctly.",
