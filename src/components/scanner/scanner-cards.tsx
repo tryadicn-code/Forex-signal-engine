@@ -106,6 +106,12 @@ function ScannerCard({
           </p>
         </div>
 
+        {failed && (
+          <div className="mt-2 font-mono text-[10px] text-zinc-600">
+            Engine status {result.status.replaceAll("_", " ")}
+          </div>
+        )}
+
         {!failed && (
           <>
             <dl className="mt-3 grid grid-cols-3 gap-3">
