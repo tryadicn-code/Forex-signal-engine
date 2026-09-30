@@ -4,14 +4,13 @@ Automated **Forex scanner + signal dashboard**. The system ingests market data,
 runs it through a strictly ordered decision pipeline, and emits explainable
 trade signals.
 
-> **Status: Phase 10 — Broker Integration & Live Execution Safety COMPLETE.**
-> The project includes the core strategy engine, multi-pair scanner/dashboard,
-> deterministic Paper Trading, historical + forward validation, immutable
-> strategy releases, local recovery, shared transactional persistence,
-> distributed leases/fencing, durable jobs, structured telemetry, plus a
-> provider-neutral broker layer with OFF/SHADOW/LIVE safety gates. Real broker
-> transmission is supported only when explicitly configured and armed; repository
-> defaults keep broker execution OFF and the emergency stop engaged.
+> **Status: Phase 11 — Realtime Alerting & Notification Infrastructure COMPLETE.**
+> The project includes the core strategy engine, scanner/dashboard, deterministic
+> Paper Trading, historical + forward validation, immutable strategy releases,
+> production recovery, shared transactional persistence, broker execution safety,
+> and durable Telegram/WhatsApp alerting for scanner lifecycle events.
+> Notifications are observer-only and disabled by default; broker execution also
+> remains OFF by default unless explicitly configured and armed.
 
 ## Pipeline
 
@@ -75,6 +74,7 @@ src/
   core/              Trading engine pipeline (decision logic)
     execution/       Execution decision gate
   broker/            Phase 10 broker contracts, safety coordinator and stores
+  notifications/     Phase 11 alert detection, durable outbox and channel adapters
   lib/               Small shared helpers
   types/             Shared domain types (provider-agnostic)
 tests/               Test suite mirroring the source tree
@@ -82,9 +82,10 @@ tests/               Test suite mirroring the source tree
 
 The repository now contains provider, scanner, Paper Trading, historical
 validation, release-runtime governance, forward-validation, local reliability,
-shared transactional infrastructure and the Phase 10 broker execution safety
-layer. LOCAL mode remains useful for development; shared transactional state is
-required before LIVE broker execution can be armed.
+shared transactional infrastructure, the Phase 10 broker execution safety
+layer, and Phase 11 realtime alerting. Alerts are persisted independently from
+trading state and delivered by a separate worker so notification provider
+failures cannot change or delay trading decisions.
 
 ## Engineering principles
 
@@ -105,7 +106,10 @@ orders in SHADOW mode, and—only under explicit Phase 10 gates—transmit an
 eligible order through a configured broker adapter. LIVE is not a default state:
 the environment gate, emergency stop, shared-state requirement, persistent
 kill-switch, bounded arm approval, risk rails, broker preflight, idempotency and
-reconciliation rules all fail closed.
+reconciliation rules all fail closed. Phase 11 can additionally notify
+Telegram and/or WhatsApp when the scanner observes WATCH, NEAR_EXECUTE,
+EXECUTE_READY, BLOCKED, or INVALIDATED lifecycle events. These alerts remain
+read-only consumers of engine output.
 
 See [docs/PHASE-6.md](./docs/PHASE-6.md) for release runtime/governance,
 [docs/PHASE-7.md](./docs/PHASE-7.md) for forward validation,
@@ -113,4 +117,7 @@ See [docs/PHASE-6.md](./docs/PHASE-6.md) for release runtime/governance,
 [docs/PHASE-9.md](./docs/PHASE-9.md) for transactional infrastructure, and
 [docs/PHASE-10.md](./docs/PHASE-10.md) plus
 [docs/PHASE-10-LIVE-RUNBOOK.md](./docs/PHASE-10-LIVE-RUNBOOK.md) for broker
-execution safety and staged live operations.
+execution safety and staged live operations. See
+[docs/PHASE-11.md](./docs/PHASE-11.md) and
+[docs/PHASE-11-NOTIFICATIONS.md](./docs/PHASE-11-NOTIFICATIONS.md) for realtime
+alerts and Telegram/WhatsApp setup.
