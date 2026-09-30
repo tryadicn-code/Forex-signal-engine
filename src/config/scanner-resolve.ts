@@ -29,5 +29,6 @@ export function cloneScannerConfig(config: ScannerConfig): ScannerConfig {
     signalTtl: { ...config.signalTtl },
     freshness: { ...config.freshness },
     account: { ...config.account },
+    engineConfig: structuredClone(config.engineConfig),
   };
 }
