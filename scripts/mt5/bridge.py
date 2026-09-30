@@ -513,6 +513,7 @@ def _checked_trade_request(
         raise RuntimeError(f"Invalid current bid/ask for {resolved}.")
 
     requested_volume = _trade_payload_number(payload, "volume")
+    expected_entry = _trade_payload_number(payload, "expectedEntry")
     stop_loss = _trade_payload_number(payload, "stopLoss")
     take_profit = _trade_payload_number(payload, "takeProfit", True)
     deviation_raw = payload.get("maxDeviationPoints", 20)
@@ -524,7 +525,19 @@ def _checked_trade_request(
     deviation = max(0, min(1000, int(deviation_raw)))
 
     assert requested_volume is not None
+    assert expected_entry is not None
     assert stop_loss is not None
+
+    point = float(getattr(info, "point", 0.0) or 0.0)
+    if point <= 0:
+        raise ValueError("Broker symbol point size is invalid.")
+    market_price = ask if side == "BUY" else bid
+    max_price_drift = deviation * point
+    if abs(market_price - expected_entry) > max_price_drift:
+        raise ValueError(
+            "Current market price drift exceeds frozen-entry deviation limit."
+        )
+
     volume = _normalize_volume(info, requested_volume)
     _validate_trade_geometry(
         side,
