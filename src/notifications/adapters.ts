@@ -25,7 +25,7 @@ export class TelegramNotificationAdapter
     try {
       const response = await fetch(
         "https://api.telegram.org/bot" +
-          encodeURIComponent(this.options.botToken) +
+          this.options.botToken +
           "/sendMessage",
         {
           method: "POST",
