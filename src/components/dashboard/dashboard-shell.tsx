@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SystemStatusBar } from "@/components/dashboard/system-status-bar";
 import { Badge } from "@/components/common/badges";
@@ -31,13 +32,13 @@ export function DashboardShell({
     <div className="flex min-h-screen flex-col bg-[#0b0e14] text-zinc-200">
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 backdrop-blur sm:px-4">
         <div className="flex min-w-0 items-center gap-2.5">
-          <a
+          <Link
             href="/#overview"
             aria-label="FSE dashboard"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900 font-mono text-xs font-bold text-zinc-100"
           >
             FSE
-          </a>
+          </Link>
 
           <div className="hidden min-w-0 sm:block">
             <div className="truncate text-xs font-semibold tracking-[0.12em] text-zinc-100">
