@@ -10,6 +10,9 @@ export interface BrokerExecutionConfig {
   maxRiskPercent: number;
   maxLot: number;
   maxOrdersPerCycle: number;
+  maxOpenPositions: number;
+  maxEquityDrawdownPercent: number;
+  blockSameSymbolPosition: boolean;
   armMaxMinutes: number;
   armMaxOrders: number;
   liveLeaseMs: number;
@@ -45,6 +48,18 @@ export function resolveBrokerExecutionConfig(
     maxOrdersPerCycle: parsePositiveInteger(
       env.FSE_LIVE_MAX_ORDERS_PER_CYCLE,
       1
+    ),
+    maxOpenPositions: parsePositiveInteger(
+      env.FSE_LIVE_MAX_OPEN_POSITIONS,
+      1
+    ),
+    maxEquityDrawdownPercent: parsePositiveNumber(
+      env.FSE_LIVE_MAX_EQUITY_DRAWDOWN_PERCENT,
+      2
+    ),
+    blockSameSymbolPosition: parseBoolean(
+      env.FSE_LIVE_BLOCK_SAME_SYMBOL_POSITION,
+      true
     ),
     armMaxMinutes: parsePositiveInteger(
       env.FSE_LIVE_ARM_MAX_MINUTES,
