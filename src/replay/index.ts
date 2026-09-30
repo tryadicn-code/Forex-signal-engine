@@ -122,3 +122,22 @@ export type {
   ReleaseGateAuditRecord,
   ReleaseReviewChecklist,
 } from "@/replay/release-gate-types";
+
+export {
+  assertArtifactEligibleForStrategyRegistration,
+  buildStrategyVersionManifest,
+  compareSemanticStrategyVersions,
+  findActiveStrategyVersion,
+  normalizeStrategyVersion,
+  verifyStrategyVersionManifest,
+} from "@/replay/strategy-version-registry";
+export type {
+  DeprecateStrategyVersionInput,
+  RegisterStrategyVersionInput,
+  StrategyBaselineSnapshot,
+  StrategyVersionEntry,
+  StrategyVersionManifest,
+  StrategyVersionRegistry,
+  StrategyVersionStatus,
+  StrategyVersionStatusEvent,
+} from "@/replay/strategy-version-types";
