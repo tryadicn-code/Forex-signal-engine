@@ -14,6 +14,10 @@ import type {
 const registry = new JsonFileStrategyVersionStore();
 const audit = new JsonFileReleaseRuntimeAuditStore();
 
+type ReleaseRuntimeGlobal = typeof globalThis & {
+  __fseReleaseAuditQueue?: Promise<void>;
+};
+
 export async function resolveRuntimeRelease(): Promise<ReleaseRuntimeResolution> {
   let resolution: ReleaseRuntimeResolution;
   try {
@@ -28,7 +32,15 @@ export async function resolveRuntimeRelease(): Promise<ReleaseRuntimeResolution>
   }
 
   try {
-    await audit.recordState(resolution.state);
+    const runtime = globalThis as ReleaseRuntimeGlobal;
+    const write = (runtime.__fseReleaseAuditQueue ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(() => audit.recordState(resolution.state));
+    runtime.__fseReleaseAuditQueue = write.then(
+      () => undefined,
+      () => undefined
+    );
+    await write;
   } catch {
     // Audit persistence must never turn a valid pinned release into an
     // unhandled server exception. Runtime state remains authoritative.
