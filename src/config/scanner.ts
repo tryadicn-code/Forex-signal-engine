@@ -10,7 +10,12 @@
 import type { Timeframe } from "@/types/market";
 import type { SymbolMetadata } from "@/types/market-data";
 import { cloneScannerConfig } from "@/config/scanner-resolve";
-import type { DeepPartial } from "@/core/config/engine-config";
+import {
+  defaultEngineConfig,
+  resolveConfig,
+  type DeepPartial,
+  type EngineConfig,
+} from "@/core/config/engine-config";
 
 // ---------------------------------------------------------------------------
 // Symbol universe + metadata
@@ -140,6 +145,8 @@ export interface ScannerConfig {
   signalTtl: SignalTtlConfig;
   freshness: FreshnessThresholds;
   account: AccountConfig;
+  /** Phase 1 strategy configuration pinned by the active release when present. */
+  engineConfig: EngineConfig;
   /**
    * Operational mode. Phase 2 is SIGNAL_ONLY: the pipeline decides, it never
    * places an order and never connects a broker.
@@ -159,6 +166,7 @@ export const DEFAULT_SCANNER_CONFIG: ScannerConfig = {
   signalTtl: { ...DEFAULT_SIGNAL_TTL },
   freshness: { ...DEFAULT_FRESHNESS_THRESHOLDS },
   account: { ...DEFAULT_ACCOUNT },
+  engineConfig: structuredClone(defaultEngineConfig),
   executionMode: "SIGNAL_ONLY",
   candleLookback: 220,
 };
@@ -177,7 +185,11 @@ export function resolveScannerConfig(
   for (const key of Object.keys(overrides) as Array<keyof ScannerConfig>) {
     const value = overrides[key];
     if (value === undefined) continue;
-    if (key === "timeframeRoles" || key === "signalTtl" || key === "freshness" || key === "account") {
+    if (key === "engineConfig") {
+      out.engineConfig = structuredClone(
+        resolveConfig(value as DeepPartial<EngineConfig>)
+      );
+    } else if (key === "timeframeRoles" || key === "signalTtl" || key === "freshness" || key === "account") {
       out[key] = { ...out[key], ...(value as object) } as never;
     } else {
       out[key] = value as never;
