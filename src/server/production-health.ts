@@ -3,6 +3,7 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { PRODUCTION_CONFIG } from "@/config/production";
+import { TRANSACTIONAL_CONFIG } from "@/config/transactional";
 import { STORAGE_PATHS } from "@/config/storage";
 import { inspectDurableJson } from "@/persistence/durable-json";
 import type { DurableFileHealth } from "@/persistence/types";
@@ -19,18 +20,51 @@ import {
 import { resolveRuntimeRelease } from "@/server/release-runtime-access";
 import { scannerRuntimeStatus } from "@/server/scanner-access";
 import { ensureStartupRecovery } from "@/server/startup-recovery";
+import {
+  runtimeInstanceId,
+  sharedTransactionalMode,
+  transactionalStore,
+} from "@/transactional/runtime";
 
 export async function readProductionHealth(): Promise<ProductionHealthSnapshot> {
   const generatedAt = Date.now();
   const startupRecovery = await ensureStartupRecovery();
-  const [release, persistence, storageWritable] = await Promise.all([
-    resolveRuntimeRelease(),
-    inspectCriticalPersistence(),
-    probeStorageWritable(),
-  ]);
+  const sharedMode = sharedTransactionalMode();
+  const [release, persistence, storageWritable, transactional] =
+    await Promise.all([
+      resolveRuntimeRelease(),
+      sharedMode ? Promise.resolve([]) : inspectCriticalPersistence(),
+      sharedMode
+        ? Promise.resolve({
+            ok: true,
+            message:
+              "Local filesystem durability is not authoritative in shared transactional mode.",
+          })
+        : probeStorageWritable(),
+      sharedMode
+        ? transactionalStore().health()
+        : Promise.resolve(null),
+    ]);
   const provider = runtimeMarketDataProvider().getProviderStatus();
   const runtime = scannerRuntimeStatus();
   const checks: ProductionHealthCheck[] = [];
+
+  checks.push({
+    id: "transactional-store",
+    status: sharedMode
+      ? transactional?.ok
+        ? "PASS"
+        : "FAIL"
+      : TRANSACTIONAL_CONFIG.requireSharedStore
+        ? "FAIL"
+        : "WARN",
+    message: sharedMode
+      ? transactional?.message ??
+        "Shared transactional backend health is unavailable."
+      : TRANSACTIONAL_CONFIG.requireSharedStore
+        ? "Deployment requires shared transactional persistence but local compatibility mode is active."
+        : "Local durable persistence mode is active; safe for single-node deployment only.",
+  });
 
   checks.push({
     id: "startup-recovery",
@@ -168,7 +202,7 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
 
   return {
     schemaVersion: 1,
-    protocol: "phase-8-health-v1",
+    protocol: "phase-9-health-v1",
     generatedAt,
     uptimeSeconds: Math.max(0, Math.floor(process.uptime())),
     readiness,
@@ -177,6 +211,13 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
       maintenanceMode: PRODUCTION_CONFIG.maintenanceMode,
       requireActiveRelease: PRODUCTION_CONFIG.requireActiveRelease,
       requireLiveMarketData: PRODUCTION_CONFIG.requireLiveMarketData,
+      requireSharedTransactionalStore:
+        TRANSACTIONAL_CONFIG.requireSharedStore,
+    },
+    infrastructure: {
+      mode: sharedMode ? "SHARED" : "LOCAL",
+      instanceId: runtimeInstanceId(),
+      transactional,
     },
     providerId: runtimeProviderId(),
     liveMarketData: runtimeUsesLiveMarketData(),
