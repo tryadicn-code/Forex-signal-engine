@@ -83,9 +83,10 @@ export class NotificationService {
   async drainDueDeliveries(limit = 10): Promise<number> {
     if (!this.config.enabled) return 0;
     let processed = 0;
+    const dueBefore = Date.now();
 
     for (let index = 0; index < limit; index += 1) {
-      const delivery = await this.claimNextDueDelivery();
+      const delivery = await this.claimNextDueDelivery(dueBefore);
       if (!delivery) break;
       processed += 1;
       await this.deliver(delivery);
@@ -211,7 +212,9 @@ export class NotificationService {
     });
   }
 
-  private async claimNextDueDelivery(): Promise<NotificationDelivery | null> {
+  private async claimNextDueDelivery(
+    dueBefore: number
+  ): Promise<NotificationDelivery | null> {
     const now = Date.now();
     const staleBefore =
       now - Math.max(this.config.requestTimeoutMs * 2, 30_000);
@@ -238,7 +241,7 @@ export class NotificationService {
         .filter(
           (item) =>
             item.status === "PENDING" &&
-            item.nextAttemptAt <= now
+            item.nextAttemptAt <= dueBefore
         )
         .sort((a, b) => a.nextAttemptAt - b.nextAttemptAt)[0];
 
