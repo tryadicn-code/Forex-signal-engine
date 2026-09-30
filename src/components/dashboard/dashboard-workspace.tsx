@@ -13,6 +13,7 @@ import { SignalDetailPanel } from "@/components/signals/signal-detail-panel";
 import { TransitionHistory } from "@/components/signals/transition-history";
 import { ForwardValidationPanel } from "@/components/forward-validation/forward-validation-panel";
 import { ProductionHealthPanel } from "@/components/production/production-health-panel";
+import { BrokerExecutionPanel } from "@/components/broker/broker-execution-panel";
 import {
   DEFAULT_QUERY,
   DEFAULT_SORT,
@@ -249,7 +250,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       <section id="overview" aria-labelledby="overview-title" className="scroll-mt-16">
         <div className="mb-1.5">
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-400/80 sm:text-[10px]">
-            Phase 8 · Production Hardening
+            Phase 10 · Broker Execution Safety
           </p>
         </div>
 
@@ -261,7 +262,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             Market scanner
           </h1>
           <p className="mt-0.5 max-w-3xl text-[10px] leading-4 text-zinc-500 sm:text-[11px]">
-            Production-hardened, version-pinned FSE decisions · deterministic PAPER execution · no broker orders · no real funds
+            Production-hardened, version-pinned FSE decisions · PAPER baseline · broker mode ${data.broker?.mode ?? "OFF"}
           </p>
         </div>
 
@@ -366,6 +367,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       )}
 
       <ProductionHealthPanel />
+
+      <BrokerExecutionPanel broker={data.broker} />
 
       <ForwardValidationPanel />
 
@@ -514,7 +517,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
       <footer className="border-t border-zinc-800 pt-3 text-[10px] leading-relaxed text-zinc-600">
         {(data.liveMarketData ? (data.providerId ?? "live").toUpperCase() : "Mock") +
-          " provider"} · PAPER execution · filtering and sorting never modify engine decisions.
+          " provider"} · broker mode {data.broker?.mode ?? "OFF"} · filtering and sorting never modify engine decisions.
       </footer>
     </div>
   );
