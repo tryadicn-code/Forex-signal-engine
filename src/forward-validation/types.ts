@@ -94,6 +94,14 @@ export interface ForwardValidationReport {
   historical: ComparablePerformance;
   forward: ComparablePerformance;
   comparison: HistoricalForwardComparison;
+  monitoringWindow: {
+    tradeCount: number;
+    observationCount: number;
+    forward: ComparablePerformance;
+    comparison: HistoricalForwardComparison;
+    operational: ForwardOperationalSummary;
+    maxDrawdownR: number;
+  };
   operational: ForwardOperationalSummary;
   forwardMaxDrawdownR: number;
   historicalP95DrawdownR: number | null;
