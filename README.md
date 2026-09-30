@@ -4,9 +4,12 @@ Automated **Forex scanner + signal dashboard**. The system ingests market data,
 runs it through a strictly ordered decision pipeline, and emits explainable
 trade signals.
 
-> **Status: Phase 0 - Project Initialization complete.**
-> Trading logic is intentionally minimal. No broker integration, no live
-> trading, no backtesting yet. Those arrive in later phases.
+> **Status: Phase 5 — Historical Validation / Backtest COMPLETE.**
+> The project includes the core strategy engine, multi-pair scanner/dashboard,
+> deterministic Paper Trading, historical replay/execution, analytics,
+> robustness/OOS validation, statistical diagnostics, human release review and
+> an immutable strategy-version registry. Live broker execution is intentionally
+> not enabled.
 
 ## Pipeline
 
@@ -40,8 +43,9 @@ cp .env.example .env.local   # then edit .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The placeholder dashboard
-reports the current system status.
+Open [http://localhost:3000](http://localhost:3000) for the scanner/dashboard
+and [http://localhost:3000/backtest](http://localhost:3000/backtest) for the
+Phase 5 historical validation workbench.
 
 ## Development commands
 
@@ -70,9 +74,9 @@ src/
 tests/               Test suite mirroring the source tree
 ```
 
-`src/providers/`, `src/scanner/`, `src/backtesting/`, and `src/paper-trading/`
-are part of the target architecture but are intentionally **not** created yet.
-They appear in later phases, each with real content rather than as empty folders.
+The repository now contains provider, scanner, paper-trading and historical
+validation/replay layers. Phase 5 historical reports and strategy manifests are
+stored under `.data/` and remain isolated from the Phase 4 paper account.
 
 ## Engineering principles
 
@@ -86,7 +90,8 @@ They appear in later phases, each with real content rather than as empty folders
 
 ## Scope guardrails
 
-The Execution Engine currently only decides between `WAIT`, `EXECUTE`,
-`BLOCKED`, and `INVALIDATED`. It does **not** send orders. Live trading,
-backtesting, paper trading, economic calendar, fundamentals, and notification
-channels (Telegram/WhatsApp/email) are out of scope until explicitly requested.
+The FSE can scan, validate signals, simulate Paper Trading and run deterministic
+historical validation. It still does **not** send real broker orders. A Phase
+5.9 ACTIVE strategy version means that exact configuration has recorded
+validation evidence and human release review; it is not an authorization for
+live trading.
