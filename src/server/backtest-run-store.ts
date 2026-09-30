@@ -3,6 +3,7 @@ import path from "node:path";
 import type {
   BacktestRunArtifact,
   BacktestRunListItem,
+  BacktestRunMetadata,
 } from "@/replay/backtest-run-types";
 
 const DEFAULT_DIRECTORY = path.join(
@@ -32,6 +33,29 @@ export class JsonFileBacktestRunStore {
       if (isNotFound(error)) return null;
       throw error;
     }
+  }
+
+  async updateMetadata(
+    id: string,
+    input: { label?: string; tags?: string[] }
+  ): Promise<BacktestRunArtifact | null> {
+    const artifact = await this.read(id);
+    if (!artifact) return null;
+
+    const label = normalizeLabel(input.label ?? artifact.metadata?.label ?? "");
+    const tags = normalizeTags(input.tags ?? artifact.metadata?.tags ?? []);
+    const metadata: BacktestRunMetadata = {
+      label,
+      tags,
+      updatedAt: Date.now(),
+    };
+
+    const next: BacktestRunArtifact = {
+      ...artifact,
+      metadata,
+    };
+    await this.save(next);
+    return next;
   }
 
   async list(limit = 20): Promise<BacktestRunListItem[]> {
@@ -86,6 +110,14 @@ function toListItem(artifact: BacktestRunArtifact): BacktestRunListItem {
     netReturnPercent: artifact.analytics.netReturnPercent,
     expectancyR: artifact.analytics.expectancyR,
     maxDrawdownPercent: artifact.analytics.maxEquityDrawdownPercent,
+    winRate: artifact.analytics.winRate,
+    profitFactor: artifact.analytics.profitFactor,
+    averageR: artifact.analytics.averageR,
+    riskPercent: artifact.config.riskPercent,
+    assumedSpreadPips: artifact.config.assumedSpreadPips,
+    intrabarConflictPolicy: artifact.config.intrabarConflictPolicy,
+    label: artifact.metadata?.label || null,
+    tags: artifact.metadata?.tags ? [...artifact.metadata.tags] : [],
   };
 }
 
@@ -96,4 +128,33 @@ function isNotFound(error: unknown): boolean {
     "code" in error &&
     (error as { code?: string }).code === "ENOENT"
   );
+}
+
+
+function normalizeLabel(value: string): string {
+  const label = value.trim();
+  if (label.length > 80) {
+    throw new Error("Backtest label must be 80 characters or fewer.");
+  }
+  return label;
+}
+
+function normalizeTags(values: string[]): string[] {
+  if (!Array.isArray(values)) {
+    throw new Error("Backtest tags must be an array.");
+  }
+  const normalized = [...new Set(
+    values
+      .map((value) => String(value).trim().toLowerCase())
+      .filter(Boolean)
+  )];
+  if (normalized.length > 8) {
+    throw new Error("Backtest reports support at most 8 tags.");
+  }
+  for (const tag of normalized) {
+    if (tag.length > 24) {
+      throw new Error("Each backtest tag must be 24 characters or fewer.");
+    }
+  }
+  return normalized;
 }
