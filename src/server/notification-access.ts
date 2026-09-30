@@ -1,5 +1,7 @@
 import "server-only";
 
+import { timingSafeEqual } from "node:crypto";
+
 import { NOTIFICATION_CONFIG } from "@/config/notifications";
 import { STORAGE_PATHS } from "@/config/storage";
 import {
@@ -143,5 +145,26 @@ async function withDeliveryLease<T>(
     return await work();
   } finally {
     await transactionalStore().releaseLease(grant);
+  }
+}
+
+
+export function assertNotificationAdminSecret(
+  provided: string | null
+): void {
+  const expected = NOTIFICATION_CONFIG.adminSecret;
+  if (!expected) {
+    throw new Error("FSE_ALERT_ADMIN_SECRET is not configured.");
+  }
+  if (!provided) {
+    throw new Error("Alert admin secret is required.");
+  }
+  const left = Buffer.from(expected);
+  const right = Buffer.from(provided);
+  if (
+    left.length !== right.length ||
+    !timingSafeEqual(left, right)
+  ) {
+    throw new Error("Alert admin secret is invalid.");
   }
 }
