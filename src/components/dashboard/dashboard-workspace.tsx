@@ -262,7 +262,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             Market scanner
           </h1>
           <p className="mt-0.5 max-w-3xl text-[10px] leading-4 text-zinc-500 sm:text-[11px]">
-            Production-hardened, version-pinned FSE decisions · PAPER baseline · broker mode ${data.broker?.mode ?? "OFF"}
+            Production-hardened, version-pinned FSE decisions · PAPER baseline · broker mode {data.broker?.mode ?? "OFF"}
           </p>
         </div>
 
