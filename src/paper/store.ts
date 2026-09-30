@@ -1,6 +1,8 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
 import type { PaperStoreState } from "@/paper/types";
+import {
+  readDurableJson,
+  writeDurableJson,
+} from "@/persistence/durable-json";
 
 export interface PaperStore {
   load(): Promise<PaperStoreState | null>;
@@ -27,27 +29,28 @@ export class JsonFilePaperStore implements PaperStore {
   constructor(private readonly path: string) {}
 
   async load(): Promise<PaperStoreState | null> {
-    try {
-      const content = await readFile(this.path, "utf8");
-      const parsed = JSON.parse(content) as PaperStoreState;
-      if (parsed.schemaVersion !== 1) {
-        throw new Error(`Unsupported paper store schema ${String(parsed.schemaVersion)}.`);
-      }
-      return parsed;
-    } catch (error) {
-      const code =
-        typeof error === "object" && error !== null && "code" in error
-          ? String((error as { code?: unknown }).code)
-          : null;
-      if (code === "ENOENT") return null;
-      throw error;
-    }
+    const result = await readDurableJson(
+      this.path,
+      validatePaperStoreState
+    );
+    return result.value;
   }
 
   async save(state: PaperStoreState): Promise<void> {
-    await mkdir(dirname(this.path), { recursive: true });
-    const temporary = this.path + ".tmp";
-    await writeFile(temporary, JSON.stringify(state, null, 2), "utf8");
-    await rename(temporary, this.path);
+    validatePaperStoreState(state);
+    await writeDurableJson(this.path, state);
+  }
+}
+
+function validatePaperStoreState(state: PaperStoreState): void {
+  if (
+    state.schemaVersion !== 1 ||
+    !state.account ||
+    !Array.isArray(state.orders) ||
+    !Array.isArray(state.positions) ||
+    !Array.isArray(state.trades) ||
+    !Array.isArray(state.ledger)
+  ) {
+    throw new Error("Invalid Paper Trading store schema.");
   }
 }
