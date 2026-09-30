@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 const NAV_ITEMS = [
   { href: "/#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
   { href: "/#scanner", label: "Scanner", desktopLabel: "Scanner", glyph: "≣" },
@@ -39,13 +41,13 @@ export function SidebarNav() {
       className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t border-zinc-800 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:w-52 md:grid-cols-1 md:content-start md:border-t-0 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
     >
       {NAV_ITEMS.map((item) => (
-        <a key={item.href} href={item.href} className={navClassName()}>
+        <Link key={item.href} href={item.href} className={navClassName()}>
           <NavLabel
             glyph={item.glyph}
             label={item.label}
             desktopLabel={item.desktopLabel}
           />
-        </a>
+        </Link>
       ))}
     </nav>
   );
