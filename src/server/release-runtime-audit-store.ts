@@ -1,5 +1,8 @@
-import { promises as fs } from "node:fs";
 import path from "node:path";
+import {
+  readDurableJson,
+  writeDurableJson,
+} from "@/persistence/durable-json";
 import type {
   ReleaseRuntimeAuditEvent,
   ReleaseRuntimeAuditLog,
@@ -19,27 +22,17 @@ export class JsonFileReleaseRuntimeAuditStore {
   ) {}
 
   async read(): Promise<ReleaseRuntimeAuditLog> {
-    try {
-      const raw = await fs.readFile(this.filePath, "utf8");
-      const parsed = JSON.parse(raw) as ReleaseRuntimeAuditLog;
-      if (
-        parsed.schemaVersion !== 1 ||
-        parsed.protocol !== "phase-6-runtime-v1" ||
-        !Array.isArray(parsed.events)
-      ) {
-        throw new Error("Invalid release runtime audit format.");
+    const result = await readDurableJson(
+      this.filePath,
+      validateAuditLog
+    );
+    return (
+      result.value ?? {
+        schemaVersion: 1,
+        protocol: "phase-6-runtime-v1",
+        events: [],
       }
-      return parsed;
-    } catch (error) {
-      if (isNotFound(error)) {
-        return {
-          schemaVersion: 1,
-          protocol: "phase-6-runtime-v1",
-          events: [],
-        };
-      }
-      throw error;
-    }
+    );
   }
 
   async recordState(state: ReleaseRuntimeState): Promise<void> {
@@ -55,10 +48,7 @@ export class JsonFileReleaseRuntimeAuditStore {
       events: [...log.events, event].slice(-this.maxEvents),
     };
 
-    await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    const tmp = this.filePath + ".tmp";
-    await fs.writeFile(tmp, JSON.stringify(next, null, 2), "utf8");
-    await fs.rename(tmp, this.filePath);
+    await writeDurableJson(this.filePath, next);
   }
 }
 
@@ -92,11 +82,12 @@ function sameEvent(
   );
 }
 
-function isNotFound(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: string }).code === "ENOENT"
-  );
+function validateAuditLog(log: ReleaseRuntimeAuditLog): void {
+  if (
+    log.schemaVersion !== 1 ||
+    log.protocol !== "phase-6-runtime-v1" ||
+    !Array.isArray(log.events)
+  ) {
+    throw new Error("Invalid release runtime audit format.");
+  }
 }
