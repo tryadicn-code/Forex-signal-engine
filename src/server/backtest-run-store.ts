@@ -4,6 +4,7 @@ import {
   readDurableJson,
   writeDurableJson,
 } from "@/persistence/durable-json";
+import { STORAGE_PATHS } from "@/config/storage";
 import type {
   BacktestRunArtifact,
   BacktestRunListItem,
@@ -18,11 +19,7 @@ import {
   validateReleaseReviewForPersistence,
 } from "@/replay/release-gate";
 
-const DEFAULT_DIRECTORY = path.join(
-  process.cwd(),
-  ".data",
-  "backtest-runs"
-);
+const DEFAULT_DIRECTORY = STORAGE_PATHS.backtestRuns;
 
 export class JsonFileBacktestRunStore {
   constructor(private readonly directory: string = DEFAULT_DIRECTORY) {}
