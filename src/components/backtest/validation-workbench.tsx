@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { RobustnessWorkbench } from "@/components/backtest/robustness-workbench";
 import { StatisticalDiagnosticsWorkbench } from "@/components/backtest/statistical-diagnostics-workbench";
+import { ReleaseGateWorkbench } from "@/components/backtest/release-gate-workbench";
 import {
   compareHistoricalToForward,
   toComparableHistoricalPerformance,
@@ -141,7 +142,7 @@ export function ValidationWorkbench({
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
-            Phase 5.5
+            Phase 5.8
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             Validation workbench
@@ -243,6 +244,13 @@ export function ValidationWorkbench({
           <RobustnessWorkbench artifact={artifact} />
 
           <StatisticalDiagnosticsWorkbench artifact={artifact} />
+
+          <ReleaseGateWorkbench
+            artifact={artifact}
+            forwardComparison={forwardComparison}
+            onArtifactUpdated={onArtifactUpdated}
+            onRecentRunsRefresh={onRecentRunsRefresh}
+          />
 
           <MultiRunComparison
             runs={recentRuns}
