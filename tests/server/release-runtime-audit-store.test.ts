@@ -18,6 +18,7 @@ function state(
     title: "baseline",
     manifestFingerprint: "abcdef1234567890",
     sourceReportId: "report-1",
+    activationAt: 50,
     registryUpdatedAt: 1,
     resolvedAt: 100,
     pinned: true,
