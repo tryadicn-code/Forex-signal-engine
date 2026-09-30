@@ -3,6 +3,7 @@ import type { BacktestRunArtifact } from "@/replay/backtest-run-types";
 import type { HistoricalTrade } from "@/replay/execution-types";
 import {
   buildReleaseEvidenceReview,
+  buildReleaseGateAuditRecord,
   isReleaseReviewCurrent,
   validateReleaseReviewForPersistence,
 } from "@/replay/release-gate";
@@ -252,6 +253,23 @@ describe("Phase 5.8 release evidence review", () => {
 
     source.config.assumedSpreadPips = 1.5;
     expect(isReleaseReviewCurrent(source)).toBe(false);
+  });
+
+  it("exports an auditable release-gate record without inventing a decision", () => {
+    const source = artifact();
+    let record = buildReleaseGateAuditRecord(source);
+
+    expect(record.protocol).toBe("phase-5.8-v1");
+    expect(record.review).toBeNull();
+    expect(record.reviewCurrent).toBe(false);
+    expect(record.fingerprint).toMatch(/^[a-f0-9]{16}$/);
+
+    source.releaseReview = review(source, { decision: "HOLD" });
+    record = buildReleaseGateAuditRecord(source);
+
+    expect(record.review?.decision).toBe("HOLD");
+    expect(record.reviewCurrent).toBe(true);
+    expect(record.evidence.fingerprint).toBe(record.fingerprint);
   });
 
   it("ignores organizational label changes when checking review freshness", () => {
