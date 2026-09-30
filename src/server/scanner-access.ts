@@ -34,7 +34,10 @@ import {
 import type { ReleaseRuntimeResolution } from "@/runtime/release-runtime-types";
 import type { DeepPartial } from "@/core/config/engine-config";
 import type { ScannerConfig } from "@/config/scanner";
-import { recordForwardValidationObservation } from "@/server/forward-validation-access";
+import {
+  assertForwardValidationPersistenceHealthy,
+  recordForwardValidationObservation,
+} from "@/server/forward-validation-access";
 
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
@@ -162,6 +165,7 @@ async function runScanner(
         return "Strategy release changed during scan; Paper execution was not applied. Refresh to run under the current release.";
       }
 
+      await assertForwardValidationPersistenceHealthy();
       const paper = await processPaperSnapshot(
         snapshot,
         currentRelease.state
