@@ -145,9 +145,9 @@ function ScannerCard({
           </>
         )}
 
-        <div className="mt-3 flex items-center justify-between border-t border-zinc-800/60 pt-2.5 text-xs font-medium text-zinc-300">
+        <div className="relative mt-3 flex items-center justify-center border-t border-zinc-800/60 pt-2.5 text-xs font-medium text-zinc-300">
           <span>View analysis</span>
-          <span aria-hidden="true" className="text-zinc-600">›</span>
+          <span aria-hidden="true" className="absolute right-0 text-zinc-600">›</span>
         </div>
       </button>
     </li>
