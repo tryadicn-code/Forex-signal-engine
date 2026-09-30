@@ -65,3 +65,14 @@ export interface BacktestReleaseReviewInput {
   checklist: ReleaseReviewChecklist;
   forwardEvidence?: ForwardEvidenceSnapshot | null;
 }
+
+export interface ReleaseGateAuditRecord {
+  schemaVersion: 1;
+  protocol: "phase-5.8-v1";
+  reportId: string;
+  datasetId: string;
+  fingerprint: string;
+  evidence: ReleaseEvidenceReview;
+  review: BacktestReleaseReview | null;
+  reviewCurrent: boolean;
+}
