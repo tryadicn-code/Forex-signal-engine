@@ -836,14 +836,11 @@ class Handler(BaseHTTPRequestHandler):
             payload = self._read_json_body()
             if parsed.path == "/trade/check":
                 result = _preflight_trade(payload)
-                self.send_json(200 if result["ok"] else 409, result)
+                self.send_json(200, result)
                 return
             if parsed.path == "/trade/order":
                 result = _send_trade(payload)
-                self.send_json(
-                    200 if result["accepted"] else 409,
-                    result,
-                )
+                self.send_json(200, result)
                 return
 
             self.send_json(404, {"error": "Unknown trade endpoint."})
