@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { RobustnessWorkbench } from "@/components/backtest/robustness-workbench";
 import {
   compareHistoricalToForward,
   toComparableHistoricalPerformance,
@@ -237,6 +238,8 @@ export function ValidationWorkbench({
               </table>
             </div>
           </section>
+
+          <RobustnessWorkbench artifact={artifact} />
 
           <MultiRunComparison
             runs={recentRuns}
