@@ -204,13 +204,13 @@ export function StrategyVersionRegistryWorkbench({
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-400/80">
-            Phase 5.9 · Final
+            Phase 6.5 · Release Governance
           </p>
           <h3 className="mt-0.5 text-xs font-semibold text-zinc-300">
             Strategy version registry
           </h3>
           <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-700">
-            Immutable validation manifests with explicit lifecycle history. Only a current manual PROMOTE review can register a version.
+            Immutable validated manifests with explicit supersession, controlled rollback and deprecation history.
           </p>
         </div>
         <span className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[8px] text-zinc-500">
