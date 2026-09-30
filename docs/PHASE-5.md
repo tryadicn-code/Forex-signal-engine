@@ -983,3 +983,168 @@ A later phase can consolidate dataset quality, reproducibility, OOS robustness,
 statistical warnings and forward-paper evidence into a structured human review
 checklist before a strategy/version is promoted, without producing an automatic
 trading recommendation.
+
+
+---
+
+## Phase 5.8 — Validation Evidence Review & Release Gate
+
+Phase 5.8 consolidates the evidence produced by Phase 5.4–5.7 into a
+human-controlled review gate. The system can summarize evidence quality and
+surface missing/attention items, but it never selects the release decision
+automatically.
+
+### Evidence matrix
+
+The gate derives descriptive evidence statuses:
+
+- `SATISFIED`
+- `ATTENTION`
+- `MISSING`
+- `INFO`
+
+Current evidence categories:
+
+- dataset/import validation,
+- execution assumptions,
+- reproducibility fingerprint,
+- 70/30 out-of-sample evidence,
+- sequential-validation coverage,
+- Phase 5.7 statistical diagnostics/sample warnings,
+- optional Phase 4 Paper-forward comparison.
+
+These statuses are review aids only. An `ATTENTION` or `MISSING` item is not
+silently converted into a strategy verdict.
+
+### Manual reviewer checklist
+
+The reviewer explicitly records whether they have reviewed:
+
+- dataset quality/import warnings,
+- execution assumptions,
+- reproducibility identity,
+- OOS/sequential evidence,
+- statistical diagnostics/sample warnings,
+- Forward Paper evidence.
+
+Forward Paper has three review states:
+
+- `NOT_REVIEWED`
+- `REVIEWED`
+- `WAIVED`
+
+`REVIEWED` requires a captured historical-vs-Paper comparison snapshot.
+`WAIVED` records an explicit human decision to continue without Forward Paper
+evidence.
+
+### Manual release decision
+
+The stored reviewer decision is one of:
+
+- `PENDING`
+- `HOLD`
+- `PROMOTE`
+
+The system never chooses among these values.
+
+A `PROMOTE` record is accepted only if:
+
+1. every core manual checklist item has been reviewed,
+2. Forward Paper is either `REVIEWED` or explicitly `WAIVED`,
+3. the review fingerprint matches the current report,
+4. any captured Forward Paper snapshot is bound to the same historical report.
+
+Warnings do not automatically prevent `PROMOTE`; they remain visible so the
+reviewer owns the interpretation and decision.
+
+### Fingerprint-bound review
+
+Every saved release review stores the report's current combined
+reproducibility fingerprint.
+
+If assumptions or historical outcomes later change, the stored review becomes
+`STALE` and must be reviewed again.
+
+Changing organizational metadata such as report labels or tags does not make
+the review stale because those fields are excluded from the reproducibility
+fingerprint.
+
+### Forward Paper snapshot integrity
+
+When Forward Paper is marked `REVIEWED`, Phase 5.8 stores the comparison
+snapshot alongside the manual review.
+
+The historical side of that snapshot must equal the current historical report
+metrics. This prevents a comparison from another report/version from being
+attached to the current release decision.
+
+### Persistence
+
+The release review is stored inside the existing isolated historical report:
+
+```
+.data/backtest-runs/<backtest-id>.json
+```
+
+It never writes to:
+
+```
+.data/paper-trading.json
+```
+
+The recent-report list exposes the saved release decision so reviewed runs can
+be identified quickly.
+
+### Release-gate audit export
+
+The UI can export:
+
+```
+<backtest-id>-release-gate.json
+```
+
+Protocol:
+
+```
+phase-5.8-v1
+```
+
+The compact audit record contains:
+
+- report id / dataset id,
+- current reproducibility fingerprint,
+- evidence matrix and status counts,
+- stored manual review,
+- reviewer checklist,
+- Forward Paper snapshot when captured,
+- whether the stored review is still current.
+
+This export is intentionally separate from the full historical trade report
+and the Phase 5.7 statistical validation summary.
+
+### Phase 5.8 Definition of done
+
+1. evidence from dataset/OOS/sequential/statistical layers is consolidated,
+2. evidence statuses remain descriptive rather than becoming an automatic verdict,
+3. release decision is always manually entered,
+4. PROMOTE requires explicit completion of the core review checklist,
+5. Forward Paper must be reviewed or explicitly waived before PROMOTE,
+6. reviewed Forward Paper requires a captured comparison snapshot,
+7. Forward Paper snapshots must match the current historical report,
+8. saved reviews are bound to the current reproducibility fingerprint,
+9. changed assumptions/outcomes make the saved review stale,
+10. label/tag changes do not invalidate the review,
+11. PENDING/HOLD decisions can be saved without pretending evidence is complete,
+12. recent reports expose their saved release decision,
+13. compact release-gate audit JSON can be exported,
+14. Phase 1–5.7 behavior remains unchanged,
+15. typecheck, tests, lint and production build pass.
+
+### Next planned subphase
+
+**Phase 5.9 — Validation Governance & Strategy Version Registry**
+
+A later phase can register reviewed strategy versions, preserve immutable
+release manifests, track which validation report/fingerprint supports each
+version, and record superseded/deprecated versions without introducing live
+broker execution or automatic strategy selection.
