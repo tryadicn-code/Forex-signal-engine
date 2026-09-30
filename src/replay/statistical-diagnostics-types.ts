@@ -9,7 +9,7 @@ export interface BootstrapExpectancyDiagnostics {
   iterations: number;
   seed: number;
   interval: StatisticalInterval;
-  probabilityPositive: number;
+  positiveResampleFraction: number;
 }
 
 export interface TradeOrderMonteCarloDiagnostics {
