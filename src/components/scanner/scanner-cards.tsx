@@ -166,11 +166,11 @@ function ScannerCard({
               <span className="whitespace-nowrap text-zinc-500">
                 TP{" "}
                 <span className="font-mono tabular-nums text-emerald-300">
-                  {pips === null ? "—" : formatPips(pips, true) + " pips"}
+                  {formatPrice(result.symbol, risk?.takeProfit1 ?? null)}
                 </span>
-                {risk?.takeProfit1 !== null && risk?.takeProfit1 !== undefined && (
-                  <span className="font-mono tabular-nums text-zinc-400">
-                    {" "}({formatPrice(result.symbol, risk.takeProfit1)})
+                {pips !== null && (
+                  <span className="font-mono tabular-nums text-emerald-300">
+                    {" "}({formatPips(pips, true)})
                   </span>
                 )}
               </span>
