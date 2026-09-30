@@ -325,6 +325,20 @@ describe("Phase 10 broker execution safety coordinator", () => {
     expect(state.records[0].message).toMatch(/risk percent/i);
   });
 
+  it("cannot arm live execution while the persistent kill-switch is engaged", async () => {
+    const broker = new MockLiveBroker();
+    const { service } = serviceWith(broker);
+
+    await expect(
+      service.armLive({
+        approvedBy: "tester",
+        reason: "must not bypass kill-switch",
+        durationMinutes: 1,
+        maxOrders: 1,
+      })
+    ).rejects.toThrow(/kill-switch must be disengaged/i);
+  });
+
   it("engaging the kill-switch also revokes the live arm", async () => {
     const broker = new MockLiveBroker();
     const { service, store } = serviceWith(broker);
