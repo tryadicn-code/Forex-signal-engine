@@ -4,8 +4,8 @@
  * Workstation navigation.
  *
  * Home/Scanner remain document anchors. Signals opens the most relevant signal
- * detail on mobile, while Portfolio/Journal open dedicated paper-trading
- * overlays without moving the underlying page.
+ * detail on mobile. Portfolio and Journal share one Paper workspace so the
+ * mobile bottom navigation stays compact at five primary destinations.
  */
 
 type PaperPanel = "portfolio" | "journal";
@@ -14,8 +14,7 @@ const NAV_ITEMS = [
   { kind: "anchor", href: "#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
   { kind: "anchor", href: "#scanner", label: "Scanner", desktopLabel: "Scanner", glyph: "≣" },
   { kind: "signals", label: "Signals", desktopLabel: "Signals", glyph: "⚡" },
-  { kind: "paper", panel: "portfolio", label: "Portfolio", desktopLabel: "Portfolio", glyph: "◫" },
-  { kind: "paper", panel: "journal", label: "Journal", desktopLabel: "Journal", glyph: "◎" },
+  { kind: "paper", panel: "portfolio", label: "Paper", desktopLabel: "Paper Trading", glyph: "◫" },
   { kind: "route", href: "/backtest", label: "Test", desktopLabel: "Backtest", glyph: "▥" },
 ] as const;
 
@@ -53,7 +52,7 @@ export function SidebarNav() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-6 border-t border-zinc-800 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:static md:h-auto md:w-52 md:grid-cols-1 md:border-t-0 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
+      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t border-zinc-800 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:static md:h-auto md:w-52 md:grid-cols-1 md:border-t-0 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
     >
       {NAV_ITEMS.map((item) => {
         if (item.kind === "anchor") {
