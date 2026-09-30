@@ -50,7 +50,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
     const saved = window.localStorage.getItem("fse:selected-symbol");
     if (saved && allResults.some((result) => result.symbol === saved)) {
-      setSelectedSymbol(saved);
+      const restore = window.setTimeout(() => setSelectedSymbol(saved), 0);
+      return () => window.clearTimeout(restore);
     }
   }, [allResults]);
 
