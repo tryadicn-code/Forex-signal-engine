@@ -29,6 +29,13 @@ export function StrategyVersionRegistryWorkbench({
     artifact.releaseReview?.reviewer ?? ""
   );
   const [deprecateReason, setDeprecateReason] = useState("");
+  const [rollingBackVersion, setRollingBackVersion] = useState<string | null>(
+    null
+  );
+  const [rollbackBy, setRollbackBy] = useState(
+    artifact.releaseReview?.reviewer ?? ""
+  );
+  const [rollbackReason, setRollbackReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const refresh = async () => {
@@ -106,6 +113,46 @@ export function StrategyVersionRegistryWorkbench({
         registerError instanceof Error
           ? registerError.message
           : String(registerError)
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const rollback = async () => {
+    if (!rollingBackVersion || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        "/api/backtest/strategy-versions/" +
+          encodeURIComponent(rollingBackVersion),
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "ROLLBACK",
+            changedBy: rollbackBy,
+            reason: rollbackReason,
+          }),
+        }
+      );
+      const payload = (await response.json()) as
+        | { ok: true; registry: StrategyVersionRegistry }
+        | { ok: false; error: string };
+      if (!response.ok || !payload.ok) {
+        throw new Error(
+          payload.ok ? "Rollback failed." : payload.error
+        );
+      }
+      setRegistry(payload.registry);
+      setRollingBackVersion(null);
+      setRollbackReason("");
+    } catch (rollbackError) {
+      setError(
+        rollbackError instanceof Error
+          ? rollbackError.message
+          : String(rollbackError)
       );
     } finally {
       setLoading(false);
@@ -280,17 +327,30 @@ export function StrategyVersionRegistryWorkbench({
                   key={entry.manifest.version}
                   entry={entry}
                   deprecating={deprecatingVersion === entry.manifest.version}
+                  rollingBack={rollingBackVersion === entry.manifest.version}
                   deprecateBy={deprecateBy}
                   deprecateReason={deprecateReason}
+                  rollbackBy={rollbackBy}
+                  rollbackReason={rollbackReason}
                   disabled={loading}
                   onStartDeprecate={() => {
+                    setRollingBackVersion(null);
                     setDeprecatingVersion(entry.manifest.version);
                     setDeprecateReason("");
                   }}
+                  onStartRollback={() => {
+                    setDeprecatingVersion(null);
+                    setRollingBackVersion(entry.manifest.version);
+                    setRollbackReason("");
+                  }}
                   onCancelDeprecate={() => setDeprecatingVersion(null)}
+                  onCancelRollback={() => setRollingBackVersion(null)}
                   onDeprecateBy={setDeprecateBy}
                   onDeprecateReason={setDeprecateReason}
+                  onRollbackBy={setRollbackBy}
+                  onRollbackReason={setRollbackReason}
                   onConfirmDeprecate={deprecate}
+                  onConfirmRollback={rollback}
                 />
               ))}
             </div>
