@@ -11,6 +11,7 @@ import { ScannerFilters } from "@/components/scanner/scanner-filters";
 import { ScannerTable } from "@/components/scanner/scanner-table";
 import { SignalDetailPanel } from "@/components/signals/signal-detail-panel";
 import { TransitionHistory } from "@/components/signals/transition-history";
+import { ForwardValidationPanel } from "@/components/forward-validation/forward-validation-panel";
 import {
   DEFAULT_QUERY,
   DEFAULT_SORT,
@@ -362,6 +363,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           <span className="ml-2 text-orange-200/70">{errorMessage}</span>
         </div>
       )}
+
+      <ForwardValidationPanel />
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_430px]">
         <section
