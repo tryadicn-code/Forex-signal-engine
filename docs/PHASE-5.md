@@ -686,3 +686,149 @@ rather than hiding it.
 A future subphase can add anchored train/test splits, rolling or walk-forward
 validation, parameter/version fingerprints and robustness diagnostics while
 keeping strategy changes outside the validation layer.
+
+
+---
+
+## Phase 5.6 — Validation Robustness & Out-of-Sample Testing
+
+Phase 5.6 adds time-based robustness diagnostics to an already completed
+historical report. It does not optimize, retune or select strategy parameters.
+
+### Temporal holdout
+
+The workbench supports deterministic in-sample / out-of-sample splits:
+
+- 60 / 40,
+- 70 / 30,
+- 80 / 20.
+
+The split is based on market time across the original backtest window.
+
+A closed historical trade is assigned by **entry time**. A position opened
+before the OOS boundary remains in-sample even if it closes after the boundary.
+This prevents a decision that already existed during development history from
+being counted as unseen OOS evidence.
+
+For both periods the workbench reports:
+
+- sample size,
+- wins/losses/break-even,
+- win rate,
+- profit factor,
+- net P/L,
+- net R,
+- average/median R,
+- expectancy R,
+- maximum consecutive losses.
+
+The displayed OOS-minus-IS deltas are descriptive only.
+
+### Expanding-window sequential validation
+
+The full historical window is divided into `foldCount + 1` sequential time
+segments.
+
+For every fold:
+
+1. development history starts at the original backtest start,
+2. the development window expands through all earlier segments,
+3. validation uses only the next untouched time segment,
+4. the fixed FSE strategy is not optimized between folds.
+
+This is expanding-window sequential validation, not walk-forward
+optimization.
+
+The workbench exposes each fold's:
+
+- validation dates,
+- development sample size,
+- validation sample size,
+- validation win rate,
+- validation profit factor,
+- validation expectancy R,
+- validation net R.
+
+### Stability diagnostics
+
+Validation folds are summarized descriptively with:
+
+- folds containing trades,
+- empty folds,
+- positive-expectancy folds,
+- non-positive-expectancy folds,
+- mean validation expectancy R,
+- standard deviation of expectancy R,
+- min/max validation expectancy R,
+- win-rate standard deviation,
+- min/max validation sample size,
+- total validation trades.
+
+No robustness score, pass/fail grade or automatic strategy verdict is produced.
+Sparse or empty folds remain visible rather than being silently discarded.
+
+### Reproducibility fingerprint
+
+Every opened report can derive three deterministic fingerprints:
+
+- **assumptions** — run configuration, dataset provenance/coverage and the
+  centralized FSE engine/scanner configuration snapshot,
+- **outcomes** — historical trade outcomes plus core analytics,
+- **combined** — assumption + outcome identity.
+
+The fingerprint excludes organizational label/tag metadata, so renaming a
+report does not alter reproducibility identity.
+
+The current protocol is:
+
+```
+phase-5.6-v1 · fnv1a32x2
+```
+
+This is a small deterministic comparison fingerprint, not a cryptographic
+security hash.
+
+Because the centralized `defaultEngineConfig`, timeframe roles, signal TTL,
+freshness thresholds and candle lookback are part of the assumptions payload,
+changing a strategy/scanner threshold automatically changes the assumptions
+fingerprint.
+
+### Important interpretation boundary
+
+Phase 5.6 measures temporal consistency of a **fixed** strategy. It does not:
+
+- search for the best parameters,
+- optimize thresholds on the in-sample period,
+- select a winning fold,
+- rank configurations,
+- claim statistical significance from a small sample,
+- convert OOS diagnostics into an automatic trading recommendation.
+
+If parameter optimization is introduced later, the optimization procedure,
+search space and untouched test set must be modeled separately to avoid
+selection bias.
+
+### Phase 5.6 Definition of done
+
+1. temporal split is based on time rather than trade count,
+2. trades are assigned to IS/OOS by entry time,
+3. pre-boundary positions cannot leak into OOS evidence,
+4. configurable 60/40, 70/30 and 80/20 holdouts are available,
+5. sequential validation uses expanding development + next untouched window,
+6. 2–8 sequential folds are supported by the pure validation layer,
+7. empty/small folds remain visible,
+8. fold stability metrics are descriptive and do not score/rank the strategy,
+9. reproducibility fingerprint ignores label/tag metadata,
+10. strategy/scanner configuration values are included in the assumptions fingerprint,
+11. assumption changes alter the assumptions/combined fingerprint,
+12. outcome changes alter the outcomes/combined fingerprint,
+13. Phase 1–5.5 logic and persistence remain unchanged,
+14. typecheck, tests, lint and production build pass.
+
+### Next planned subphase
+
+**Phase 5.7 — Validation Report Hardening & Statistical Diagnostics**
+
+A later phase can add confidence intervals, bootstrap/Monte Carlo trade-order
+diagnostics, minimum-sample warnings and exportable validation summaries while
+keeping statistical diagnostics separate from strategy selection.
