@@ -727,9 +727,16 @@ function RecentRuns({
                 <span className="truncate font-mono text-[10px] font-semibold text-zinc-300">
                   {run.label || run.datasetId}
                 </span>
-                <span className="shrink-0 font-mono text-[9px] text-zinc-600">
-                  N {run.sampleSize}
-                </span>
+                <div className="flex shrink-0 items-center gap-1">
+                  {run.releaseDecision && (
+                    <span className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[8px] text-zinc-500">
+                      {run.releaseDecision}
+                    </span>
+                  )}
+                  <span className="font-mono text-[9px] text-zinc-600">
+                    N {run.sampleSize}
+                  </span>
+                </div>
               </div>
               {run.tags.length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-1">
