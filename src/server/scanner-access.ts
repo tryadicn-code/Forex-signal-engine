@@ -158,7 +158,7 @@ async function runScanner(
         return "Strategy release changed during scan; Paper execution was not applied. Refresh to run under the current release.";
       }
 
-      await processPaperSnapshot(snapshot);
+      await processPaperSnapshot(snapshot, currentRelease.state);
       return null;
     } catch (error) {
       return error instanceof Error ? error.message : String(error);
