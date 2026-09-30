@@ -7,8 +7,15 @@ import type {
 import type { BacktestReleaseReviewInput } from "@/replay/release-gate-types";
 import type { HistoricalTextFile } from "@/replay/import-types";
 import { JsonFileBacktestRunStore } from "@/server/backtest-run-store";
+import { TransactionalBacktestRunStore } from "@/transactional/domain-stores";
+import {
+  sharedTransactionalMode,
+  transactionalStore,
+} from "@/transactional/runtime";
 
-const store = new JsonFileBacktestRunStore();
+const store = sharedTransactionalMode()
+  ? new TransactionalBacktestRunStore(transactionalStore())
+  : new JsonFileBacktestRunStore();
 
 type BacktestMutationGlobal = typeof globalThis & {
   __fseBacktestMutationQueue?: Promise<void>;
