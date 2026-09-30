@@ -53,6 +53,7 @@ export function ScannerTable({
             return (
               <tr
                 key={result.symbol}
+                data-signal-symbol={result.symbol}
                 tabIndex={0}
                 aria-selected={selected}
                 onClick={() => onSelect(result.symbol)}
