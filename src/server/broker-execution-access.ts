@@ -40,24 +40,13 @@ const service = new BrokerExecutionService({
             runtimeInstanceId(),
             BROKER_EXECUTION_CONFIG.liveLeaseMs
           );
-          return grant
-            ? { fencingToken: grant.fencingToken }
-            : null;
-        },
-        async release(grant) {
-          // Re-read the active lease before release because the execution
-          // service deliberately exposes only the fencing token.
-          const current = await transactionalStore().acquireLease(
-            "broker-live-execution",
-            runtimeInstanceId(),
-            BROKER_EXECUTION_CONFIG.liveLeaseMs
-          );
-          if (
-            current &&
-            current.fencingToken === grant.fencingToken
-          ) {
-            await transactionalStore().releaseLease(current);
-          }
+          if (!grant) return null;
+          return {
+            fencingToken: grant.fencingToken,
+            async release() {
+              await transactionalStore().releaseLease(grant);
+            },
+          };
         },
       }
     : undefined,
