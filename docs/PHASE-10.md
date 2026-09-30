@@ -1,6 +1,6 @@
 # Phase 10 — Broker Integration & Live Execution Safety
 
-**Status: RELEASE CANDIDATE**
+**Status: COMPLETE**
 
 Phase 10 adds an explicitly gated broker-execution layer after the validated scanner and Paper Trading path.
 
@@ -341,3 +341,35 @@ Kill-switch/emergency stop prevent new live submissions. Existing broker positio
 ## Completion Gate
 
 Phase 10 becomes COMPLETE only after the final branch head passes the full CI pipeline.
+
+# Phase 10 Completion
+
+**Phase 10 — Broker Integration & Live Execution Safety is complete.**
+
+Completion means the broker abstraction, shadow/live safety architecture, MT5
+trade bridge gates, idempotency, operator controls, reconciliation, health,
+tests and operational runbook are implemented and regression-validated.
+
+It does not mean live trading is enabled in a deployment.
+
+The repository defaults remain:
+
+    FSE_BROKER_MODE=off
+    FSE_LIVE_EXECUTION_ENABLED=false
+    FSE_LIVE_EMERGENCY_STOP=true
+
+The system progression is now:
+
+    Phase 1    Core decision engine
+    Phase 2    Scanner engine
+    Phase 3    Signal dashboard
+    Phase 4    Deterministic Paper Trading
+    Phase 5    Historical validation / backtest
+    Phase 6    Strategy release runtime & governance
+    Phase 7    Forward validation & drift monitoring
+    Phase 8    Production hardening / reliability / recovery
+    Phase 9    Transactional infrastructure / deployment architecture
+    Phase 10   Broker integration / live execution safety
+
+Any real-money rollout remains an explicit operator/deployment decision and
+must follow docs/PHASE-10-LIVE-RUNBOOK.md.
