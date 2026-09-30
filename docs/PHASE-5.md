@@ -559,3 +559,130 @@ Phase 5.4 does not add:
 This can add richer comparison views across runs, forward-vs-historical
 side-by-side analysis, dataset/run tagging, additional segment filters and
 validation-oriented visualizations without changing the strategy itself.
+
+
+---
+
+## Phase 5.5 — Backtest Validation Workbench & Comparison
+
+Phase 5.5 turns persisted Phase 5.4 reports into a validation workbench. It is
+strictly an analysis/organization layer and does not change historical replay,
+execution, risk sizing or Phase 1 strategy decisions.
+
+### Report identity
+
+Persisted reports may carry optional user-authored metadata:
+
+- label,
+- up to 8 normalized tags,
+- metadata update timestamp.
+
+Labels/tags are stored inside the historical report JSON under
+`.data/backtest-runs/`. Editing them does not recompute or alter analytics,
+trades, configuration or validation evidence.
+
+### Segment explorer
+
+The workbench can inspect the existing Phase 5.3 segment outputs by:
+
+- pair,
+- direction,
+- bias,
+- setup-score bucket,
+- entry-session bucket,
+- close reason.
+
+The UI never re-runs strategy logic to create these rows; it only selects from
+the deterministic analytics already stored in the report. Sample size remains
+visible for every subgroup.
+
+### R distribution
+
+The existing mutually-exclusive Phase 5.3 R bins are visualized directly:
+
+- <= -1R,
+- -1R to 0R,
+- 0R to 1R,
+- 1R to 2R,
+- >= 2R.
+
+The chart is presentation-only and does not recompute trade outcomes.
+
+### Multi-run comparison
+
+Up to three persisted runs can be selected side-by-side from the lightweight
+run index. Comparison columns include:
+
+- sample size,
+- win rate,
+- profit factor,
+- expectancy R,
+- average R,
+- net return,
+- maximum equity drawdown,
+- configured risk per trade,
+- assumed spread,
+- same-bar conflict policy.
+
+The interface deliberately does not assign a score, winner or ranking. The
+configuration columns are shown beside performance so users can see when two
+runs are not directly comparable.
+
+### Historical vs forward Paper comparison
+
+The workbench can explicitly read the current Phase 4 Paper Trading dashboard
+summary and normalize it to the same limited comparison contract as historical
+analytics:
+
+- sample size,
+- win rate,
+- profit factor,
+- expectancy R,
+- average R,
+- max drawdown percent,
+- net return percent.
+
+The comparison helper remains pure. It receives already-normalized historical
+and forward summaries and returns `Paper - Historical` deltas.
+
+This action is opt-in from the UI. Historical reports and Paper persistence are
+never merged or mutated.
+
+### Comparability warning
+
+A numeric delta is descriptive evidence, not proof that one configuration is
+better. Different:
+
+- sample sizes,
+- market periods/regimes,
+- symbols,
+- spreads,
+- risk settings,
+- data sources,
+- intrabar policies
+
+can make direct interpretation unreliable. Phase 5.5 surfaces this context
+rather than hiding it.
+
+### Phase 5.5 Definition of done
+
+1. persisted reports can be labeled/tagged without modifying results,
+2. report list exposes lightweight comparison metrics and configuration context,
+3. R distribution can be inspected without recalculating trades,
+4. all Phase 5.3 segment dimensions are selectable,
+5. up to three persisted runs can be viewed side-by-side,
+6. multi-run comparison does not score or rank runs,
+7. historical-vs-forward Paper comparison is explicit and read-only,
+8. Paper normalization does not access Paper storage directly,
+9. report metadata validation fails closed for invalid payloads,
+10. existing Phase 5.4 import/replay workflow remains intact,
+11. all prior tests remain green,
+12. typecheck, tests, lint and production build pass.
+
+### Next planned subphase
+
+**Phase 5.6 — Validation Robustness & Out-of-Sample Testing**
+
+A future subphase can add anchored train/test splits, rolling or walk-forward
+validation, parameter/version fingerprints and robustness diagnostics while
+keeping strategy changes outside the validation layer.
