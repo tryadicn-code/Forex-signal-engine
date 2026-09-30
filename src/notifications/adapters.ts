@@ -71,6 +71,8 @@ interface WhatsAppAdapterOptions {
   phoneNumberId: string;
   recipient: string;
   graphApiVersion: string;
+  templateName?: string | null;
+  templateLanguage?: string;
   timeoutMs: number;
 }
 
@@ -101,16 +103,43 @@ export class WhatsAppNotificationAdapter
             authorization:
               "Bearer " + this.options.accessToken,
           },
-          body: JSON.stringify({
-            messaging_product: "whatsapp",
-            recipient_type: "individual",
-            to: this.options.recipient,
-            type: "text",
-            text: {
-              preview_url: false,
-              body: message.slice(0, 4096),
-            },
-          }),
+          body: JSON.stringify(
+            this.options.templateName
+              ? {
+                  messaging_product: "whatsapp",
+                  recipient_type: "individual",
+                  to: this.options.recipient,
+                  type: "template",
+                  template: {
+                    name: this.options.templateName,
+                    language: {
+                      code:
+                        this.options.templateLanguage ?? "id",
+                    },
+                    components: [
+                      {
+                        type: "body",
+                        parameters: [
+                          {
+                            type: "text",
+                            text: message.slice(0, 4096),
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                }
+              : {
+                  messaging_product: "whatsapp",
+                  recipient_type: "individual",
+                  to: this.options.recipient,
+                  type: "text",
+                  text: {
+                    preview_url: false,
+                    body: message.slice(0, 4096),
+                  },
+                }
+          ),
           signal: controller.signal,
           cache: "no-store",
         }
