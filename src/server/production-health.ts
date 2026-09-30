@@ -18,9 +18,11 @@ import {
 } from "@/server/runtime-market-data";
 import { resolveRuntimeRelease } from "@/server/release-runtime-access";
 import { scannerRuntimeStatus } from "@/server/scanner-access";
+import { ensureStartupRecovery } from "@/server/startup-recovery";
 
 export async function readProductionHealth(): Promise<ProductionHealthSnapshot> {
   const generatedAt = Date.now();
+  const startupRecovery = await ensureStartupRecovery();
   const [release, persistence, storageWritable] = await Promise.all([
     resolveRuntimeRelease(),
     inspectCriticalPersistence(),
@@ -29,6 +31,20 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
   const provider = runtimeMarketDataProvider().getProviderStatus();
   const runtime = scannerRuntimeStatus();
   const checks: ProductionHealthCheck[] = [];
+
+  checks.push({
+    id: "startup-recovery",
+    status: startupRecovery.blocking
+      ? "FAIL"
+      : startupRecovery.checks.some((item) => !item.ok)
+        ? "WARN"
+        : "PASS",
+    message: startupRecovery.blocking
+      ? "Critical startup recovery failed; scanner is blocked."
+      : startupRecovery.checks.some((item) => !item.ok)
+        ? "Startup recovery completed with non-critical warnings."
+        : "Startup recovery checks completed successfully.",
+  });
 
   checks.push({
     id: "execution-mode",
@@ -161,6 +177,7 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
     liveMarketData: runtimeUsesLiveMarketData(),
     provider,
     releaseRuntime: release.state,
+    startupRecovery,
     persistence,
     checks,
   };
