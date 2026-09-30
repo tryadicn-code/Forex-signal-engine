@@ -1,4 +1,4 @@
-import path from "node:path";
+import { STORAGE_PATHS } from "@/config/storage";
 import {
   readDurableJson,
   writeDurableJson,
@@ -19,11 +19,7 @@ import type {
   StrategyVersionStatusEvent,
 } from "@/replay/strategy-version-types";
 
-const DEFAULT_FILE = path.join(
-  process.cwd(),
-  ".data",
-  "strategy-version-registry.json"
-);
+const DEFAULT_FILE = STORAGE_PATHS.strategyRegistry;
 
 export class JsonFileStrategyVersionStore {
   constructor(private readonly filePath: string = DEFAULT_FILE) {}
