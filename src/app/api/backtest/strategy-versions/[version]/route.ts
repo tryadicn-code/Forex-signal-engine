@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { deprecateStrategyVersion } from "@/server/strategy-version-access";
+import {
+  deprecateStrategyVersion,
+  rollbackStrategyVersion,
+} from "@/server/strategy-version-access";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,17 +14,28 @@ export async function PATCH(
   try {
     const { version } = await context.params;
     const body = (await request.json()) as Record<string, unknown>;
-    if (body.action !== "DEPRECATE") {
-      throw new Error("Only DEPRECATE lifecycle action is supported here.");
-    }
     const changedBy = requiredString(body.changedBy, "changedBy");
     const reason = requiredString(body.reason, "reason");
+    const decodedVersion = decodeURIComponent(version);
 
-    const registry = await deprecateStrategyVersion({
-      version: decodeURIComponent(version),
-      changedBy,
-      reason,
-    });
+    const registry =
+      body.action === "DEPRECATE"
+        ? await deprecateStrategyVersion({
+            version: decodedVersion,
+            changedBy,
+            reason,
+          })
+        : body.action === "ROLLBACK"
+          ? await rollbackStrategyVersion({
+              version: decodedVersion,
+              changedBy,
+              reason,
+            })
+          : (() => {
+              throw new Error(
+                "Only DEPRECATE or ROLLBACK lifecycle actions are supported here."
+              );
+            })();
     return NextResponse.json({ ok: true, registry });
   } catch (error) {
     return NextResponse.json(
