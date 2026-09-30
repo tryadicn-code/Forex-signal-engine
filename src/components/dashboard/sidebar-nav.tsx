@@ -5,7 +5,7 @@ import Link from "next/link";
 const NAV_ITEMS = [
   { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
   { kind: "link", href: "/#scanner", label: "Scanner", desktopLabel: "Scanner", glyph: "≣" },
-  { kind: "paper", label: "Journal", desktopLabel: "Journal", glyph: "◫" },
+  { kind: "paper", label: "Paper", desktopLabel: "Paper", glyph: "◫" },
   { kind: "link", href: "/backtest", label: "Backtest", desktopLabel: "Backtest", glyph: "▥" },
   { kind: "link", href: "/system", label: "System", desktopLabel: "System", glyph: "⚙" },
 ] as const;
@@ -33,9 +33,9 @@ function NavLabel({
 }
 
 export function SidebarNav() {
-  const openJournal = () => {
+  const openPaper = () => {
     window.dispatchEvent(
-      new CustomEvent("fse:open-paper", { detail: { view: "journal" } })
+      new CustomEvent("fse:open-paper", { detail: { view: "portfolio" } })
     );
   };
 
@@ -46,7 +46,7 @@ export function SidebarNav() {
     >
       {NAV_ITEMS.map((item) =>
         item.kind === "paper" ? (
-          <button key="journal" type="button" onClick={openJournal} className={navClassName()}>
+          <button key="journal" type="button" onClick={openPaper} className={navClassName()}>
             <NavLabel glyph={item.glyph} label={item.label} desktopLabel={item.desktopLabel} />
           </button>
         ) : (
