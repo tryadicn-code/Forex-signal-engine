@@ -103,7 +103,7 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
         ? "WARN"
         : "PASS",
     message:
-      BROKER_EXECUTION_CONFIG.emergencyStop
+      brokerMode === "LIVE" && BROKER_EXECUTION_CONFIG.emergencyStop
         ? "Environment emergency stop is engaged; live orders are blocked."
         : broker.unresolvedCount > 0
           ? broker.unresolvedCount +
