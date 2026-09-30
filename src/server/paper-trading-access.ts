@@ -8,11 +8,6 @@ import {
   sharedTransactionalMode,
   transactionalStore,
 } from "@/transactional/runtime";
-import { TransactionalPaperStore } from "@/transactional/domain-stores";
-import {
-  sharedTransactionalMode,
-  transactionalStore,
-} from "@/transactional/runtime";
 import { PaperTradingService } from "@/paper/paper-trading-service";
 import type {
   PaperDashboardData,
