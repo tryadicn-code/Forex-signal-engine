@@ -41,19 +41,33 @@ import { TransactionalDocumentRepository } from "@/transactional/document-reposi
 import type { TransactionalStateStore } from "@/transactional/types";
 
 export class TransactionalPaperStore implements PaperStore {
-  private readonly repo: TransactionalDocumentRepository<PaperStoreState>;
-  constructor(store: TransactionalStateStore) {
-    this.repo = new TransactionalDocumentRepository(
-      store,
-      "state/paper",
-      validatePaperStoreState
-    );
-  }
+  private revision: number | null | undefined;
+
+  constructor(private readonly store: TransactionalStateStore) {}
+
   async load(): Promise<PaperStoreState | null> {
-    return this.repo.readValue();
+    const document = await this.store.read<PaperStoreState>("state/paper");
+    if (!document) {
+      this.revision = null;
+      return null;
+    }
+    validatePaperStoreState(document.value);
+    this.revision = document.revision;
+    return structuredClone(document.value);
   }
+
   async save(state: PaperStoreState): Promise<void> {
-    await this.repo.replace(state);
+    validatePaperStoreState(state);
+    if (this.revision === undefined) {
+      const current = await this.store.read<PaperStoreState>("state/paper");
+      this.revision = current?.revision ?? null;
+    }
+    const saved = await this.store.compareAndSwap(
+      "state/paper",
+      this.revision,
+      structuredClone(state)
+    );
+    this.revision = saved.revision;
   }
 }
 
@@ -331,12 +345,10 @@ export class TransactionalBacktestRunStore {
     id: string,
     input: { label?: string; tags?: string[] }
   ): Promise<BacktestRunArtifact | null> {
+    if (!(await this.read(id))) return null;
     return this.repo(id).update((artifact) => {
       if (!artifact) {
-        return {
-          next: placeholderBacktest(id),
-          result: null,
-        };
+        throw new Error("Backtest run " + id + " disappeared during update.");
       }
       const label = normalizeLabel(input.label ?? artifact.metadata?.label ?? "");
       const tags = normalizeTags(input.tags ?? artifact.metadata?.tags ?? []);
@@ -632,6 +644,3 @@ function normalizeReviewer(value: string): string {
   return reviewer;
 }
 
-function placeholderBacktest(id: string): BacktestRunArtifact {
-  throw new Error("Backtest run " + id + " was not found.");
-}
