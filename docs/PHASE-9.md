@@ -1,6 +1,6 @@
 # Phase 9 — Transactional Infrastructure & Deployment Architecture
 
-**Status: RELEASE CANDIDATE**
+**Status: COMPLETE**
 
 Phase 9 removes the Phase 8 single-node persistence ceiling without enabling live broker execution.
 
@@ -122,3 +122,23 @@ Phase 9 does not add broker credentials, broker order APIs, live execution, auto
 ## Completion Gate
 
 Phase 9 becomes COMPLETE only after the final branch head passes MT5 Python syntax validation, TypeScript typecheck, Vitest, ESLint, and Next.js production build.
+
+# Phase 9 Completion
+
+**Phase 9 — Transactional Infrastructure & Deployment Architecture is complete.**
+
+The system progression is now:
+
+    Phase 1   Core decision engine
+    Phase 2   Scanner engine
+    Phase 3   Signal dashboard
+    Phase 4   Deterministic Paper Trading
+    Phase 5   Historical validation / backtest
+    Phase 6   Strategy release runtime & governance
+    Phase 7   Forward validation & drift monitoring
+    Phase 8   Production hardening / reliability / recovery
+    Phase 9   Transactional infrastructure / deployment architecture
+
+The next major milestone should keep real broker execution separate from
+infrastructure and introduce broker-adapter safety only after explicit design
+and validation.
