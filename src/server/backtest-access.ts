@@ -4,6 +4,7 @@ import type {
   BacktestRunConfig,
   BacktestRunListItem,
 } from "@/replay/backtest-run-types";
+import type { BacktestReleaseReviewInput } from "@/replay/release-gate-types";
 import type { HistoricalTextFile } from "@/replay/import-types";
 import { JsonFileBacktestRunStore } from "@/server/backtest-run-store";
 
@@ -35,4 +36,11 @@ export async function updatePersistedBacktestMetadata(
   input: { label?: string; tags?: string[] }
 ): Promise<BacktestRunArtifact | null> {
   return store.updateMetadata(id, input);
+}
+
+export async function updatePersistedBacktestReleaseReview(
+  id: string,
+  input: BacktestReleaseReviewInput
+): Promise<BacktestRunArtifact | null> {
+  return store.updateReleaseReview(id, input);
 }
