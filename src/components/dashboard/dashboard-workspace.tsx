@@ -189,21 +189,9 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
   return (
     <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4 lg:p-5">
-      <section id="overview" aria-labelledby="overview-title" className="scroll-mt-20">
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1
-              id="overview-title"
-              className="text-2xl font-semibold tracking-tight text-zinc-100"
-            >
-              Market opportunities
-            </h1>
-            <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
-              Find what needs attention now. Engine decisions remain unchanged.
-            </p>
-          </div>
-
-          <div className="ml-auto flex w-full items-center justify-end gap-2 text-xs sm:w-auto">
+      <section id="overview" aria-label="Market overview" className="scroll-mt-20">
+        <div className="mb-2 flex justify-end">
+          <div className="flex items-center justify-end gap-2 text-xs">
             {data.automation?.enabled ? (
               <div className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/50 px-2.5 py-1.5">
                 <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
