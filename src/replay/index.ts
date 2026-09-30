@@ -134,6 +134,7 @@ export {
 export type {
   DeprecateStrategyVersionInput,
   RegisterStrategyVersionInput,
+  RollbackStrategyVersionInput,
   StrategyBaselineSnapshot,
   StrategyVersionEntry,
   StrategyVersionManifest,
