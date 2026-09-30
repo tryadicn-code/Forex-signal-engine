@@ -18,6 +18,8 @@ export interface ReleaseRuntimeState {
   title: string | null;
   manifestFingerprint: string | null;
   sourceReportId: string | null;
+  /** Timestamp of the lifecycle event that activated this exact runtime epoch. */
+  activationAt: number | null;
   registryUpdatedAt: number | null;
   resolvedAt: number;
   pinned: boolean;
