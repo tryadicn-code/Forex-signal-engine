@@ -62,6 +62,8 @@ if (
       phoneNumberId: NOTIFICATION_CONFIG.whatsappPhoneNumberId,
       recipient: NOTIFICATION_CONFIG.whatsappRecipient,
       graphApiVersion: NOTIFICATION_CONFIG.whatsappGraphApiVersion,
+      templateName: NOTIFICATION_CONFIG.whatsappTemplateName,
+      templateLanguage: NOTIFICATION_CONFIG.whatsappTemplateLanguage,
       timeoutMs: NOTIFICATION_CONFIG.requestTimeoutMs,
     })
   );
