@@ -17,14 +17,22 @@ function pct(value: number | null): string {
 function metric(
   label: string,
   value: string,
-  note?: string
+  note?: string,
+  tone: "neutral" | "positive" | "negative" = "neutral"
 ): React.ReactNode {
+  const valueClass =
+    tone === "positive"
+      ? "text-emerald-300"
+      : tone === "negative"
+        ? "text-red-300"
+        : "text-zinc-100";
+
   return (
-    <div className="rounded-md border border-zinc-800 bg-zinc-900/35 px-3 py-2.5">
+    <div className="rounded-md border border-zinc-800 bg-zinc-900/35 px-2.5 py-2">
       <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
         {label}
       </div>
-      <div className="mt-1.5 font-mono text-base font-semibold tabular-nums text-zinc-100">
+      <div className={"mt-1 font-mono text-sm font-semibold tabular-nums " + valueClass}>
         {value}
       </div>
       {note && <div className="mt-1 text-[10px] text-zinc-600">{note}</div>}
@@ -57,7 +65,7 @@ export function PaperTradingPanel({
         aria-labelledby="paper-portfolio-title"
         className="scroll-mt-16 rounded-md border border-zinc-800 bg-zinc-900/30"
       >
-        <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-3">
+        <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-2.5">
           <div>
             <div className="flex items-center gap-2">
               <h2 id="paper-portfolio-title" className="text-sm font-semibold text-zinc-100">
@@ -77,7 +85,7 @@ export function PaperTradingPanel({
             onClick={() => void onReset()}
             className="rounded-md border border-zinc-700 px-2.5 py-1.5 text-[10px] font-medium text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 disabled:opacity-50"
           >
-            {resetting ? "Resetting..." : "Reset paper"}
+            {resetting ? "Resetting..." : "Reset"}
           </button>
         </header>
 
@@ -88,11 +96,21 @@ export function PaperTradingPanel({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-1.5 p-2.5 sm:grid-cols-3 lg:grid-cols-6">
           {metric("Balance", money(account.balance, account.currency))}
           {metric("Equity", money(account.equity, account.currency))}
-          {metric("Realized", money(account.realizedPnL, account.currency))}
-          {metric("Floating", money(account.unrealizedPnL, account.currency))}
+          {metric(
+            "Realized",
+            money(account.realizedPnL, account.currency),
+            undefined,
+            account.realizedPnL > 0 ? "positive" : account.realizedPnL < 0 ? "negative" : "neutral"
+          )}
+          {metric(
+            "Floating",
+            money(account.unrealizedPnL, account.currency),
+            undefined,
+            account.unrealizedPnL > 0 ? "positive" : account.unrealizedPnL < 0 ? "negative" : "neutral"
+          )}
           {metric(
             "Open risk",
             pct(account.openRiskPercent),
@@ -102,7 +120,7 @@ export function PaperTradingPanel({
         </div>
 
         <div className="border-t border-zinc-800">
-          <div className="flex items-center justify-between px-3 py-2.5">
+          <div className="flex items-center justify-between px-3 py-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
               Open positions
             </h3>
@@ -118,44 +136,63 @@ export function PaperTradingPanel({
           ) : (
             <div className="divide-y divide-zinc-800 border-t border-zinc-800">
               {paper.openPositions.map((position) => (
-                <article key={position.id} className="grid gap-3 px-3 py-3 sm:grid-cols-[1fr_auto]">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-zinc-100">{position.symbol}</span>
-                      <span
-                        className={
-                          "rounded border px-1.5 py-0.5 font-mono text-[9px] " +
-                          (position.side === "LONG"
-                            ? "border-emerald-800/70 text-emerald-300"
-                            : "border-rose-800/70 text-rose-300")
-                        }
-                      >
-                        {position.side}
-                      </span>
-                      <span className="font-mono text-[10px] text-zinc-600">
-                        {position.positionSize.toFixed(2)} lot
-                      </span>
-                    </div>
-                    <div className="mt-2 grid grid-cols-4 gap-2 text-[10px]">
-                      <Quote label="Entry" value={formatPrice(position.symbol, position.entryPrice)} />
-                      <Quote label="Current" value={formatPrice(position.symbol, position.currentPrice)} />
-                      <Quote label="SL" value={formatPrice(position.symbol, position.stopLoss)} />
-                      <Quote label="TP" value={formatPrice(position.symbol, position.takeProfit)} />
-                    </div>
-                  </div>
-                  <div className="flex items-end justify-between gap-4 sm:flex-col sm:items-end sm:justify-center">
-                    <div className="text-right">
-                      <div className="font-mono text-sm font-semibold text-zinc-100">
-                        {money(position.unrealizedPnL, account.currency)}
-                      </div>
-                      <div className="font-mono text-[10px] text-zinc-500">
-                        {position.currentR >= 0 ? "+" : ""}
-                        {position.currentR.toFixed(2)}R
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-zinc-600">
-                      {formatDuration(position.updatedAt - position.openedAt)}
+                <article
+                  key={position.id}
+                  className="border-b border-zinc-800/70 px-3 py-2.5 last:border-b-0"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="font-mono text-sm font-semibold text-zinc-100">
+                      {position.symbol}
                     </span>
+
+                    <span
+                      className={
+                        "rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold " +
+                        (position.side === "LONG"
+                          ? "border-emerald-800/70 bg-emerald-950/20 text-emerald-300"
+                          : "border-rose-800/70 bg-rose-950/20 text-rose-300")
+                      }
+                    >
+                      {position.side}
+                    </span>
+
+                    <span className="rounded border border-sky-700/60 bg-sky-950/25 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-sky-300">
+                      {position.positionSize.toFixed(2)} lot
+                    </span>
+
+                    <span
+                      className={
+                        "ml-auto whitespace-nowrap font-mono text-xs font-semibold " +
+                        (position.unrealizedPnL > 0
+                          ? "text-emerald-300"
+                          : position.unrealizedPnL < 0
+                            ? "text-red-300"
+                            : "text-zinc-200")
+                      }
+                    >
+                      {money(position.unrealizedPnL, account.currency)}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-4 gap-2 text-[9px] sm:text-[10px]">
+                    <InlineDatum
+                      label="Entry"
+                      value={formatPrice(position.symbol, position.entryPrice)}
+                    />
+                    <InlineDatum
+                      label="Current"
+                      value={formatPrice(position.symbol, position.currentPrice)}
+                    />
+                    <InlineDatum
+                      label="TP"
+                      value={formatPrice(position.symbol, position.takeProfit)}
+                      tone="positive"
+                    />
+                    <InlineDatum
+                      label="SL"
+                      value={formatPrice(position.symbol, position.stopLoss)}
+                      tone="negative"
+                    />
                   </div>
                 </article>
               ))}
@@ -226,10 +263,28 @@ export function PaperTradingPanel({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono text-sm font-semibold text-zinc-100">
+                  <div
+                    className={
+                      "font-mono text-sm font-semibold " +
+                      (trade.realizedPnL > 0
+                        ? "text-emerald-300"
+                        : trade.realizedPnL < 0
+                          ? "text-red-300"
+                          : "text-zinc-100")
+                    }
+                  >
                     {money(trade.realizedPnL, account.currency)}
                   </div>
-                  <div className="font-mono text-[10px] text-zinc-500">
+                  <div
+                    className={
+                      "font-mono text-[10px] " +
+                      (trade.realizedR > 0
+                        ? "text-emerald-400"
+                        : trade.realizedR < 0
+                          ? "text-red-400"
+                          : "text-zinc-500")
+                    }
+                  >
                     {trade.realizedR >= 0 ? "+" : ""}
                     {trade.realizedR.toFixed(2)}R
                   </div>
@@ -244,11 +299,30 @@ export function PaperTradingPanel({
   );
 }
 
-function Quote({ label, value }: { label: string; value: string }) {
+function InlineDatum({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "positive" | "negative";
+}) {
+  const toneClass =
+    tone === "positive"
+      ? "text-emerald-300"
+      : tone === "negative"
+        ? "text-red-300"
+        : "text-zinc-300";
+
   return (
-    <div className="min-w-0">
-      <div className="uppercase tracking-wide text-zinc-600">{label}</div>
-      <div className="truncate font-mono text-zinc-300">{value}</div>
+    <div className="min-w-0 whitespace-nowrap text-center">
+      <span className={tone === "neutral" ? "text-zinc-600" : toneClass}>
+        {label}
+      </span>
+      <span className={"ml-1 font-mono tabular-nums " + toneClass}>
+        {value}
+      </span>
     </div>
   );
 }

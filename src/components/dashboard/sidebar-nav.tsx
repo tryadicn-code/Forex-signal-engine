@@ -1,116 +1,208 @@
 "use client";
 
-/**
- * Workstation navigation.
- *
- * Home/Scanner remain document anchors. Signals opens the most relevant signal
- * detail on mobile. Portfolio and Journal share one Paper workspace so the
- * mobile bottom navigation stays compact at five primary destinations.
- */
-
-type PaperPanel = "portfolio" | "journal";
+import Link from "next/link";
 
 const NAV_ITEMS = [
-  { kind: "anchor", href: "#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
-  { kind: "anchor", href: "#scanner", label: "Scanner", desktopLabel: "Scanner", glyph: "≣" },
-  { kind: "signals", label: "Signals", desktopLabel: "Signals", glyph: "⚡" },
-  { kind: "paper", panel: "portfolio", label: "Paper", desktopLabel: "Paper Trading", glyph: "◫" },
-  { kind: "route", href: "/backtest", label: "Test", desktopLabel: "Backtest", glyph: "▥" },
+  { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
+  { kind: "paper", label: "Porto", desktopLabel: "Portfolio", glyph: "◫" },
+  { kind: "signal", label: "Signal", desktopLabel: "Signal", glyph: "⚡" },
+  { kind: "link", href: "/backtest", label: "Backtest", desktopLabel: "Backtest", glyph: "▥" },
+  { kind: "link", href: "/system", label: "System", desktopLabel: "System", glyph: "⚙" },
 ] as const;
 
-function navClassName(): string {
-  return "flex min-w-0 flex-col items-center justify-center gap-1 rounded px-1 py-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 md:flex-row md:justify-start md:gap-2 md:px-2.5 md:text-xs";
-}
+const MOBILE_NAV_ITEMS = [
+  NAV_ITEMS[0],
+  NAV_ITEMS[1],
+  NAV_ITEMS[3],
+  NAV_ITEMS[4],
+] as const;
 
-function NavLabel({
+function MobileNavLabel({
   glyph,
   label,
-  desktopLabel,
 }: {
   glyph: string;
   label: string;
-  desktopLabel: string;
 }) {
   return (
     <>
-      <span aria-hidden="true" className="text-base leading-none md:text-sm">
+      <span aria-hidden="true" className="text-base leading-none">
         {glyph}
       </span>
-      <span className="md:hidden">{label}</span>
-      <span className="hidden md:inline">{desktopLabel}</span>
+      <span>{label}</span>
     </>
   );
 }
 
-function dispatchPaperPanel(panel: PaperPanel): void {
-  window.dispatchEvent(
-    new CustomEvent("fse:open-paper-panel", { detail: { panel } })
+function DesktopNavLabel({
+  glyph,
+  label,
+  primary = false,
+}: {
+  glyph: string;
+  label: string;
+  primary?: boolean;
+}) {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className={primary ? "text-base text-amber-300" : "text-sm"}
+      >
+        {glyph}
+      </span>
+      <span className={primary ? "font-semibold text-amber-300" : ""}>
+        {label}
+      </span>
+    </>
   );
 }
 
 export function SidebarNav() {
+  const openPortfolio = () => {
+    window.dispatchEvent(
+      new CustomEvent("fse:open-paper", { detail: { view: "portfolio" } })
+    );
+  };
+
+  const focusReadySignal = () => {
+    if (window.location.pathname !== "/") {
+      window.sessionStorage.setItem("fse:focus-ready-signal", "1");
+      window.location.assign("/#scanner");
+      return;
+    }
+
+    window.dispatchEvent(new Event("fse:focus-ready-signal"));
+  };
+
   return (
-    <nav
-      aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 border-t border-zinc-800 bg-[#0b0e14]/98 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur md:static md:h-auto md:w-52 md:grid-cols-1 md:border-t-0 md:bg-transparent md:px-2 md:py-4 md:backdrop-blur-none"
-    >
-      {NAV_ITEMS.map((item) => {
-        if (item.kind === "anchor") {
-          return (
-            <a key={item.href} href={item.href} className={navClassName()}>
-              <NavLabel
-                glyph={item.glyph}
-                label={item.label}
-                desktopLabel={item.desktopLabel}
-              />
-            </a>
-          );
-        }
+    <>
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-30 h-16 md:hidden"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 1000 80"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+        >
+          <path
+            d="M0 0 H396 C428 0 438 37 500 37 C562 37 572 0 604 0 H1000 V80 H0 Z"
+            fill="rgb(11 14 20 / 0.985)"
+          />
+          <path
+            d="M0 0 H396 C428 0 438 37 500 37 C562 37 572 0 604 0 H1000"
+            fill="none"
+            stroke="rgb(63 63 70)"
+            strokeWidth="1.25"
+            vectorEffect="non-scaling-stroke"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
 
-        if (item.kind === "route") {
-          return (
-            <a key={item.href} href={item.href} className={navClassName()}>
-              <NavLabel
-                glyph={item.glyph}
-                label={item.label}
-                desktopLabel={item.desktopLabel}
-              />
-            </a>
-          );
-        }
+        <div className="relative z-10 grid h-full grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)]">
+          {MOBILE_NAV_ITEMS.map((item, index) => {
+            const colClass =
+              index === 0
+                ? "col-start-1"
+                : index === 1
+                  ? "col-start-2"
+                  : index === 2
+                    ? "col-start-4"
+                    : "col-start-5";
 
-        if (item.kind === "signals") {
+            if (item.kind === "paper") {
+              return (
+                <button
+                  key="portfolio"
+                  type="button"
+                  onClick={openPortfolio}
+                  className={`${colClass} flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`}
+                >
+                  <MobileNavLabel glyph={item.glyph} label={item.label} />
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`${colClass} flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`}
+              >
+                <MobileNavLabel glyph={item.glyph} label={item.label} />
+              </Link>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={focusReadySignal}
+          aria-label="Go to first ready signal"
+          className="absolute left-1/2 -top-0.5 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-amber-500/70 bg-[#0b0e14] text-[28px] leading-none text-amber-300 shadow-lg shadow-amber-950/40 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+        >
+          <span aria-hidden="true">⚡</span>
+        </button>
+      </nav>
+
+      <nav
+        aria-label="Primary"
+        className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-52 grid-cols-1 content-start border-r border-zinc-800 bg-transparent px-2 py-4 md:grid"
+      >
+        {NAV_ITEMS.map((item) => {
+          const primary = item.kind === "signal";
+
+          if (item.kind === "paper") {
+            return (
+              <button
+                key="portfolio"
+                type="button"
+                onClick={openPortfolio}
+                className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              >
+                <DesktopNavLabel
+                  glyph={item.glyph}
+                  label={item.desktopLabel}
+                />
+              </button>
+            );
+          }
+
+          if (item.kind === "signal") {
+            return (
+              <button
+                key="signal"
+                type="button"
+                onClick={focusReadySignal}
+                className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-amber-300 transition-colors hover:bg-zinc-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              >
+                <DesktopNavLabel
+                  glyph={item.glyph}
+                  label={item.desktopLabel}
+                  primary
+                />
+              </button>
+            );
+          }
+
           return (
-            <button
-              key="signals"
-              type="button"
-              onClick={() => window.dispatchEvent(new Event("fse:navigate-signals"))}
-              className={navClassName()}
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             >
-              <NavLabel
+              <DesktopNavLabel
                 glyph={item.glyph}
-                label={item.label}
-                desktopLabel={item.desktopLabel}
+                label={item.desktopLabel}
+                primary={primary}
               />
-            </button>
+            </Link>
           );
-        }
-
-        return (
-          <button
-            key={item.panel}
-            type="button"
-            onClick={() => dispatchPaperPanel(item.panel)}
-            className={navClassName()}
-          >
-            <NavLabel
-              glyph={item.glyph}
-              label={item.label}
-              desktopLabel={item.desktopLabel}
-            />
-          </button>
-        );
-      })}
-    </nav>
+        })}
+      </nav>
+    </>
   );
 }

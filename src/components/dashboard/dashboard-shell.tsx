@@ -1,19 +1,13 @@
-/**
- * Application shell for the Phase 4 paper-trading workstation.
- *
- * Mobile keeps the chrome intentionally quiet: brand + execution mode on top,
- * fixed bottom navigation, and no duplicate provider strip. Desktop retains the
- * fuller workstation status bar and side navigation.
- */
-
+import Link from "next/link";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
-import { SystemStatusBar } from "@/components/dashboard/system-status-bar";
-import { Badge } from "@/components/common/badges";
+import { Badge, ProviderStateBadge } from "@/components/common/badges";
+import { GlobalPaperTradingOverlay } from "@/components/paper/global-paper-trading-overlay";
 
 export function DashboardShell({
   children,
   providerId,
   liveMarketData,
+  providerState,
   statusLabel,
   releaseLabel,
   releaseBlocked,
@@ -21,46 +15,51 @@ export function DashboardShell({
   children: React.ReactNode;
   providerId?: string;
   liveMarketData?: boolean;
+  providerState?: "CONNECTED" | "DEGRADED" | "DISCONNECTED" | null;
   statusLabel?: string;
   releaseLabel?: string;
   releaseBlocked?: boolean;
 }) {
+  const strategyLabel = releaseLabel
+    ? releaseLabel.replace(/^STRAT\s*·\s*/i, "")
+    : null;
+
   return (
     <div className="flex min-h-screen flex-col bg-[#0b0e14] text-zinc-200">
-      <header className="sticky top-0 z-30 flex h-12 items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 backdrop-blur sm:px-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <span aria-hidden="true" className="shrink-0 text-sm leading-none text-emerald-400">
-            ◈
-          </span>
-          <span className="hidden truncate text-xs font-semibold tracking-[0.16em] text-zinc-100 sm:inline">
-            FOREX SCANNER ENGINE
-          </span>
-          <span className="truncate text-[10px] font-semibold tracking-[0.12em] text-zinc-100 sm:hidden">
-            FOREX SCANNER ENGINE
-          </span>
-          <Badge
-            tone={statusLabel ? "info" : liveMarketData ? "bullish" : "info"}
-            glyph={statusLabel ? "◷" : liveMarketData ? "●" : "◌"}
-            className="text-[9px]"
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 backdrop-blur sm:px-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Link
+            href="/#overview"
+            aria-label="Forex Signal Engine dashboard"
+            className="truncate text-sm font-semibold tracking-wide text-zinc-100 sm:text-base"
           >
-            {statusLabel ??
-              (liveMarketData
-                ? "LIVE · " + (providerId ?? "provider").toUpperCase()
-                : "MOCK DATA")}
-          </Badge>
-          {releaseLabel && (
+            FOREX SIGNAL ENGINE
+          </Link>
+
+          {statusLabel && (
+            <Badge tone="info" glyph="◷" className="hidden text-[9px] sm:inline-flex">
+              {statusLabel}
+            </Badge>
+          )}
+
+          {strategyLabel && !statusLabel && (
             <Badge
-              tone={releaseBlocked ? "bearish" : "info"}
-              glyph={releaseBlocked ? "!" : "◆"}
-              className="hidden text-[9px] sm:inline-flex"
+              tone={releaseBlocked ? "danger" : strategyLabel === "UNVERSIONED" ? "warning" : "info"}
+              glyph={releaseBlocked ? "!" : strategyLabel === "UNVERSIONED" ? "!" : "◆"}
+              className="hidden text-[9px] md:inline-flex"
             >
-              {releaseLabel}
+              {strategyLabel}
             </Badge>
           )}
         </div>
 
-        <div className="hidden lg:block">
-          <SystemStatusBar />
+        <div className="flex shrink-0 items-center gap-2">
+          {providerId && liveMarketData && (
+            <span className="hidden font-mono text-[10px] text-zinc-600 sm:inline">
+              {providerId.toUpperCase()}
+            </span>
+          )}
+          {providerState && <ProviderStateBadge state={providerState} />}
         </div>
       </header>
 
@@ -70,6 +69,8 @@ export function DashboardShell({
         </div>
         <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
       </div>
+
+      <GlobalPaperTradingOverlay />
     </div>
   );
 }

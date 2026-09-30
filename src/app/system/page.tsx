@@ -1,10 +1,10 @@
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
+import { SystemWorkspace } from "@/components/system/system-workspace";
 import { readDashboard } from "@/server/scanner-access";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function SystemPage() {
   const data = await readDashboard();
 
   return (
@@ -21,7 +21,7 @@ export default async function Home() {
       }
       releaseBlocked={data.releaseRuntime?.status === "BLOCKED"}
     >
-      <DashboardWorkspace initialData={data} />
+      <SystemWorkspace data={data} />
     </DashboardShell>
   );
 }
