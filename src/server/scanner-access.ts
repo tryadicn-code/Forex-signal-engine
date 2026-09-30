@@ -51,6 +51,10 @@ import {
   processBrokerSnapshot,
   readBrokerExecutionDashboard,
 } from "@/server/broker-execution-access";
+import {
+  processNotificationSnapshot,
+  readNotificationDashboard,
+} from "@/server/notification-access";
 
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
@@ -131,6 +135,7 @@ async function dashboardView(
     liveMarketData: runtimeUsesLiveMarketData(),
     paper: await readPaperDashboard(),
     broker: await readBrokerExecutionDashboard(),
+    notifications: await readNotificationDashboard(),
     releaseRuntime: release.state,
     automation: {
       enabled:
@@ -210,6 +215,25 @@ async function runScanner(
         paper,
         currentRelease.state
       );
+      try {
+        await processNotificationSnapshot(
+          snapshot,
+          currentRelease.state
+        );
+      } catch (notificationError) {
+        await emitRuntimeTelemetry({
+          category: "notifications",
+          name: "scan-alert-failure",
+          level: "WARN",
+          durationMs: null,
+          attributes: {
+            error:
+              notificationError instanceof Error
+                ? notificationError.message.slice(0, 500)
+                : String(notificationError).slice(0, 500),
+          },
+        });
+      }
       await processBrokerSnapshot(
         snapshot,
         currentRelease.state
