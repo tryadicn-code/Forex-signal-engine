@@ -47,34 +47,37 @@ export class NotificationService {
   }
 
   async dashboard(): Promise<NotificationDashboard> {
-    const state = await this.store.read();
-    return {
-      protocol: "phase-11-alert-dashboard-v1",
-      generatedAt: Date.now(),
-      enabled: this.config.enabled,
-      channels: this.channelHealth(),
-      recentEvents: [...state.events]
-        .sort((a, b) => b.updatedAt - a.updatedAt)
-        .slice(0, 100),
-      pendingDeliveries: state.deliveries.filter(
-        (item) =>
-          item.status === "PENDING" ||
-          item.status === "SENDING"
-      ).length,
-      failedDeliveries: state.deliveries.filter(
-        (item) => item.status === "FAILED"
-      ).length,
-      sentDeliveries: state.deliveries.filter(
-        (item) => item.status === "SENT"
-      ).length,
-      nearExecuteThresholds: {
-        biasScore: this.config.nearExecuteBiasScore,
-        setupScore: this.config.nearExecuteSetupScore,
-        triggerScore: this.config.nearExecuteTriggerScore,
-        minRiskReward: this.config.nearExecuteMinRiskReward,
-      },
-      cooldownMs: this.config.cooldownMs,
-    };
+    try {
+      const state = await this.store.read();
+      return {
+        ...this.dashboardBase(),
+        recentEvents: [...state.events]
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+          .slice(0, 100),
+        pendingDeliveries: state.deliveries.filter(
+          (item) =>
+            item.status === "PENDING" ||
+            item.status === "SENDING"
+        ).length,
+        failedDeliveries: state.deliveries.filter(
+          (item) => item.status === "FAILED"
+        ).length,
+        sentDeliveries: state.deliveries.filter(
+          (item) => item.status === "SENT"
+        ).length,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        ...this.dashboardBase(),
+        recentEvents: [],
+        pendingDeliveries: 0,
+        failedDeliveries: 0,
+        sentDeliveries: 0,
+        error:
+          error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   async readState(): Promise<NotificationStoreState> {
@@ -357,6 +360,29 @@ export class NotificationService {
           ? "PARTIAL"
           : "FAILED";
     event.updatedAt = now;
+  }
+
+  private dashboardBase(): Omit<
+    NotificationDashboard,
+    | "recentEvents"
+    | "pendingDeliveries"
+    | "failedDeliveries"
+    | "sentDeliveries"
+    | "error"
+  > {
+    return {
+      protocol: "phase-11-alert-dashboard-v1",
+      generatedAt: Date.now(),
+      enabled: this.config.enabled,
+      channels: this.channelHealth(),
+      nearExecuteThresholds: {
+        biasScore: this.config.nearExecuteBiasScore,
+        setupScore: this.config.nearExecuteSetupScore,
+        triggerScore: this.config.nearExecuteTriggerScore,
+        minRiskReward: this.config.nearExecuteMinRiskReward,
+      },
+      cooldownMs: this.config.cooldownMs,
+    };
   }
 
   private requestedChannels(): Array<"telegram" | "whatsapp"> {
