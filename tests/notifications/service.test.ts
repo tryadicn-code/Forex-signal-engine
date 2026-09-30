@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { resolveNotificationConfig } from "@/config/notifications";
 import { NotificationService } from "@/notifications/service";
-import { TransactionalNotificationStore } from "@/notifications/store";
+import {
+  TransactionalNotificationStore,
+  type NotificationStore,
+} from "@/notifications/store";
 import type {
   NotificationAdapter,
   NotificationSendResult,
@@ -131,6 +134,29 @@ function harness(cooldownSeconds = 300) {
   );
   return { service, store, adapter };
 }
+
+describe("Phase 11 notification dashboard failure isolation", () => {
+  it("returns a degraded dashboard instead of throwing when notification state is unreadable", async () => {
+    const brokenStore: NotificationStore = {
+      async read() {
+        throw new Error("notification store corrupt");
+      },
+      async update() {
+        throw new Error("notification store corrupt");
+      },
+    };
+    const service = new NotificationService(
+      brokenStore,
+      config(0),
+      new Map(),
+      "Asia/Makassar"
+    );
+
+    const dashboard = await service.dashboard();
+    expect(dashboard.error).toMatch(/store corrupt/i);
+    expect(dashboard.recentEvents).toEqual([]);
+  });
+});
 
 describe("Phase 11 notification service", () => {
   it("deduplicates the same signal + alert state", async () => {
