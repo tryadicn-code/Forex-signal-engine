@@ -14,7 +14,8 @@ import { EvidenceList } from "@/components/signals/evidence-list";
 import { MtfContext } from "@/components/signals/mtf-context";
 import { SignalLifecycle } from "@/components/signals/signal-lifecycle";
 import { TransitionHistory } from "@/components/signals/transition-history";
-import { PriceChart } from "@/components/signals/price-chart";\nimport { SignalExecutiveSummary } from "@/components/signals/signal-executive-summary";
+import { PriceChart } from "@/components/signals/price-chart";
+import { SignalExecutiveSummary } from "@/components/signals/signal-executive-summary";
 import {
   formatFixed,
   formatPips,
