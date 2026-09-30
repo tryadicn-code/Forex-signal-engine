@@ -20,7 +20,7 @@ export function ProductionHealthPanel() {
         | { error?: string };
       if (
         !("protocol" in payload) ||
-        payload.protocol !== "phase-9-health-v1"
+        payload.protocol !== "phase-10-health-v1"
       ) {
         throw new Error(
           "error" in payload && payload.error
@@ -66,13 +66,13 @@ export function ProductionHealthPanel() {
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-violet-400/80">
-            Phase 9 · Production Health
+            Phase 10 · Production Health
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
-            Transactional infrastructure
+            Execution safety & infrastructure
           </h2>
           <p className="mt-0.5 text-[10px] text-zinc-600">
-            Shared state, lease ownership, persistence integrity and deployment safety.
+            Broker safety, shared state, lease ownership and deployment readiness.
           </p>
         </div>
         <button
@@ -97,9 +97,10 @@ export function ProductionHealthPanel() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2 border-b border-zinc-800 p-3 sm:grid-cols-4 lg:grid-cols-7">
+          <div className="grid grid-cols-2 gap-2 border-b border-zinc-800 p-3 sm:grid-cols-4 lg:grid-cols-8">
             <Fact label="Readiness" value={health.readiness} tone={health.readiness} />
             <Fact label="Execution" value={health.executionMode} />
+            <Fact label="Broker" value={health.broker.providerId.toUpperCase()} />
             <Fact label="Infra" value={health.infrastructure.mode} />
             <Fact label="Provider" value={health.providerId.toUpperCase()} />
             <Fact label="Provider state" value={health.provider.state} />
@@ -172,6 +173,26 @@ export function ProductionHealthPanel() {
                         ? health.infrastructure.transactional.latencyMs + "ms"
                         : "LOCAL"
                     }
+                  />
+                  <Fact
+                    label="Kill switch"
+                    value={
+                      health.broker.controls.killSwitchEngaged
+                        ? "ENGAGED"
+                        : "OPEN"
+                    }
+                  />
+                  <Fact
+                    label="Live arm"
+                    value={
+                      health.broker.controls.liveArm
+                        ? health.broker.controls.liveArm.remainingOrders + " LEFT"
+                        : "NONE"
+                    }
+                  />
+                  <Fact
+                    label="Reconcile"
+                    value={String(health.broker.unresolvedCount)}
                   />
                 </dl>
               </section>
