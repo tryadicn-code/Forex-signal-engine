@@ -155,7 +155,7 @@ function ScannerCard({
           </>
         ) : (
           <>
-            <div className="mt-2 grid grid-cols-[auto_minmax(0,1.35fr)_auto_auto] items-center gap-x-2 border-t border-zinc-800/70 pt-2 text-[9px] sm:gap-x-3 sm:text-[10px]">
+            <div className="mt-2 grid grid-cols-[1fr_1.35fr_1fr_auto] items-center gap-x-2 border-t border-zinc-800/70 pt-2 text-[9px] sm:gap-x-3 sm:text-[10px]">
               <span className="min-w-0 whitespace-nowrap text-left text-zinc-500">
                 Entry{" "}
                 <span className="font-mono tabular-nums text-zinc-300">
@@ -163,7 +163,7 @@ function ScannerCard({
                 </span>
               </span>
 
-              <span className="min-w-0 truncate whitespace-nowrap text-left text-zinc-500">
+              <span className="min-w-0 truncate whitespace-nowrap text-center text-zinc-500">
                 TP{" "}
                 <span className="font-mono tabular-nums text-emerald-300">
                   {formatPrice(result.symbol, risk?.takeProfit1 ?? null)}
@@ -175,7 +175,7 @@ function ScannerCard({
                 )}
               </span>
 
-              <span className="min-w-0 whitespace-nowrap text-left text-zinc-500">
+              <span className="min-w-0 whitespace-nowrap text-center text-zinc-500">
                 SL{" "}
                 <span className="font-mono tabular-nums text-red-300">
                   {formatPrice(result.symbol, risk?.stopLoss ?? null)}
