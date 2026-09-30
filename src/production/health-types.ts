@@ -26,6 +26,7 @@ export interface ProductionHealthSnapshot {
     requireLiveMarketData: boolean;
     requireSharedTransactionalStore: boolean;
     liveExecutionEnabled: boolean;
+    liveEmergencyStop: boolean;
   };
   infrastructure: {
     mode: "LOCAL" | "SHARED";
