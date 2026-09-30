@@ -5,7 +5,7 @@ import Link from "next/link";
 const NAV_ITEMS = [
   { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
   { kind: "paper", label: "Porto", desktopLabel: "Portfolio", glyph: "◫" },
-  { kind: "link", href: "/#scanner", label: "Signal", desktopLabel: "Signal", glyph: "⚡", primary: true },
+  { kind: "signal", label: "Signal", desktopLabel: "Signal", glyph: "⚡", primary: true },
   { kind: "link", href: "/backtest", label: "Backtest", desktopLabel: "Backtest", glyph: "▥" },
   { kind: "link", href: "/system", label: "System", desktopLabel: "System", glyph: "⚙" },
 ] as const;
@@ -15,7 +15,7 @@ function navClassName(primary = false): string {
     "flex min-w-0 flex-col items-center justify-center gap-1 rounded px-1 py-1.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
     "md:flex-row md:justify-start md:gap-2 md:px-2.5 md:text-xs",
     primary
-      ? "-mt-3 text-amber-300 md:mt-0 md:text-amber-300"
+      ? "text-amber-300"
       : "text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-100",
   ].join(" ");
 }
@@ -37,15 +37,13 @@ function NavLabel({
         aria-hidden="true"
         className={
           primary
-            ? "flex h-10 w-10 items-center justify-center rounded-full border border-amber-500/50 bg-[#11151d] text-xl leading-none text-amber-300 shadow-lg shadow-amber-950/40 md:h-auto md:w-auto md:border-0 md:bg-transparent md:text-base md:shadow-none"
+            ? "flex h-9 w-9 items-center justify-center rounded-full border border-amber-500/50 bg-[#11151d] text-lg leading-none text-amber-300 shadow-sm shadow-amber-950/30 md:h-auto md:w-auto md:border-0 md:bg-transparent md:text-base md:shadow-none"
             : "text-base leading-none md:text-sm"
         }
       >
         {glyph}
       </span>
-      <span className={primary ? "font-semibold text-amber-300 md:hidden" : "md:hidden"}>
-        {label}
-      </span>
+      {!primary && <span className="md:hidden">{label}</span>}
       <span className={primary ? "hidden font-semibold text-amber-300 md:inline" : "hidden md:inline"}>
         {desktopLabel}
       </span>
@@ -58,6 +56,16 @@ export function SidebarNav() {
     window.dispatchEvent(
       new CustomEvent("fse:open-paper", { detail: { view: "portfolio" } })
     );
+  };
+
+  const focusReadySignal = () => {
+    if (window.location.pathname !== "/") {
+      window.sessionStorage.setItem("fse:focus-ready-signal", "1");
+      window.location.assign("/#scanner");
+      return;
+    }
+
+    window.dispatchEvent(new Event("fse:focus-ready-signal"));
   };
 
   return (
@@ -80,6 +88,25 @@ export function SidebarNav() {
                 glyph={item.glyph}
                 label={item.label}
                 desktopLabel={item.desktopLabel}
+              />
+            </button>
+          );
+        }
+
+        if (item.kind === "signal") {
+          return (
+            <button
+              key="signal"
+              type="button"
+              onClick={focusReadySignal}
+              aria-label="Go to first ready signal"
+              className={navClassName(true)}
+            >
+              <NavLabel
+                glyph={item.glyph}
+                label={item.label}
+                desktopLabel={item.desktopLabel}
+                primary
               />
             </button>
           );
