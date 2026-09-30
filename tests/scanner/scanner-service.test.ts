@@ -19,6 +19,21 @@ function service(scenarios: Record<string, MockSymbolScenario> = {}, symbols = [
   );
 }
 
+describe("Phase 6 pinned scanner config", () => {
+  it("carries an explicit engine config without mutating global defaults", () => {
+    const scanner = new ScannerService({
+      symbols: ["EURUSD"],
+      engineConfig: {
+        trigger: {
+          minTriggerScore: 97,
+        },
+      },
+    });
+
+    expect(scanner.scannerConfig.engineConfig.trigger.minTriggerScore).toBe(97);
+  });
+});
+
 describe("ScannerService scan cycle", () => {
   it("analyses every requested symbol", async () => {
     const s = service(
