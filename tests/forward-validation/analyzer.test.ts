@@ -307,6 +307,32 @@ describe("Phase 7 forward validation analyzer", () => {
     ).toBe("ATTENTION");
   });
 
+  it("uses the recent trade window for drift indicators while preserving cumulative metrics", () => {
+    const olderBad = Array.from({ length: 10 }, (_, index) =>
+      trade(String(index + 1), -1)
+    );
+    const recentGood = Array.from({ length: 30 }, (_, index) =>
+      trade(String(index + 11), index % 2 === 0 ? 1 : -0.2)
+    );
+
+    const report = buildForwardValidationReport({
+      manifest: manifest(),
+      activationAt: ACTIVATION,
+      paper: paper([...olderBad, ...recentGood]),
+      observations: [observation()],
+      generatedAt: T0 + 1_000_000,
+    });
+
+    expect(report.sample.tradeCount).toBe(40);
+    expect(report.monitoringWindow.tradeCount).toBe(30);
+    expect(report.forward.expectancyR).not.toBe(
+      report.monitoringWindow.forward.expectancyR
+    );
+    expect(
+      report.indicators.find((item) => item.id === "expectancy-r")?.status
+    ).toBe("WITHIN_REFERENCE");
+  });
+
   it("keeps small samples explicitly in COLLECTING state", () => {
     const report = buildForwardValidationReport({
       manifest: manifest(),
