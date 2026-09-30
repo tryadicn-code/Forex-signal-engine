@@ -74,11 +74,48 @@ const service = new NotificationService(
   NOTIFICATION_CONFIG.timeZone
 );
 
+type NotificationWorkerGlobal = typeof globalThis & {
+  __fseNotificationWorker?: ReturnType<typeof setInterval>;
+};
+
+function ensureNotificationWorker(): void {
+  if (!NOTIFICATION_CONFIG.enabled) return;
+  const runtime = globalThis as NotificationWorkerGlobal;
+  if (runtime.__fseNotificationWorker) return;
+
+  const interval = Math.max(
+    1_000,
+    NOTIFICATION_CONFIG.workerIntervalMs
+  );
+  const timer = setInterval(() => {
+    void drainNotificationDeliveries().catch(async (error) => {
+      await emitRuntimeTelemetry({
+        category: "notifications",
+        name: "delivery-worker-failure",
+        level: "WARN",
+        durationMs: null,
+        attributes: {
+          error:
+            error instanceof Error
+              ? error.message.slice(0, 500)
+              : String(error).slice(0, 500),
+        },
+      });
+    });
+  }, interval);
+
+  if (typeof timer === "object" && "unref" in timer) {
+    timer.unref();
+  }
+  runtime.__fseNotificationWorker = timer;
+}
+
 export async function processNotificationSnapshot(
   snapshot: ScannerSnapshot,
   release: ReleaseRuntimeState
 ): Promise<void> {
   if (!NOTIFICATION_CONFIG.enabled) return;
+  ensureNotificationWorker();
 
   const created = await service.processSnapshot(snapshot, release);
   const delivered = await withDeliveryLease(async () =>
@@ -100,6 +137,7 @@ export async function processNotificationSnapshot(
 }
 
 export async function readNotificationDashboard(): Promise<NotificationDashboard> {
+  ensureNotificationWorker();
   return service.dashboard();
 }
 
