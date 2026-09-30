@@ -24,7 +24,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [clockNow, setClockNow] = useState<number | null>(null);\n  const restoredSelectionRef = useRef(false);
+  const [clockNow, setClockNow] = useState<number | null>(null);
+  const restoredSelectionRef = useRef(false);
 
   const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
   const visibleResults = useMemo(
