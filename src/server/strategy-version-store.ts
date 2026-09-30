@@ -1,5 +1,8 @@
-import { promises as fs } from "node:fs";
 import path from "node:path";
+import {
+  readDurableJson,
+  writeDurableJson,
+} from "@/persistence/durable-json";
 import {
   compareSemanticStrategyVersions,
   findActiveStrategyVersion,
@@ -26,15 +29,11 @@ export class JsonFileStrategyVersionStore {
   constructor(private readonly filePath: string = DEFAULT_FILE) {}
 
   async read(): Promise<StrategyVersionRegistry> {
-    try {
-      const raw = await fs.readFile(this.filePath, "utf8");
-      const registry = JSON.parse(raw) as StrategyVersionRegistry;
-      validateRegistry(registry);
-      return registry;
-    } catch (error) {
-      if (isNotFound(error)) return emptyRegistry();
-      throw error;
-    }
+    const result = await readDurableJson(
+      this.filePath,
+      validateRegistry
+    );
+    return result.value ?? emptyRegistry();
   }
 
   async register(
@@ -227,10 +226,7 @@ export class JsonFileStrategyVersionStore {
 
   private async write(registry: StrategyVersionRegistry): Promise<void> {
     validateRegistry(registry);
-    await fs.mkdir(path.dirname(this.filePath), { recursive: true });
-    const tempPath = this.filePath + ".tmp";
-    await fs.writeFile(tempPath, JSON.stringify(registry, null, 2), "utf8");
-    await fs.rename(tempPath, this.filePath);
+    await writeDurableJson(this.filePath, registry);
   }
 }
 
@@ -310,13 +306,4 @@ function normalizeActor(value: string): string {
     throw new Error("changedBy must be 80 characters or fewer.");
   }
   return actor;
-}
-
-function isNotFound(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: string }).code === "ENOENT"
-  );
 }
