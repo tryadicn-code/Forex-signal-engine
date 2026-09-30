@@ -12,6 +12,7 @@ describe("Phase 11 notification configuration", () => {
     expect(config.telegramBotToken).toBeNull();
     expect(config.whatsappAccessToken).toBeNull();
     expect(config.timeZone).toBe("Asia/Makassar");
+    expect(config.nearExecuteTriggerScore).toBe(50);
   });
 
   it("parses deterministic near-execute thresholds and channels", () => {
