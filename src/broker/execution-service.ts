@@ -161,6 +161,21 @@ export class BrokerExecutionService {
     };
 
     await this.options.store.update((state) => {
+      if (state.controls.killSwitchEngaged) {
+        throw new Error(
+          "Kill-switch must be disengaged before live execution can be armed."
+        );
+      }
+      if (
+        state.records.some(
+          (record) =>
+            record.status === "RECONCILIATION_REQUIRED"
+        )
+      ) {
+        throw new Error(
+          "Live execution cannot be armed while reconciliation is required."
+        );
+      }
       const next = structuredClone(state);
       next.controls.liveArm = arm;
       return { next, result: null };
@@ -741,6 +756,14 @@ export class BrokerExecutionService {
   }
 
   private async normalizeExpiredArm(): Promise<BrokerExecutionStoreState> {
+    const current = await this.options.store.read();
+    if (
+      !current.controls.liveArm ||
+      current.controls.liveArm.expiresAt > Date.now()
+    ) {
+      return structuredClone(current);
+    }
+
     return this.options.store.update((state) => {
       if (
         !state.controls.liveArm ||
