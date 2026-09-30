@@ -4,13 +4,14 @@ Automated **Forex scanner + signal dashboard**. The system ingests market data,
 runs it through a strictly ordered decision pipeline, and emits explainable
 trade signals.
 
-> **Status: Phase 9 — Transactional Infrastructure & Deployment Architecture COMPLETE.**
+> **Status: Phase 10 — Broker Integration & Live Execution Safety COMPLETE.**
 > The project includes the core strategy engine, multi-pair scanner/dashboard,
 > deterministic Paper Trading, historical + forward validation, immutable
-> strategy releases, Phase 8 local recovery, shared transactional persistence,
-> distributed scanner leases/fencing, durable jobs, structured telemetry and
-> multi-instance deployment controls. Live broker execution is intentionally
-> not enabled.
+> strategy releases, local recovery, shared transactional persistence,
+> distributed leases/fencing, durable jobs, structured telemetry, plus a
+> provider-neutral broker layer with OFF/SHADOW/LIVE safety gates. Real broker
+> transmission is supported only when explicitly configured and armed; repository
+> defaults keep broker execution OFF and the emergency stop engaged.
 
 ## Pipeline
 
@@ -29,6 +30,8 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the responsibility of each layer.
 - **Vitest** + **Testing Library** for tests
 - **PostgreSQL/PostgREST-compatible transactional backend** is supported in
   Phase 9 without adding a database SDK dependency to the application.
+- **MetaTrader 5 bridge** supports market data and a separately gated Phase 10
+  broker execution surface.
 - Prisma and TradingView Lightweight Charts are not installed.
 
 ## Getting started
@@ -70,18 +73,18 @@ src/
   components/        React components (UI only - no trading logic)
   config/           System and feature configuration
   core/              Trading engine pipeline (decision logic)
-    execution/       Execution decision gate (Phase 1: SIGNAL ONLY)
+    execution/       Execution decision gate
+  broker/            Phase 10 broker contracts, safety coordinator and stores
   lib/               Small shared helpers
   types/             Shared domain types (provider-agnostic)
 tests/               Test suite mirroring the source tree
 ```
 
 The repository now contains provider, scanner, Paper Trading, historical
-validation, release-runtime governance, forward-validation, Phase 8 local
-reliability and Phase 9 shared transactional infrastructure. LOCAL mode keeps
-the durable `.data/` path for single-node development; SHARED mode moves
-authoritative operational state to a transactional backend with revision CAS,
-distributed scanner lease fencing, durable jobs and structured telemetry.
+validation, release-runtime governance, forward-validation, local reliability,
+shared transactional infrastructure and the Phase 10 broker execution safety
+layer. LOCAL mode remains useful for development; shared transactional state is
+required before LIVE broker execution can be armed.
 
 ## Engineering principles
 
@@ -97,13 +100,17 @@ distributed scanner lease fencing, durable jobs and structured telemetry.
 
 The FSE can scan, validate signals, simulate Paper Trading, run deterministic
 historical validation, operate under an immutable ACTIVE strategy release,
-monitor forward drift, recover conservatively in LOCAL mode, and coordinate
-shared multi-instance state in SHARED mode. It still does **not** send real
-broker orders. Persistence, lease or startup-recovery failures block new Paper
-execution rather than failing open.
+monitor forward drift, coordinate shared multi-instance state, evaluate broker
+orders in SHADOW mode, and—only under explicit Phase 10 gates—transmit an
+eligible order through a configured broker adapter. LIVE is not a default state:
+the environment gate, emergency stop, shared-state requirement, persistent
+kill-switch, bounded arm approval, risk rails, broker preflight, idempotency and
+reconciliation rules all fail closed.
 
 See [docs/PHASE-6.md](./docs/PHASE-6.md) for release runtime/governance,
 [docs/PHASE-7.md](./docs/PHASE-7.md) for forward validation,
-[docs/PHASE-8.md](./docs/PHASE-8.md) for production reliability/recovery, and
-[docs/PHASE-9.md](./docs/PHASE-9.md) for transactional infrastructure and
-deployment architecture.
+[docs/PHASE-8.md](./docs/PHASE-8.md) for production reliability/recovery,
+[docs/PHASE-9.md](./docs/PHASE-9.md) for transactional infrastructure, and
+[docs/PHASE-10.md](./docs/PHASE-10.md) plus
+[docs/PHASE-10-LIVE-RUNBOOK.md](./docs/PHASE-10-LIVE-RUNBOOK.md) for broker
+execution safety and staged live operations.
