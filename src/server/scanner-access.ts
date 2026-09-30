@@ -26,6 +26,7 @@ import {
   readPaperDashboard,
 } from "@/server/paper-trading-access";
 import { DEFAULT_PAPER_TRADING_CONFIG } from "@/config/paper";
+import { PRODUCTION_CONFIG } from "@/config/production";
 import {
   releaseRuntimeIdentity,
   resolveRuntimeRelease,
@@ -43,6 +44,7 @@ type ScannerRuntimeGlobal = typeof globalThis & {
   __fseScannerReleaseIdentity?: string;
   __fseScanInFlight?: Promise<string | null>;
   __fseScanInFlightIdentity?: string;
+  __fseScanStartedAt?: number;
   __fseAutoScanTimer?: ReturnType<typeof setInterval>;
   __fseNextAutoScanAt?: number;
 };
@@ -50,7 +52,7 @@ type ScannerRuntimeGlobal = typeof globalThis & {
 async function scannerForRelease(
   release: ReleaseRuntimeResolution
 ): Promise<ScannerApi | null> {
-  if (!release.state.canScan) return null;
+  if (!release.state.canScan || PRODUCTION_CONFIG.maintenanceMode) return null;
 
   const runtime = globalThis as ScannerRuntimeGlobal;
   const identity = releaseRuntimeIdentity(release);
@@ -116,7 +118,8 @@ async function dashboardView(
     automation: {
       enabled:
         DEFAULT_PAPER_TRADING_CONFIG.autoScanEnabled &&
-        release.state.canScan,
+        release.state.canScan &&
+        !PRODUCTION_CONFIG.maintenanceMode,
       scanIntervalMs: DEFAULT_PAPER_TRADING_CONFIG.autoScanIntervalMs,
       dashboardSyncIntervalMs:
         DEFAULT_PAPER_TRADING_CONFIG.dashboardSyncIntervalMs,
@@ -176,6 +179,7 @@ async function runScanner(
 
   runtime.__fseScanInFlight = work;
   runtime.__fseScanInFlightIdentity = expectedIdentity;
+  runtime.__fseScanStartedAt = Date.now();
 
   try {
     return await work;
@@ -183,6 +187,7 @@ async function runScanner(
     if (runtime.__fseScanInFlight === work) {
       runtime.__fseScanInFlight = undefined;
       runtime.__fseScanInFlightIdentity = undefined;
+      runtime.__fseScanStartedAt = undefined;
     }
   }
 }
@@ -225,7 +230,13 @@ export async function readDashboard(
   const inst = await scannerForRelease(release);
 
   if (!inst) {
-    return dashboardView(inst, release.state.message, release);
+    return dashboardView(
+      inst,
+      PRODUCTION_CONFIG.maintenanceMode
+        ? "Maintenance mode is enabled; scanner execution is blocked."
+        : release.state.message,
+      release
+    );
   }
 
   let scanError: string | null = null;
@@ -246,7 +257,13 @@ export async function refreshScanner(
   const inst = await scannerForRelease(release);
 
   if (!inst) {
-    return dashboardView(inst, release.state.message, release);
+    return dashboardView(
+      inst,
+      PRODUCTION_CONFIG.maintenanceMode
+        ? "Maintenance mode is enabled; scanner execution is blocked."
+        : release.state.message,
+      release
+    );
   }
 
   const scanError = await runScanner(inst, asOf, release);
@@ -259,4 +276,24 @@ export async function listUniverse(): Promise<string[]> {
   const release = await resolveRuntimeRelease();
   const inst = await scannerForRelease(release);
   return inst?.listSymbols() ?? [];
+}
+
+
+export function scannerRuntimeStatus(): {
+  scanInFlight: boolean;
+  scanStartedAt: number | null;
+  scanAgeMs: number | null;
+  nextAutoScanAt: number | null;
+  maintenanceMode: boolean;
+} {
+  const runtime = globalThis as ScannerRuntimeGlobal;
+  const startedAt = runtime.__fseScanStartedAt ?? null;
+  return {
+    scanInFlight: Boolean(runtime.__fseScanInFlight),
+    scanStartedAt: startedAt,
+    scanAgeMs:
+      startedAt === null ? null : Math.max(0, Date.now() - startedAt),
+    nextAutoScanAt: runtime.__fseNextAutoScanAt ?? null,
+    maintenanceMode: PRODUCTION_CONFIG.maintenanceMode,
+  };
 }
