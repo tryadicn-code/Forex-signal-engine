@@ -29,3 +29,10 @@ export async function readPersistedBacktest(
 ): Promise<BacktestRunArtifact | null> {
   return store.read(id);
 }
+
+export async function updatePersistedBacktestMetadata(
+  id: string,
+  input: { label?: string; tags?: string[] }
+): Promise<BacktestRunArtifact | null> {
+  return store.updateMetadata(id, input);
+}
