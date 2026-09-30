@@ -295,12 +295,15 @@ describe("Phase 10 broker execution safety coordinator", () => {
     await service.processSnapshot(snapshot(candidate(0.2, "signal-1")), release());
 
     broker.throwOnPlace = false;
-    await service.armLive({
-      approvedBy: "tester",
-      reason: "second controlled approval",
-      durationMinutes: 1,
-      maxOrders: 1,
-    });
+    await expect(
+      service.armLive({
+        approvedBy: "tester",
+        reason: "second controlled approval",
+        durationMinutes: 1,
+        maxOrders: 1,
+      })
+    ).rejects.toThrow(/reconciliation is required/i);
+
     await service.processSnapshot(snapshot(candidate(0.2, "signal-2")), release());
 
     expect(broker.placeCalls).toBe(1);
