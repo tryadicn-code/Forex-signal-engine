@@ -17,9 +17,13 @@ import type {
   SymbolScanResult,
 } from "@/scanner/scanner-result";
 
+export interface BrokerExecutionLeaseGrant {
+  fencingToken: number;
+  release(): Promise<void>;
+}
+
 export interface BrokerExecutionLeaseCoordinator {
-  acquire(): Promise<{ fencingToken: number } | null>;
-  release(grant: { fencingToken: number }): Promise<void>;
+  acquire(): Promise<BrokerExecutionLeaseGrant | null>;
 }
 
 export interface BrokerExecutionServiceOptions {
@@ -384,7 +388,7 @@ export class BrokerExecutionService {
         );
       }
     } finally {
-      await this.options.lease?.release(lease);
+      await lease.release();
     }
   }
 
