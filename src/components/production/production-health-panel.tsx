@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProductionHealthSnapshot } from "@/production/health-types";
 
 export function ProductionHealthPanel() {
   const [health, setHealth] = useState<ProductionHealthSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const refreshingRef = useRef(false);
 
-  const refresh = async () => {
-    if (loading) return;
+  const refresh = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     setLoading(true);
     try {
       const response = await fetch("/api/system/health", {
@@ -37,9 +39,10 @@ export function ProductionHealthPanel() {
           : String(refreshError)
       );
     } finally {
+      refreshingRef.current = false;
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initial = window.setTimeout(() => {
@@ -52,7 +55,7 @@ export function ProductionHealthPanel() {
       window.clearTimeout(initial);
       window.clearInterval(timer);
     };
-  }, []);
+  }, [refresh]);
 
   const warnings =
     health?.checks.filter((item) => item.status !== "PASS") ?? [];
