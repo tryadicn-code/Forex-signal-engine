@@ -60,7 +60,7 @@ describe("Phase 8 recovery snapshots", () => {
         maintenanceMode: false,
         now: 1000,
       })
-    ).rejects.toThrow(/maintenance mode/i);
+    ).rejects.toThrow(/maintenance[_ ]mode/i);
   });
 
   it("captures present and missing sources and verifies checksums", async () => {
