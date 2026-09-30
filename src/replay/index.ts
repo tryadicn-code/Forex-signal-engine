@@ -89,6 +89,7 @@ export type {
 } from "@/replay/robustness-types";
 
 export {
+  buildSampleAdequacyWarnings,
   buildValidationSummary,
   calculateBacktestStatisticalDiagnostics,
   wilsonProportionInterval,
