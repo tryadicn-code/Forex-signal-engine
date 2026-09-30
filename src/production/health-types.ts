@@ -18,6 +18,11 @@ export interface ProductionHealthSnapshot {
   uptimeSeconds: number;
   readiness: ProductionReadiness;
   executionMode: "PAPER";
+  safety: {
+    maintenanceMode: boolean;
+    requireActiveRelease: boolean;
+    requireLiveMarketData: boolean;
+  };
   providerId: string;
   liveMarketData: boolean;
   provider: ProviderStatus;
