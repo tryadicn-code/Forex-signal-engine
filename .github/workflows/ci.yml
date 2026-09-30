@@ -9,6 +9,7 @@ on:
       - phase-4-paper-trading
       - phase-5-validation-backtest
       - phase-6-release-runtime
+      - phase-7-forward-validation
   pull_request:
     branches:
       - master
