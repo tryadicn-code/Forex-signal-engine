@@ -286,6 +286,32 @@ describe("Phase 3 dashboard workspace", () => {
     expect(screen.getByText("No symbols scanned")).toBeInTheDocument();
   });
 
+  it("surfaces the Phase 6 ACTIVE release identity and drift state", () => {
+    const data = dashboard([analysed("EURUSD")]);
+    data.releaseRuntime = {
+      status: "ACTIVE",
+      reason: "ACTIVE_RELEASE",
+      canScan: true,
+      version: "v1.0.0",
+      title: "Validated baseline",
+      manifestFingerprint: "abcdef1234567890",
+      sourceReportId: "report-1",
+      registryUpdatedAt: T0,
+      resolvedAt: T0,
+      pinned: true,
+      defaultDrift: true,
+      driftAreas: ["engineConfig"],
+      message: "ACTIVE release is pinned.",
+    };
+
+    render(<DashboardWorkspace initialData={data} />);
+
+    expect(screen.getByText("Strategy runtime")).toBeInTheDocument();
+    expect(screen.getByText("v1.0.0")).toBeInTheDocument();
+    expect(screen.getByText("PINNED")).toBeInTheDocument();
+    expect(screen.getByText(/DEFAULT DRIFT engineConfig/)).toBeInTheDocument();
+  });
+
   it("surfaces a scan-level error instead of silently clearing the dashboard", () => {
     const data = dashboard([analysed("EURUSD")]);
     data.scanError = "calendar dependency failed";
