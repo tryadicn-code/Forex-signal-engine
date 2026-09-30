@@ -118,10 +118,10 @@ export async function processNotificationSnapshot(
   ensureNotificationWorker();
 
   const created = await service.processSnapshot(snapshot, release);
-  const delivered = await withDeliveryLease(async () =>
-    service.drainDueDeliveries(20)
-  );
 
+  // External delivery is deliberately NOT awaited from the scanner path.
+  // The durable outbox + worker owns network delivery so a slow notification
+  // provider can never delay Paper or broker execution.
   await emitRuntimeTelemetry({
     category: "notifications",
     name: "scan-alerts",
@@ -129,7 +129,6 @@ export async function processNotificationSnapshot(
     durationMs: null,
     attributes: {
       created,
-      delivered,
       telegram: NOTIFICATION_CONFIG.telegramEnabled,
       whatsapp: NOTIFICATION_CONFIG.whatsappEnabled,
     },
