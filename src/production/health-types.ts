@@ -4,6 +4,7 @@ import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
 import type { StartupRecoveryReport } from "@/production/startup-recovery-types";
 import type { TransactionalStoreHealth } from "@/transactional/types";
 import type { BrokerExecutionDashboard } from "@/broker/types";
+import type { NotificationDashboard } from "@/notifications/types";
 
 export type ProductionReadiness = "READY" | "DEGRADED" | "BLOCKED";
 
@@ -15,7 +16,7 @@ export interface ProductionHealthCheck {
 
 export interface ProductionHealthSnapshot {
   schemaVersion: 1;
-  protocol: "phase-10-health-v1";
+  protocol: "phase-11-health-v1";
   generatedAt: number;
   uptimeSeconds: number;
   readiness: ProductionReadiness;
@@ -34,6 +35,7 @@ export interface ProductionHealthSnapshot {
     transactional: TransactionalStoreHealth | null;
   };
   broker: BrokerExecutionDashboard;
+  notifications: NotificationDashboard;
   providerId: string;
   liveMarketData: boolean;
   provider: ProviderStatus;
