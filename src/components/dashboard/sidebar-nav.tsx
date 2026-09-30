@@ -15,7 +15,7 @@ function navClassName(primary = false): string {
     "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded px-1 py-1.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
     "md:flex-row md:justify-start md:gap-2 md:px-2.5 md:text-xs",
     primary
-      ? "-top-6 z-20 text-amber-300 md:top-0"
+      ? "-top-[26px] z-20 text-amber-300 md:top-0"
       : "text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-100",
   ].join(" ");
 }
@@ -75,16 +75,18 @@ export function SidebarNav() {
     >
       <svg
         aria-hidden="true"
-        viewBox="0 0 1000 32"
+        viewBox="0 0 1000 42"
         preserveAspectRatio="none"
-        className="pointer-events-none absolute inset-x-0 top-0 h-8 w-full overflow-visible md:hidden"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[42px] w-full overflow-visible md:hidden"
       >
         <path
-          d="M0 1 H430 C455 1 455 31 500 31 C545 31 545 1 570 1 H1000"
+          d="M0 1 H430 C448 1 451 11 458 22 C467 36 480 40 500 40 C520 40 533 36 542 22 C549 11 552 1 570 1 H1000"
           fill="none"
-          stroke="rgb(39 39 42)"
-          strokeWidth="1"
+          stroke="rgb(63 63 70)"
+          strokeWidth="1.25"
           vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
 
