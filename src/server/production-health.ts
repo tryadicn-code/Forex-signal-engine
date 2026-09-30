@@ -127,7 +127,8 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
     status:
       !NOTIFICATION_CONFIG.enabled
         ? "PASS"
-        : notifications.channels.filter((item) => item.enabled).length === 0 ||
+        : notifications.error ||
+            notifications.channels.filter((item) => item.enabled).length === 0 ||
             notifications.channels.some(
               (item) => item.enabled && !item.configured
             ) ||
@@ -137,7 +138,9 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
     message:
       !NOTIFICATION_CONFIG.enabled
         ? "Realtime notifications are disabled."
-        : notifications.channels.filter((item) => item.enabled).length === 0
+        : notifications.error
+          ? "Notification state is degraded: " + notifications.error
+          : notifications.channels.filter((item) => item.enabled).length === 0
           ? "Alerts are enabled but no notification channel is enabled."
           : notifications.channels.some(
                 (item) => item.enabled && !item.configured
