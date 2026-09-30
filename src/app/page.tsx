@@ -11,6 +11,14 @@ export default async function Home() {
     <DashboardShell
       providerId={data.providerId}
       liveMarketData={data.liveMarketData}
+      releaseLabel={
+        data.releaseRuntime?.status === "ACTIVE"
+          ? "STRAT · " + data.releaseRuntime.version
+          : data.releaseRuntime?.status === "BLOCKED"
+            ? "STRAT · BLOCKED"
+            : "STRAT · UNVERSIONED"
+      }
+      releaseBlocked={data.releaseRuntime?.status === "BLOCKED"}
     >
       <DashboardWorkspace initialData={data} />
     </DashboardShell>
