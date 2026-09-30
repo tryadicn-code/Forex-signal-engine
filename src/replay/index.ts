@@ -103,3 +103,22 @@ export type {
   TradeOrderMonteCarloDiagnostics,
   ValidationSummaryExport,
 } from "@/replay/statistical-diagnostics-types";
+
+export {
+  buildReleaseEvidenceReview,
+  buildReleaseGateAuditRecord,
+  isReleaseReviewCurrent,
+  validateReleaseReviewForPersistence,
+} from "@/replay/release-gate";
+export type {
+  BacktestReleaseReview,
+  BacktestReleaseReviewInput,
+  ForwardEvidenceReviewState,
+  ForwardEvidenceSnapshot,
+  ReleaseDecision,
+  ReleaseEvidenceItem,
+  ReleaseEvidenceReview,
+  ReleaseEvidenceStatus,
+  ReleaseGateAuditRecord,
+  ReleaseReviewChecklist,
+} from "@/replay/release-gate-types";
