@@ -10,6 +10,7 @@ on:
       - phase-5-validation-backtest
       - phase-6-release-runtime
       - phase-7-forward-validation
+      - phase-8-production-hardening
   pull_request:
     branches:
       - master
