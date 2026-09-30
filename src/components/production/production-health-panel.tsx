@@ -175,6 +175,14 @@ export function ProductionHealthPanel() {
                     }
                   />
                   <Fact
+                    label="Env stop"
+                    value={
+                      health.safety.liveEmergencyStop
+                        ? "ENGAGED"
+                        : "OPEN"
+                    }
+                  />
+                  <Fact
                     label="Kill switch"
                     value={
                       health.broker.controls.killSwitchEngaged
