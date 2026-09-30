@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json(
       {
         schemaVersion: 1,
-        protocol: "phase-8-health-v1",
+        protocol: "phase-10-health-v1",
         readiness: "BLOCKED",
         error:
           error instanceof Error
