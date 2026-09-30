@@ -9,6 +9,7 @@ import { toComparableHistoricalPerformance } from "@/replay/backtest-analytics";
 import type {
   BacktestReleaseReview,
   ReleaseEvidenceItem,
+  ReleaseGateAuditRecord,
   ReleaseEvidenceReview,
   ReleaseEvidenceStatus,
 } from "@/replay/release-gate-types";
@@ -151,6 +152,24 @@ export function buildReleaseEvidenceReview(
     fingerprint: fingerprint.combined,
     items,
     counts: countStatuses(items),
+  };
+}
+
+export function buildReleaseGateAuditRecord(
+  artifact: BacktestRunArtifact
+): ReleaseGateAuditRecord {
+  const evidence = buildReleaseEvidenceReview(artifact);
+  return {
+    schemaVersion: 1,
+    protocol: "phase-5.8-v1",
+    reportId: artifact.id,
+    datasetId: artifact.config.datasetId,
+    fingerprint: evidence.fingerprint,
+    evidence,
+    review: artifact.releaseReview
+      ? structuredClone(artifact.releaseReview)
+      : null,
+    reviewCurrent: isReleaseReviewCurrent(artifact),
   };
 }
 
