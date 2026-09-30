@@ -12,6 +12,7 @@ on:
       - phase-7-forward-validation
       - phase-8-production-hardening
       - phase-9-transactional-infrastructure
+      - phase-10-broker-execution-safety
   pull_request:
     branches:
       - master
