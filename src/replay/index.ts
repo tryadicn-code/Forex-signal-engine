@@ -87,3 +87,18 @@ export type {
   SequentialValidationResult,
   TemporalHoldoutResult,
 } from "@/replay/robustness-types";
+
+export {
+  buildValidationSummary,
+  calculateBacktestStatisticalDiagnostics,
+  wilsonProportionInterval,
+} from "@/replay/statistical-diagnostics";
+export type {
+  BacktestStatisticalDiagnostics,
+  BootstrapExpectancyDiagnostics,
+  SampleAdequacyWarning,
+  SampleWarningSeverity,
+  StatisticalInterval,
+  TradeOrderMonteCarloDiagnostics,
+  ValidationSummaryExport,
+} from "@/replay/statistical-diagnostics-types";
