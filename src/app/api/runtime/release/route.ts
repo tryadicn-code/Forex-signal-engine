@@ -9,10 +9,8 @@ export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const [resolution, audit] = await Promise.all([
-      resolveRuntimeRelease(),
-      readReleaseRuntimeAudit(),
-    ]);
+    const resolution = await resolveRuntimeRelease();
+    const audit = await readReleaseRuntimeAudit();
     return NextResponse.json({
       ok: true,
       state: resolution.state,
