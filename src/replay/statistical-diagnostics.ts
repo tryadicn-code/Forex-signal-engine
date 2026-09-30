@@ -24,7 +24,9 @@ export function calculateBacktestStatisticalDiagnostics(
     monteCarloIterations?: number;
   } = {}
 ): BacktestStatisticalDiagnostics {
-  const trades = artifact.execution.trades;
+  const trades = [...artifact.execution.trades].sort(
+    (a, b) => a.closedAt - b.closedAt || a.id.localeCompare(b.id)
+  );
   const rValues = trades.map((trade) => trade.realizedR);
   const wins = trades.filter((trade) => trade.realizedPnL > 0).length;
   const fingerprint = buildBacktestReproducibilityFingerprint(artifact);
