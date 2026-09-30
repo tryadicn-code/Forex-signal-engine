@@ -36,6 +36,12 @@ export interface ResolvedBacktestRunConfig {
   maxReplaySteps: number;
 }
 
+export interface BacktestRunMetadata {
+  label: string;
+  tags: string[];
+  updatedAt: number;
+}
+
 export interface BacktestRunArtifact {
   schemaVersion: 1;
   id: string;
@@ -46,6 +52,8 @@ export interface BacktestRunArtifact {
   validation: HistoricalDatasetValidation;
   execution: HistoricalExecutionSummary;
   analytics: HistoricalBacktestAnalytics;
+  /** Optional user-authored organization metadata. Does not affect results. */
+  metadata?: BacktestRunMetadata;
 }
 
 export interface BacktestRunListItem {
@@ -62,6 +70,14 @@ export interface BacktestRunListItem {
   netReturnPercent: number;
   expectancyR: number | null;
   maxDrawdownPercent: number;
+  winRate: number | null;
+  profitFactor: number | null;
+  averageR: number | null;
+  riskPercent: number;
+  assumedSpreadPips: number;
+  intrabarConflictPolicy: HistoricalIntrabarConflictPolicy;
+  label: string | null;
+  tags: string[];
 }
 
 export class BacktestValidationError extends Error {
