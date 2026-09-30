@@ -99,6 +99,26 @@ describe("PaperTradingService", () => {
     expect(second.recentOrders).toHaveLength(1);
   });
 
+  it("tags Paper orders and positions with the active release epoch", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    const release = {
+      strategyVersion: "v1.0.0",
+      strategyManifestFingerprint: "abcdef1234567890",
+      strategySourceReportId: "report-1",
+      strategyActivationAt: T0 - 10_000,
+    };
+
+    const data = await paper.processSnapshot(
+      snapshot(result()),
+      provider,
+      release
+    );
+
+    expect(data.recentOrders[0].engine).toMatchObject(release);
+    expect(data.openPositions[0].engine).toMatchObject(release);
+  });
+
   it("does not create a paper order for ENGINE EXECUTE when lifecycle is not EXECUTE", async () => {
     const paper = service();
     const provider = new MockMarketDataProvider();
