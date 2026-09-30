@@ -556,9 +556,21 @@ function BacktestResultHeader({
       <div>
         <p className="font-mono text-[9px] text-zinc-600">{artifact.id}</p>
         <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
-          Validation report
+          {artifact.metadata?.label || "Validation report"}
         </h2>
-        <p className="mt-0.5 text-[10px] text-zinc-500">
+        {artifact.metadata?.tags && artifact.metadata.tags.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {artifact.metadata.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[8px] text-zinc-600"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+        <p className="mt-1 text-[10px] text-zinc-500">
           {artifact.validation.symbols.join(", ")} · {formatUtc(artifact.config.startAt)} → {formatUtc(artifact.config.endAt)} · {(artifact.durationMs / 1000).toFixed(1)}s
         </p>
       </div>
