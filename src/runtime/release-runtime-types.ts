@@ -39,6 +39,7 @@ export interface ReleaseRuntimeAuditEvent {
   reason: ReleaseRuntimeReason;
   version: string | null;
   manifestFingerprint: string | null;
+  activationAt: number | null;
   defaultDrift: boolean;
   driftAreas: string[];
   message: string;
