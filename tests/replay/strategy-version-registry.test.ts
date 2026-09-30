@@ -13,6 +13,7 @@ import {
   normalizeStrategyVersion,
   verifyStrategyVersionManifest,
 } from "@/replay/strategy-version-registry";
+import { resolveReleaseRuntimeFromRegistry } from "@/runtime/release-runtime";
 import { JsonFileStrategyVersionStore } from "@/server/strategy-version-store";
 
 const DAY = 24 * 60 * 60_000;
@@ -247,6 +248,142 @@ describe("Phase 5.9 strategy manifest", () => {
   });
 });
 
+describe("Phase 6 release runtime resolution", () => {
+  it("keeps an empty registry in explicit UNVERSIONED migration mode", () => {
+    const resolution = resolveReleaseRuntimeFromRegistry({
+      schemaVersion: 1,
+      protocol: "phase-5.9-v1",
+      updatedAt: 0,
+      entries: [],
+    }, 123);
+
+    expect(resolution.state).toMatchObject({
+      status: "UNVERSIONED",
+      reason: "REGISTRY_EMPTY",
+      canScan: true,
+      pinned: false,
+      resolvedAt: 123,
+    });
+    expect(resolution.scannerOverrides).toBeNull();
+  });
+
+  it("pins scanner and engine settings from the ACTIVE immutable manifest", () => {
+    const source = artifact();
+    const input = {
+      version: "v1.0.0",
+      title: "Pinned baseline",
+      note: "",
+      registeredBy: "owner",
+      sourceReportId: source.id,
+    };
+    const manifest = buildStrategyVersionManifest(source, input, 1000);
+    const resolution = resolveReleaseRuntimeFromRegistry({
+      schemaVersion: 1,
+      protocol: "phase-5.9-v1",
+      updatedAt: 1000,
+      entries: [{
+        manifest,
+        currentStatus: "ACTIVE",
+        statusHistory: [{
+          status: "ACTIVE",
+          changedAt: 1000,
+          changedBy: "owner",
+          reason: "registered",
+        }],
+      }],
+    }, 2000);
+
+    expect(resolution.state).toMatchObject({
+      status: "ACTIVE",
+      reason: "ACTIVE_RELEASE",
+      canScan: true,
+      version: "v1.0.0",
+      pinned: true,
+      manifestFingerprint: manifest.manifestFingerprint,
+    });
+    expect(resolution.scannerOverrides?.symbols).toEqual(["EURUSD"]);
+    expect(
+      resolution.scannerOverrides?.engineConfig?.trigger?.minTriggerScore
+    ).toBe(80);
+    expect(
+      resolution.scannerOverrides?.timeframeRoles?.trigger
+    ).toBe("M15");
+    expect(resolution.scannerOverrides?.account?.riskPercent).toBe(0.5);
+  });
+
+  it("blocks a governed registry that has history but no ACTIVE release", () => {
+    const source = artifact();
+    const input = {
+      version: "v1.0.0",
+      title: "Old release",
+      note: "",
+      registeredBy: "owner",
+      sourceReportId: source.id,
+    };
+    const manifest = buildStrategyVersionManifest(source, input, 1000);
+    const resolution = resolveReleaseRuntimeFromRegistry({
+      schemaVersion: 1,
+      protocol: "phase-5.9-v1",
+      updatedAt: 1500,
+      entries: [{
+        manifest,
+        currentStatus: "DEPRECATED",
+        statusHistory: [
+          {
+            status: "ACTIVE",
+            changedAt: 1000,
+            changedBy: "owner",
+            reason: "registered",
+          },
+          {
+            status: "DEPRECATED",
+            changedAt: 1500,
+            changedBy: "owner",
+            reason: "retired",
+          },
+        ],
+      }],
+    });
+
+    expect(resolution.state.status).toBe("BLOCKED");
+    expect(resolution.state.reason).toBe("NO_ACTIVE_RELEASE");
+    expect(resolution.state.canScan).toBe(false);
+    expect(resolution.scannerOverrides).toBeNull();
+  });
+
+  it("blocks an ACTIVE manifest whose immutable content was tampered", () => {
+    const source = artifact();
+    const input = {
+      version: "v1.0.0",
+      title: "Tamper test",
+      note: "",
+      registeredBy: "owner",
+      sourceReportId: source.id,
+    };
+    const manifest = buildStrategyVersionManifest(source, input, 1000);
+    manifest.title = "tampered after registration";
+
+    const resolution = resolveReleaseRuntimeFromRegistry({
+      schemaVersion: 1,
+      protocol: "phase-5.9-v1",
+      updatedAt: 1000,
+      entries: [{
+        manifest,
+        currentStatus: "ACTIVE",
+        statusHistory: [{
+          status: "ACTIVE",
+          changedAt: 1000,
+          changedBy: "owner",
+          reason: "registered",
+        }],
+      }],
+    });
+
+    expect(resolution.state.status).toBe("BLOCKED");
+    expect(resolution.state.reason).toBe("MANIFEST_INVALID");
+  });
+});
+
 describe("Phase 5.9 strategy registry lifecycle", () => {
   it("keeps one ACTIVE version and requires explicit supersession", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "fse-registry-"));
@@ -293,6 +430,66 @@ describe("Phase 5.9 strategy registry lifecycle", () => {
       registry.entries.find((entry) => entry.manifest.version === "v1.0.0")
         ?.currentStatus
     ).toBe("SUPERSEDED");
+  });
+
+  it("reactivates a SUPERSEDED manifest through controlled rollback without mutating manifests", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "fse-registry-"));
+    tempPaths.push(dir);
+    const store = new JsonFileStrategyVersionStore(
+      path.join(dir, "registry.json")
+    );
+    const source = artifact();
+    const firstInput = {
+      version: "v1.0.0",
+      title: "Baseline",
+      note: "",
+      registeredBy: "owner",
+      sourceReportId: source.id,
+    };
+    const first = buildStrategyVersionManifest(source, firstInput, 1000);
+    await store.register(first, firstInput);
+
+    const secondInput = {
+      version: "v1.1.0",
+      title: "Next",
+      note: "",
+      registeredBy: "owner",
+      sourceReportId: source.id,
+      supersedesVersion: "v1.0.0",
+    };
+    const second = buildStrategyVersionManifest(source, secondInput, 2000);
+    await store.register(second, secondInput);
+
+    const before = await store.read();
+    const firstManifest = before.entries.find(
+      (entry) => entry.manifest.version === "v1.0.0"
+    )!.manifest;
+    const secondManifest = before.entries.find(
+      (entry) => entry.manifest.version === "v1.1.0"
+    )!.manifest;
+
+    const rolledBack = await store.rollback({
+      version: "v1.0.0",
+      changedBy: "operator",
+      reason: "Forward runtime regression.",
+    });
+
+    expect(
+      rolledBack.entries.find((entry) => entry.manifest.version === "v1.0.0")
+        ?.currentStatus
+    ).toBe("ACTIVE");
+    expect(
+      rolledBack.entries.find((entry) => entry.manifest.version === "v1.1.0")
+        ?.currentStatus
+    ).toBe("SUPERSEDED");
+    expect(
+      rolledBack.entries.find((entry) => entry.manifest.version === "v1.0.0")
+        ?.manifest
+    ).toEqual(firstManifest);
+    expect(
+      rolledBack.entries.find((entry) => entry.manifest.version === "v1.1.0")
+        ?.manifest
+    ).toEqual(secondManifest);
   });
 
   it("changes lifecycle status without mutating the immutable manifest", async () => {
