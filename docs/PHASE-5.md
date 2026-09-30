@@ -832,3 +832,154 @@ selection bias.
 A later phase can add confidence intervals, bootstrap/Monte Carlo trade-order
 diagnostics, minimum-sample warnings and exportable validation summaries while
 keeping statistical diagnostics separate from strategy selection.
+
+
+---
+
+## Phase 5.7 — Validation Report Hardening & Statistical Diagnostics
+
+Phase 5.7 adds deterministic statistical diagnostics to an already completed
+historical validation report. It remains an analysis layer only: strategy,
+execution, risk sizing and replay behavior are unchanged.
+
+### Win-rate confidence interval
+
+The workbench reports a **95% Wilson interval** for the observed historical win
+rate.
+
+Wilson is used instead of a simple normal approximation because it behaves
+better for smaller samples and win rates near 0% or 100%.
+
+The interval describes uncertainty in the observed sample. It is not a
+guarantee of future win rate.
+
+### Expectancy R bootstrap
+
+Historical realized-R outcomes are resampled **with replacement** using a
+deterministic seeded PRNG.
+
+Default:
+- 2,000 bootstrap resamples,
+- 95% percentile interval for mean/expectancy R,
+- fraction of bootstrap resamples whose mean R is above zero.
+
+The positive-resample fraction is deliberately not labeled as a probability of
+future profitability. It only describes the generated bootstrap resamples and
+inherits all limitations of the original historical sample.
+
+The seed is derived from the Phase 5.6 reproducibility fingerprint so the same
+report produces the same bootstrap result.
+
+### Trade-order Monte Carlo
+
+Phase 5.7 also runs deterministic Monte Carlo **trade-order shuffling**.
+
+Each iteration:
+1. uses exactly the same realized R outcomes,
+2. shuffles them without replacement,
+3. preserves terminal Net R,
+4. recalculates path-dependent cumulative R drawdown.
+
+The workbench reports:
+- observed historical max cumulative R drawdown,
+- median shuffled max drawdown,
+- P90,
+- P95,
+- P99,
+- worst simulated drawdown.
+
+This measures sensitivity to sequencing only. It does not invent new trades,
+change expectancy, simulate broker fills or claim a future drawdown
+distribution.
+
+### Minimum-sample warnings
+
+The workbench keeps small samples visible and adds explicit workflow warnings.
+
+Current review thresholds:
+- fewer than 30 total closed trades → strong small-sample warning,
+- fewer than 100 total trades → limited-sample information,
+- fewer than 30 trades in the default 70/30 OOS period → OOS warning,
+- any default 4-fold validation window below 10 trades → fold warning.
+
+These thresholds are **workflow review references**, not universal statistical
+standards and not automatic strategy pass/fail rules.
+
+### Formal validation summary export
+
+In addition to the complete Phase 5.4 report JSON, Phase 5.7 can export a
+compact:
+
+```
+<backtest-id>-validation-summary.json
+```
+
+The summary contains:
+- report identity and tags,
+- dataset/source identity,
+- run assumptions,
+- reproducibility fingerprints,
+- core performance metrics,
+- fixed 70/30 temporal holdout summary,
+- fixed 4-fold sequential-validation summary,
+- Phase 5.7 confidence/resampling diagnostics,
+- interpretation notes.
+
+The summary protocol is:
+
+```
+phase-5.7-v1
+```
+
+It is intended for review/audit and comparison without requiring the full
+historical order/trade/equity payload.
+
+### Determinism
+
+For the same report:
+- trade chronology is sorted before statistical diagnostics,
+- bootstrap PRNG seed is deterministic,
+- Monte Carlo PRNG seed is deterministic,
+- identical assumptions/outcomes produce identical diagnostics,
+- changing labels/tags does not change the Phase 5.6 reproducibility
+  fingerprint.
+
+### Interpretation limits
+
+Phase 5.7 cannot correct:
+- survivorship bias,
+- poor or incomplete market data,
+- wrong broker timezone assumptions,
+- spread-model error,
+- same-bar execution-model uncertainty,
+- regime mismatch,
+- strategy-selection bias,
+- parameter overfitting performed outside the validation system.
+
+Confidence intervals and resampling are therefore evidence-quality tools, not
+automatic proof of future profitability.
+
+### Phase 5.7 Definition of done
+
+1. win rate exposes a bounded 95% Wilson interval,
+2. expectancy R exposes a deterministic 95% bootstrap interval,
+3. bootstrap terminology does not imply a future-profit probability,
+4. trade-order Monte Carlo preserves realized outcomes and terminal Net R,
+5. shuffled drawdown percentiles are deterministic,
+6. zero-trade reports produce null diagnostics instead of NaN/Infinity,
+7. small full/OOS/fold samples remain visible with explicit warnings,
+8. warning thresholds are documented as workflow references only,
+9. compact validation summary can be exported from the UI,
+10. validation summary includes reproducibility identity and interpretation notes,
+11. Phase 5.7 performs no parameter optimization/ranking,
+12. Phase 1–5.6 behavior remains unchanged,
+13. typecheck, tests, lint and production build pass.
+
+### Next planned subphase
+
+**Phase 5.8 — Validation Evidence Review & Release Gate**
+
+A later phase can consolidate dataset quality, reproducibility, OOS robustness,
+statistical warnings and forward-paper evidence into a structured human review
+checklist before a strategy/version is promoted, without producing an automatic
+trading recommendation.
