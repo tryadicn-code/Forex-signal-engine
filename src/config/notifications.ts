@@ -15,6 +15,7 @@ export interface NotificationConfig {
   maxAttempts: number;
   retryBaseMs: number;
   requestTimeoutMs: number;
+  workerIntervalMs: number;
   timeZone: string;
   adminSecret: string | null;
   telegramEnabled: boolean;
@@ -66,6 +67,10 @@ export function resolveNotificationConfig(
     requestTimeoutMs: parsePositiveInteger(
       env.FSE_ALERT_REQUEST_TIMEOUT_MS,
       8_000
+    ),
+    workerIntervalMs: parsePositiveInteger(
+      env.FSE_ALERT_WORKER_INTERVAL_MS,
+      5_000
     ),
     timeZone: optional(env.FSE_ALERT_TIME_ZONE) ?? "Asia/Makassar",
     adminSecret: optional(env.FSE_ALERT_ADMIN_SECRET),
