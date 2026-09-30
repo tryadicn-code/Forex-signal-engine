@@ -5,6 +5,14 @@ import type {
   BacktestRunListItem,
   BacktestRunMetadata,
 } from "@/replay/backtest-run-types";
+import type {
+  BacktestReleaseReview,
+  BacktestReleaseReviewInput,
+} from "@/replay/release-gate-types";
+import {
+  buildReleaseEvidenceReview,
+  validateReleaseReviewForPersistence,
+} from "@/replay/release-gate";
 
 const DEFAULT_DIRECTORY = path.join(
   process.cwd(),
@@ -53,6 +61,41 @@ export class JsonFileBacktestRunStore {
     const next: BacktestRunArtifact = {
       ...artifact,
       metadata,
+    };
+    await this.save(next);
+    return next;
+  }
+
+  async updateReleaseReview(
+    id: string,
+    input: BacktestReleaseReviewInput
+  ): Promise<BacktestRunArtifact | null> {
+    const artifact = await this.read(id);
+    if (!artifact) return null;
+
+    const evidence = buildReleaseEvidenceReview(artifact, {
+      forwardEvidenceAvailable: input.forwardEvidence != null,
+    });
+    const review: BacktestReleaseReview = {
+      decision: input.decision,
+      reviewer: normalizeReviewer(input.reviewer),
+      note: (input.note ?? "").trim(),
+      checklist: { ...input.checklist },
+      reviewedFingerprint: evidence.fingerprint,
+      forwardEvidence: input.forwardEvidence
+        ? {
+            capturedAt: input.forwardEvidence.capturedAt,
+            comparison: structuredClone(input.forwardEvidence.comparison),
+          }
+        : null,
+      updatedAt: Date.now(),
+    };
+
+    validateReleaseReviewForPersistence(artifact, review);
+
+    const next: BacktestRunArtifact = {
+      ...artifact,
+      releaseReview: review,
     };
     await this.save(next);
     return next;
@@ -118,6 +161,8 @@ function toListItem(artifact: BacktestRunArtifact): BacktestRunListItem {
     intrabarConflictPolicy: artifact.config.intrabarConflictPolicy,
     label: artifact.metadata?.label || null,
     tags: artifact.metadata?.tags ? [...artifact.metadata.tags] : [],
+    releaseDecision: artifact.releaseReview?.decision ?? null,
+    releaseReviewedAt: artifact.releaseReview?.updatedAt ?? null,
   };
 }
 
@@ -157,4 +202,16 @@ function normalizeTags(values: string[]): string[] {
     }
   }
   return normalized;
+}
+
+
+function normalizeReviewer(value: string): string {
+  const reviewer = value.trim();
+  if (!reviewer) {
+    throw new Error("Release review requires a reviewer name/identifier.");
+  }
+  if (reviewer.length > 80) {
+    throw new Error("Release reviewer must be 80 characters or fewer.");
+  }
+  return reviewer;
 }
