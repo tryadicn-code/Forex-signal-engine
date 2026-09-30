@@ -39,6 +39,14 @@ import {
   recordForwardValidationObservation,
 } from "@/server/forward-validation-access";
 import { ensureStartupRecovery } from "@/server/startup-recovery";
+import {
+  acquireScannerLease,
+  emitRuntimeTelemetry,
+  releaseScannerLease,
+  sharedTransactionalMode,
+  transactionalStore,
+} from "@/transactional/runtime";
+import { TRANSACTIONAL_CONFIG } from "@/config/transactional";
 
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
@@ -150,6 +158,14 @@ async function runScanner(
     await runtime.__fseScanInFlight;
   }
 
+  const lease = sharedTransactionalMode()
+    ? await acquireScannerLease()
+    : null;
+  if (sharedTransactionalMode() && !lease) {
+    return "Another runtime instance currently owns the distributed scanner lease.";
+  }
+
+  const startedAt = Date.now();
   const work = (async (): Promise<string | null> => {
     try {
       inst.setRuntimeAccountBalance(await paperBalance());
@@ -166,6 +182,19 @@ async function runScanner(
         return "Strategy release changed during scan; Paper execution was not applied. Refresh to run under the current release.";
       }
 
+      // A long analysis cycle must prove it still owns the shared lease before
+      // mutating Paper or forward evidence. The fencing token prevents an
+      // expired owner from releasing or completing work owned by a successor.
+      if (lease) {
+        const renewed = await transactionalStore().renewLease(
+          lease,
+          TRANSACTIONAL_CONFIG.leaseTtlMs
+        );
+        if (!renewed) {
+          return "Distributed scanner lease expired during analysis; Paper execution was not applied.";
+        }
+      }
+
       await assertForwardValidationPersistenceHealthy();
       const paper = await processPaperSnapshot(
         snapshot,
@@ -176,19 +205,43 @@ async function runScanner(
         paper,
         currentRelease.state
       );
+      await emitRuntimeTelemetry({
+        category: "scanner",
+        name: "cycle",
+        level: "INFO",
+        durationMs: Date.now() - startedAt,
+        attributes: {
+          release: currentRelease.state.version ?? "unversioned",
+          symbolsRequested: snapshot.symbolsRequested,
+          symbolsSuccessful: snapshot.symbolsSuccessful,
+          symbolsFailed: snapshot.symbolsFailed,
+        },
+      });
       return null;
     } catch (error) {
-      return error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
+      await emitRuntimeTelemetry({
+        category: "scanner",
+        name: "cycle",
+        level: "ERROR",
+        durationMs: Date.now() - startedAt,
+        attributes: {
+          error: message.slice(0, 500),
+          release: release.state.version ?? "unversioned",
+        },
+      });
+      return message;
     }
   })();
 
   runtime.__fseScanInFlight = work;
   runtime.__fseScanInFlightIdentity = expectedIdentity;
-  runtime.__fseScanStartedAt = Date.now();
+  runtime.__fseScanStartedAt = startedAt;
 
   try {
     return await work;
   } finally {
+    await releaseScannerLease(lease);
     if (runtime.__fseScanInFlight === work) {
       runtime.__fseScanInFlight = undefined;
       runtime.__fseScanInFlightIdentity = undefined;
