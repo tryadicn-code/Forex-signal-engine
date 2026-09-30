@@ -30,6 +30,7 @@ export function resolveReleaseRuntimeFromRegistry(
         title: null,
         manifestFingerprint: null,
         sourceReportId: null,
+        activationAt: null,
         registryUpdatedAt: registry.updatedAt,
         resolvedAt,
         pinned: false,
@@ -65,6 +66,11 @@ export function resolveReleaseRuntimeFromRegistry(
   }
 
   const manifest = active.manifest;
+  const activationAt =
+    [...active.statusHistory]
+      .reverse()
+      .find((event) => event.status === "ACTIVE")?.changedAt ??
+    manifest.registeredAt;
   const driftAreas = detectDefaultDrift(manifest);
   const state: ReleaseRuntimeState = {
     status: "ACTIVE",
@@ -74,6 +80,7 @@ export function resolveReleaseRuntimeFromRegistry(
     title: manifest.title,
     manifestFingerprint: manifest.manifestFingerprint,
     sourceReportId: manifest.sourceReportId,
+    activationAt,
     registryUpdatedAt: registry.updatedAt,
     resolvedAt,
     pinned: true,
@@ -135,6 +142,7 @@ function blockedState(
       title: null,
       manifestFingerprint: null,
       sourceReportId: null,
+      activationAt: null,
       registryUpdatedAt,
       resolvedAt,
       pinned: false,
