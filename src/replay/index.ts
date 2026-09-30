@@ -64,3 +64,12 @@ export type {
   HistoricalSeriesCoverage,
   HistoricalTextFile,
 } from "@/replay/import-types";
+
+export {
+  getHistoricalSegmentRows,
+  segmentDimensionLabel,
+  toComparablePaperPerformance,
+} from "@/replay/validation-workbench";
+export type {
+  BacktestRunMetadata,
+} from "@/replay/backtest-run-types";
