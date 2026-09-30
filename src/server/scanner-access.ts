@@ -197,7 +197,12 @@ async function runScanner(
 }
 
 function ensureAutoScanner(): void {
-  if (!DEFAULT_PAPER_TRADING_CONFIG.autoScanEnabled) return;
+  if (
+    !DEFAULT_PAPER_TRADING_CONFIG.autoScanEnabled ||
+    PRODUCTION_CONFIG.maintenanceMode
+  ) {
+    return;
+  }
 
   const runtime = globalThis as ScannerRuntimeGlobal;
   if (runtime.__fseAutoScanTimer) return;
@@ -212,6 +217,8 @@ function ensureAutoScanner(): void {
   const timer = setInterval(() => {
     runtime.__fseNextAutoScanAt = Date.now() + interval;
     void (async () => {
+      const startup = await ensureStartupRecovery();
+      if (startup.blocking) return;
       const release = await resolveRuntimeRelease();
       const inst = await scannerForRelease(release);
       if (!inst) return;
@@ -230,7 +237,19 @@ export async function readDashboard(
   asOf: number = runtimeDefaultAsOf()
 ): Promise<DashboardData> {
   ensureAutoScanner();
+  const startup = await ensureStartupRecovery();
   const release = await resolveRuntimeRelease();
+  if (startup.blocking) {
+    return dashboardView(
+      null,
+      "Startup recovery blocked scanner execution: " +
+        startup.checks
+          .filter((item) => item.critical && !item.ok)
+          .map((item) => item.domain + ": " + item.message)
+          .join("; "),
+      release
+    );
+  }
   const inst = await scannerForRelease(release);
 
   if (!inst) {
@@ -257,7 +276,19 @@ export async function refreshScanner(
   asOf: number = runtimeDefaultAsOf()
 ): Promise<DashboardData> {
   ensureAutoScanner();
+  const startup = await ensureStartupRecovery();
   const release = await resolveRuntimeRelease();
+  if (startup.blocking) {
+    return dashboardView(
+      null,
+      "Startup recovery blocked scanner execution: " +
+        startup.checks
+          .filter((item) => item.critical && !item.ok)
+          .map((item) => item.domain + ": " + item.message)
+          .join("; "),
+      release
+    );
+  }
   const inst = await scannerForRelease(release);
 
   if (!inst) {
@@ -277,6 +308,8 @@ export async function refreshScanner(
 }
 
 export async function listUniverse(): Promise<string[]> {
+  const startup = await ensureStartupRecovery();
+  if (startup.blocking) return [];
   const release = await resolveRuntimeRelease();
   const inst = await scannerForRelease(release);
   return inst?.listSymbols() ?? [];
