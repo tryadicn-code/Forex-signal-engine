@@ -4,11 +4,12 @@ Automated **Forex scanner + signal dashboard**. The system ingests market data,
 runs it through a strictly ordered decision pipeline, and emits explainable
 trade signals.
 
-> **Status: Phase 6 — Strategy Release Runtime & Governance COMPLETE.**
+> **Status: Phase 7 — Forward Validation & Runtime Drift Monitoring COMPLETE.**
 > The project includes the core strategy engine, multi-pair scanner/dashboard,
 > deterministic Paper Trading, historical validation, immutable strategy
-> manifests, ACTIVE-release runtime pinning, fail-closed governance, release
-> audit and controlled rollback. Live broker execution is intentionally not enabled.
+> manifests, ACTIVE-release runtime pinning, controlled rollback and
+> release-scoped forward monitoring against preserved historical references.
+> Live broker execution is intentionally not enabled.
 
 ## Pipeline
 
@@ -73,11 +74,12 @@ src/
 tests/               Test suite mirroring the source tree
 ```
 
-The repository now contains provider, scanner, paper-trading, historical
-validation and release-runtime governance layers. Phase 6 pins the forward
-scanner to the immutable ACTIVE strategy manifest when one exists. Historical
-reports, Paper account state, strategy registry and runtime audit remain isolated
-under separate `.data/` files.
+The repository now contains provider, scanner, Paper Trading, historical
+validation, release-runtime governance and forward-validation layers. Phase 6
+pins the scanner to the immutable ACTIVE strategy manifest; Phase 7 tags new
+Paper outcomes to that exact release epoch and monitors recent performance/data
+drift against the preserved historical evidence. Each persistence domain remains
+isolated under separate `.data/` files.
 
 ## Engineering principles
 
@@ -92,10 +94,12 @@ under separate `.data/` files.
 ## Scope guardrails
 
 The FSE can scan, validate signals, simulate Paper Trading, run deterministic
-historical validation and execute the scanner under an immutable validated
-ACTIVE strategy release. It still does **not** send real broker orders. ACTIVE
-means the Paper/runtime scanner is pinned to that validated manifest; it is not
-an authorization for live trading.
+historical validation, execute the scanner under an immutable ACTIVE strategy
+release, and monitor release-scoped forward evidence on new market data. It
+still does **not** send real broker orders. Forward-monitoring states are
+descriptive evidence for human review; they never auto-retune or auto-rollback
+the strategy.
 
-See [docs/PHASE-6.md](./docs/PHASE-6.md) for release runtime, drift guards,
-audit behavior and controlled rollback.
+See [docs/PHASE-6.md](./docs/PHASE-6.md) for release runtime/governance and
+[docs/PHASE-7.md](./docs/PHASE-7.md) for forward validation and drift
+monitoring.
