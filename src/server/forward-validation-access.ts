@@ -1,7 +1,7 @@
 import "server-only";
 
-import { join } from "node:path";
 import { DEFAULT_FORWARD_VALIDATION_CONFIG } from "@/config/forward-validation";
+import { STORAGE_PATHS } from "@/config/storage";
 import { buildForwardValidationReport } from "@/forward-validation/analyzer";
 import { JsonFileForwardValidationStore } from "@/forward-validation/store";
 import type {
@@ -17,8 +17,7 @@ import { readStrategyVersionRegistry } from "@/server/strategy-version-access";
 import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
 
 const store = new JsonFileForwardValidationStore(
-  process.env.FSE_FORWARD_VALIDATION_STORE_PATH ??
-    join(process.cwd(), ".data", "forward-validation.json"),
+  STORAGE_PATHS.forwardValidation,
   DEFAULT_FORWARD_VALIDATION_CONFIG.maxObservations
 );
 
