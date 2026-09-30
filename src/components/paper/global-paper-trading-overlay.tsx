@@ -6,14 +6,14 @@ import type { PaperDashboardData } from "@/paper/types";
 
 export function GlobalPaperTradingOverlay() {
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState<"portfolio" | "journal">("journal");
+  const [view, setView] = useState<"portfolio" | "journal">("portfolio");
   const [paper, setPaper] = useState<PaperDashboardData | undefined>(undefined);
   const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     const openPaper = (event: Event) => {
       const detail = (event as CustomEvent<{ view?: "portfolio" | "journal" }>).detail;
-      setView(detail?.view ?? "journal");
+      setView(detail?.view ?? "portfolio");
       setOpen(true);
 
       void fetch("/api/paper", { method: "GET", cache: "no-store" })
