@@ -1,6 +1,14 @@
 import { JsonFileBacktestRunStore } from "@/server/backtest-run-store";
 import { JsonFileStrategyVersionStore } from "@/server/strategy-version-store";
 import {
+  TransactionalBacktestRunStore,
+  TransactionalStrategyVersionStore,
+} from "@/transactional/domain-stores";
+import {
+  sharedTransactionalMode,
+  transactionalStore,
+} from "@/transactional/runtime";
+import {
   buildStrategyVersionManifest,
 } from "@/replay/strategy-version-registry";
 import type {
@@ -10,8 +18,12 @@ import type {
   StrategyVersionRegistry,
 } from "@/replay/strategy-version-types";
 
-const backtests = new JsonFileBacktestRunStore();
-const registry = new JsonFileStrategyVersionStore();
+const backtests = sharedTransactionalMode()
+  ? new TransactionalBacktestRunStore(transactionalStore())
+  : new JsonFileBacktestRunStore();
+const registry = sharedTransactionalMode()
+  ? new TransactionalStrategyVersionStore(transactionalStore())
+  : new JsonFileStrategyVersionStore();
 
 type StrategyRegistryGlobal = typeof globalThis & {
   __fseStrategyRegistryMutationQueue?: Promise<void>;
