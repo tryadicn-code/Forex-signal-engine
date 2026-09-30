@@ -145,8 +145,16 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
         <Fact label="Release" value={report.release.version} />
         <Fact label="Forward trades" value={String(report.sample.tradeCount)} />
         <Fact
+          label="Window trades"
+          value={String(report.monitoringWindow.tradeCount)}
+        />
+        <Fact
           label="Observations"
           value={String(report.operational.observationCount)}
+        />
+        <Fact
+          label="Window obs"
+          value={String(report.monitoringWindow.observationCount)}
         />
         <Fact
           label="Span"
@@ -261,7 +269,7 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
               {report.release.manifestFingerprint}
             </div>
             <p className="mt-2 text-[8px] leading-relaxed text-zinc-700">
-              Monitoring statuses are descriptive only. Phase 7 never changes parameters, promotes a version, or triggers rollback automatically.
+              Drift indicators use the recent monitoring window; cumulative forward metrics remain in the exported report. Phase 7 never changes parameters, promotes a version, or triggers rollback automatically.
             </p>
           </section>
         </aside>
