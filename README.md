@@ -4,12 +4,11 @@ Automated **Forex scanner + signal dashboard**. The system ingests market data,
 runs it through a strictly ordered decision pipeline, and emits explainable
 trade signals.
 
-> **Status: Phase 5 — Historical Validation / Backtest COMPLETE.**
+> **Status: Phase 6 — Strategy Release Runtime & Governance COMPLETE.**
 > The project includes the core strategy engine, multi-pair scanner/dashboard,
-> deterministic Paper Trading, historical replay/execution, analytics,
-> robustness/OOS validation, statistical diagnostics, human release review and
-> an immutable strategy-version registry. Live broker execution is intentionally
-> not enabled.
+> deterministic Paper Trading, historical validation, immutable strategy
+> manifests, ACTIVE-release runtime pinning, fail-closed governance, release
+> audit and controlled rollback. Live broker execution is intentionally not enabled.
 
 ## Pipeline
 
@@ -74,9 +73,11 @@ src/
 tests/               Test suite mirroring the source tree
 ```
 
-The repository now contains provider, scanner, paper-trading and historical
-validation/replay layers. Phase 5 historical reports and strategy manifests are
-stored under `.data/` and remain isolated from the Phase 4 paper account.
+The repository now contains provider, scanner, paper-trading, historical
+validation and release-runtime governance layers. Phase 6 pins the forward
+scanner to the immutable ACTIVE strategy manifest when one exists. Historical
+reports, Paper account state, strategy registry and runtime audit remain isolated
+under separate `.data/` files.
 
 ## Engineering principles
 
@@ -90,8 +91,11 @@ stored under `.data/` and remain isolated from the Phase 4 paper account.
 
 ## Scope guardrails
 
-The FSE can scan, validate signals, simulate Paper Trading and run deterministic
-historical validation. It still does **not** send real broker orders. A Phase
-5.9 ACTIVE strategy version means that exact configuration has recorded
-validation evidence and human release review; it is not an authorization for
-live trading.
+The FSE can scan, validate signals, simulate Paper Trading, run deterministic
+historical validation and execute the scanner under an immutable validated
+ACTIVE strategy release. It still does **not** send real broker orders. ACTIVE
+means the Paper/runtime scanner is pinned to that validated manifest; it is not
+an authorization for live trading.
+
+See [docs/PHASE-6.md](./docs/PHASE-6.md) for release runtime, drift guards,
+audit behavior and controlled rollback.
