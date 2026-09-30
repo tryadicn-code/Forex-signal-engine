@@ -1,3 +1,4 @@
+import type { BacktestReleaseReview } from "@/replay/release-gate-types";
 import type { HistoricalBacktestAnalytics } from "@/replay/analytics-types";
 import type {
   HistoricalExecutionSummary,
@@ -54,6 +55,8 @@ export interface BacktestRunArtifact {
   analytics: HistoricalBacktestAnalytics;
   /** Optional user-authored organization metadata. Does not affect results. */
   metadata?: BacktestRunMetadata;
+  /** Human release review bound to a reproducibility fingerprint. */
+  releaseReview?: BacktestReleaseReview;
 }
 
 export interface BacktestRunListItem {
@@ -78,6 +81,8 @@ export interface BacktestRunListItem {
   intrabarConflictPolicy: HistoricalIntrabarConflictPolicy;
   label: string | null;
   tags: string[];
+  releaseDecision: "PENDING" | "HOLD" | "PROMOTE" | null;
+  releaseReviewedAt: number | null;
 }
 
 export class BacktestValidationError extends Error {
