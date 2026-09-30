@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { RobustnessWorkbench } from "@/components/backtest/robustness-workbench";
 import { StatisticalDiagnosticsWorkbench } from "@/components/backtest/statistical-diagnostics-workbench";
 import { ReleaseGateWorkbench } from "@/components/backtest/release-gate-workbench";
+import { StrategyVersionRegistryWorkbench } from "@/components/backtest/strategy-version-registry-workbench";
 import {
   compareHistoricalToForward,
   toComparableHistoricalPerformance,
@@ -142,7 +143,7 @@ export function ValidationWorkbench({
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
-            Phase 5.8
+            Phase 5.9
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             Validation workbench
@@ -251,6 +252,8 @@ export function ValidationWorkbench({
             onArtifactUpdated={onArtifactUpdated}
             onRecentRunsRefresh={onRecentRunsRefresh}
           />
+
+          <StrategyVersionRegistryWorkbench artifact={artifact} />
 
           <MultiRunComparison
             runs={recentRuns}
