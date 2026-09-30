@@ -24,6 +24,11 @@ export interface PaperEngineSnapshot {
   freshness: "FRESH";
   engineVersion: string;
   paperConfigVersion: string;
+  /** Phase 7 release identity; absent on legacy/unversioned Paper records. */
+  strategyVersion?: string | null;
+  strategyManifestFingerprint?: string | null;
+  strategySourceReportId?: string | null;
+  strategyActivationAt?: number | null;
 }
 
 export interface PaperOrder {
