@@ -17,6 +17,13 @@ export interface PaperAccountConfigSnapshot {
   createdAt: number;
 }
 
+export interface PaperReleaseIdentity {
+  strategyVersion: string | null;
+  strategyManifestFingerprint: string | null;
+  strategySourceReportId: string | null;
+  strategyActivationAt: number | null;
+}
+
 export interface PaperEngineSnapshot {
   bias: BiasLabel | null;
   setupScore: number | null;
