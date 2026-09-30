@@ -705,11 +705,9 @@ export class BrokerExecutionService {
   }
 
   private async safePositions(): Promise<BrokerPosition[]> {
-    try {
-      return await this.options.provider.listOpenPositions();
-    } catch {
-      return [];
-    }
+    // Position visibility is part of the live exposure gate. If broker
+    // positions cannot be read, fail closed rather than assuming zero exposure.
+    return this.options.provider.listOpenPositions();
   }
 }
 
