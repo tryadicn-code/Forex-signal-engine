@@ -1,5 +1,7 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import {
+  readDurableJson,
+  writeDurableJson,
+} from "@/persistence/durable-json";
 import type {
   ForwardValidationObservation,
   ForwardValidationStoreState,
@@ -14,27 +16,17 @@ export class JsonFileForwardValidationStore {
   ) {}
 
   async read(): Promise<ForwardValidationStoreState> {
-    try {
-      const raw = await readFile(this.path, "utf8");
-      const parsed = JSON.parse(raw) as ForwardValidationStoreState;
-      if (
-        parsed.schemaVersion !== 1 ||
-        parsed.protocol !== "phase-7-forward-v1" ||
-        !Array.isArray(parsed.observations)
-      ) {
-        throw new Error("Invalid Phase 7 forward validation store.");
+    const result = await readDurableJson(
+      this.path,
+      validateForwardValidationState
+    );
+    return (
+      result.value ?? {
+        schemaVersion: 1,
+        protocol: "phase-7-forward-v1",
+        observations: [],
       }
-      return parsed;
-    } catch (error) {
-      if (isNotFound(error)) {
-        return {
-          schemaVersion: 1,
-          protocol: "phase-7-forward-v1",
-          observations: [],
-        };
-      }
-      throw error;
-    }
+    );
   }
 
   async append(
@@ -68,18 +60,19 @@ export class JsonFileForwardValidationStore {
   }
 
   private async write(state: ForwardValidationStoreState): Promise<void> {
-    await mkdir(dirname(this.path), { recursive: true });
-    const temporary = this.path + ".tmp";
-    await writeFile(temporary, JSON.stringify(state, null, 2), "utf8");
-    await rename(temporary, this.path);
+    validateForwardValidationState(state);
+    await writeDurableJson(this.path, state);
   }
 }
 
-function isNotFound(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: string }).code === "ENOENT"
-  );
+function validateForwardValidationState(
+  state: ForwardValidationStoreState
+): void {
+  if (
+    state.schemaVersion !== 1 ||
+    state.protocol !== "phase-7-forward-v1" ||
+    !Array.isArray(state.observations)
+  ) {
+    throw new Error("Invalid Phase 7 forward validation store.");
+  }
 }
