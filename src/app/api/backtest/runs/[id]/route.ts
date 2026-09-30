@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import type {
+  ComparablePerformance,
+  HistoricalForwardComparison,
+} from "@/replay/analytics-types";
 import {
   readPersistedBacktest,
   updatePersistedBacktestMetadata,
@@ -145,11 +149,7 @@ export async function PATCH(
             | "REVIEWED"
             | "WAIVED",
         },
-        forwardEvidence:
-          review.forwardEvidence === null ||
-          review.forwardEvidence === undefined
-            ? null
-            : (review.forwardEvidence as never),
+        forwardEvidence: parseForwardEvidence(review.forwardEvidence),
       });
 
       if (!artifact) {
@@ -173,4 +173,114 @@ export async function PATCH(
       { status: 400 }
     );
   }
+}
+
+
+function parseForwardEvidence(value: unknown): {
+  capturedAt: number;
+  comparison: HistoricalForwardComparison;
+} | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "object" || value === null) {
+    throw new Error("Invalid Forward Paper evidence payload.");
+  }
+
+  const input = value as Record<string, unknown>;
+  if (
+    typeof input.capturedAt !== "number" ||
+    !Number.isFinite(input.capturedAt) ||
+    typeof input.comparison !== "object" ||
+    input.comparison === null
+  ) {
+    throw new Error("Invalid Forward Paper evidence payload.");
+  }
+
+  const comparison = input.comparison as Record<string, unknown>;
+  return {
+    capturedAt: input.capturedAt,
+    comparison: {
+      historical: parseComparablePerformance(
+        comparison.historical,
+        "historical"
+      ),
+      forward: parseComparablePerformance(comparison.forward, "forward"),
+      delta: parseComparisonDelta(comparison.delta),
+    },
+  };
+}
+
+function parseComparablePerformance(
+  value: unknown,
+  label: string
+): ComparablePerformance {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("Invalid " + label + " comparison metrics.");
+  }
+  const input = value as Record<string, unknown>;
+  return {
+    sampleSize: requiredFiniteNumber(input.sampleSize, label + ".sampleSize"),
+    winRate: nullableFiniteNumber(input.winRate, label + ".winRate"),
+    profitFactor: nullableFiniteNumber(
+      input.profitFactor,
+      label + ".profitFactor"
+    ),
+    expectancyR: nullableFiniteNumber(
+      input.expectancyR,
+      label + ".expectancyR"
+    ),
+    averageR: nullableFiniteNumber(input.averageR, label + ".averageR"),
+    maxDrawdownPercent: requiredFiniteNumber(
+      input.maxDrawdownPercent,
+      label + ".maxDrawdownPercent"
+    ),
+    netReturnPercent: requiredFiniteNumber(
+      input.netReturnPercent,
+      label + ".netReturnPercent"
+    ),
+  };
+}
+
+function parseComparisonDelta(
+  value: unknown
+): HistoricalForwardComparison["delta"] {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("Invalid comparison delta.");
+  }
+  const input = value as Record<string, unknown>;
+  return {
+    sampleSize: requiredFiniteNumber(input.sampleSize, "delta.sampleSize"),
+    winRate: nullableFiniteNumber(input.winRate, "delta.winRate"),
+    profitFactor: nullableFiniteNumber(
+      input.profitFactor,
+      "delta.profitFactor"
+    ),
+    expectancyR: nullableFiniteNumber(
+      input.expectancyR,
+      "delta.expectancyR"
+    ),
+    averageR: nullableFiniteNumber(input.averageR, "delta.averageR"),
+    maxDrawdownPercent: requiredFiniteNumber(
+      input.maxDrawdownPercent,
+      "delta.maxDrawdownPercent"
+    ),
+    netReturnPercent: requiredFiniteNumber(
+      input.netReturnPercent,
+      "delta.netReturnPercent"
+    ),
+  };
+}
+
+function requiredFiniteNumber(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(label + " must be a finite number.");
+  }
+  return value;
+}
+
+function nullableFiniteNumber(
+  value: unknown,
+  label: string
+): number | null {
+  if (value === null) return null;
+  return requiredFiniteNumber(value, label);
 }
