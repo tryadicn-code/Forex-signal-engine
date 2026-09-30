@@ -38,6 +38,7 @@ import {
   assertForwardValidationPersistenceHealthy,
   recordForwardValidationObservation,
 } from "@/server/forward-validation-access";
+import { ensureStartupRecovery } from "@/server/startup-recovery";
 
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
