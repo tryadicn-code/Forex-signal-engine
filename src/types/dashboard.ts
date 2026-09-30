@@ -4,6 +4,7 @@ import type { SignalStateTransition } from "@/types/market-data";
 import type { PaperDashboardData } from "@/paper/types";
 import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
 import type { BrokerExecutionDashboard } from "@/broker/types";
+import type { NotificationDashboard } from "@/notifications/types";
 
 /**
  * Serializable application-facing payload for the dashboard.
@@ -26,6 +27,8 @@ export interface DashboardData {
   releaseRuntime?: ReleaseRuntimeState;
   /** Phase 10 broker execution safety state. */
   broker?: BrokerExecutionDashboard;
+  /** Phase 11 realtime alerting state. */
+  notifications?: NotificationDashboard;
   /** Runtime automation status. Optional for older fixtures/backward compatibility. */
   automation?: {
     enabled: boolean;
