@@ -138,12 +138,13 @@ export function PaperTradingPanel({
               {paper.openPositions.map((position) => (
                 <article
                   key={position.id}
-                  className="overflow-x-auto border-b border-zinc-800/70 last:border-b-0"
+                  className="border-b border-zinc-800/70 px-3 py-2.5 last:border-b-0"
                 >
-                  <div className="flex min-w-max items-center gap-3 whitespace-nowrap px-3 py-2.5 text-[10px]">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span className="font-mono text-sm font-semibold text-zinc-100">
                       {position.symbol}
                     </span>
+
                     <span
                       className={
                         "rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold " +
@@ -154,10 +155,26 @@ export function PaperTradingPanel({
                     >
                       {position.side}
                     </span>
+
                     <span className="rounded border border-sky-700/60 bg-sky-950/25 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-sky-300">
                       {position.positionSize.toFixed(2)} lot
                     </span>
 
+                    <span
+                      className={
+                        "ml-auto whitespace-nowrap font-mono text-xs font-semibold " +
+                        (position.unrealizedPnL > 0
+                          ? "text-emerald-300"
+                          : position.unrealizedPnL < 0
+                            ? "text-red-300"
+                            : "text-zinc-200")
+                      }
+                    >
+                      {money(position.unrealizedPnL, account.currency)}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-4 gap-2 text-[9px] sm:text-[10px]">
                     <InlineDatum
                       label="Entry"
                       value={formatPrice(position.symbol, position.entryPrice)}
@@ -176,19 +193,6 @@ export function PaperTradingPanel({
                       value={formatPrice(position.symbol, position.takeProfit)}
                       tone="positive"
                     />
-
-                    <span
-                      className={
-                        "ml-1 font-mono text-xs font-semibold " +
-                        (position.unrealizedPnL > 0
-                          ? "text-emerald-300"
-                          : position.unrealizedPnL < 0
-                            ? "text-red-300"
-                            : "text-zinc-200")
-                      }
-                    >
-                      {money(position.unrealizedPnL, account.currency)}
-                    </span>
                   </div>
                 </article>
               ))}
@@ -312,11 +316,13 @@ function InlineDatum({
         : "text-zinc-300";
 
   return (
-    <span className="inline-flex items-center gap-1">
-      <span className={tone === "neutral" ? "text-zinc-600" : toneClass}>
+    <div className="min-w-0">
+      <div className={tone === "neutral" ? "text-zinc-600" : toneClass}>
         {label}
-      </span>
-      <span className={"font-mono tabular-nums " + toneClass}>{value}</span>
-    </span>
+      </div>
+      <div className={"mt-0.5 truncate font-mono tabular-nums " + toneClass}>
+        {value}
+      </div>
+    </div>
   );
 }
