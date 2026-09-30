@@ -78,10 +78,13 @@ describe("Phase 3 price chart", () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
 
     const firstTimestamp = payload("H1").candles[0].timestamp;
-    const hitTarget = container.querySelector(
-      `[data-candle-timestamp="${firstTimestamp}"]`
-    );
-    expect(hitTarget).not.toBeNull();
+    const hitTarget = await waitFor(() => {
+      const target = container.querySelector(
+        `[data-candle-timestamp="${firstTimestamp}"]`
+      );
+      expect(target).not.toBeNull();
+      return target;
+    });
 
     fireEvent.pointerEnter(hitTarget!);
     expect(screen.getByTestId("chart-ohlc")).toHaveTextContent("1.08000");
