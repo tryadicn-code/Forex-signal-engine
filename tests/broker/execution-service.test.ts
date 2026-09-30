@@ -125,7 +125,10 @@ function release(): ReleaseRuntimeState {
   };
 }
 
-function candidate(riskPercent = 0.2): SymbolScanResult {
+function candidate(
+  riskPercent = 0.2,
+  signalId = "signal-1"
+): SymbolScanResult {
   return {
     symbol: "EURUSD",
     status: "ANALYSED",
@@ -145,7 +148,7 @@ function candidate(riskPercent = 0.2): SymbolScanResult {
     positionSize: 0.05,
     executionDecision: "EXECUTE",
     signalState: "EXECUTE",
-    signalId: "signal-1",
+    signalId,
     freshness: "FRESH",
     updatedAt: 2000,
     timeframes: [],
@@ -280,6 +283,31 @@ describe("Phase 10 broker execution safety coordinator", () => {
     expect(await service.reconcileUnresolved()).toBe(1);
     state = await store.read();
     expect(state.records[0].status).toBe("RECONCILED");
+  });
+
+  it("blocks every new live order while a prior submit is unresolved", async () => {
+    const broker = new MockLiveBroker();
+    broker.throwOnPlace = true;
+    const { service, store } = serviceWith(broker);
+    await arm(service);
+
+    await service.processSnapshot(snapshot(candidate(0.2, "signal-1")), release());
+
+    broker.throwOnPlace = false;
+    await service.armLive({
+      approvedBy: "tester",
+      reason: "second controlled approval",
+      durationMinutes: 1,
+      maxOrders: 1,
+    });
+    await service.processSnapshot(snapshot(candidate(0.2, "signal-2")), release());
+
+    expect(broker.placeCalls).toBe(1);
+    const state = await store.read();
+    expect(state.records).toHaveLength(2);
+    expect(state.records[0].status).toBe("RECONCILIATION_REQUIRED");
+    expect(state.records[1].status).toBe("LIVE_PREFLIGHT_REJECTED");
+    expect(state.records[1].message).toMatch(/requires reconciliation/i);
   });
 
   it("rejects risk above the independent live hard limit", async () => {
