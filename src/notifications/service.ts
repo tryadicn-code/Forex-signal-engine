@@ -6,6 +6,7 @@ import {
 import { formatAlertMessage } from "@/notifications/message";
 import type { NotificationStore } from "@/notifications/store";
 import type {
+  AlertCandidate,
   AlertEventRecord,
   NotificationAdapter,
   NotificationChannelHealth,
@@ -126,9 +127,7 @@ export class NotificationService {
   }
 
   private async enqueueCandidate(
-    candidate: ReturnType<typeof detectAlertCandidate> extends infer T
-      ? Exclude<T, null>
-      : never
+    candidate: AlertCandidate
   ): Promise<boolean> {
     const now = candidate.detectedAt;
     const message = formatAlertMessage(candidate, this.timeZone);
