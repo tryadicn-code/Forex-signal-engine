@@ -5,6 +5,7 @@ import type { HistoricalForwardComparison } from "@/replay/analytics-types";
 import type { BacktestRunArtifact } from "@/replay/backtest-run-types";
 import {
   buildReleaseEvidenceReview,
+  buildReleaseGateAuditRecord,
   isReleaseReviewCurrent,
 } from "@/replay/release-gate";
 import type {
@@ -53,6 +54,21 @@ export function ReleaseGateWorkbench({
     [artifact, forwardComparison]
   );
   const current = useMemo(() => isReleaseReviewCurrent(artifact), [artifact]);
+
+  const exportAuditRecord = () => {
+    const record = buildReleaseGateAuditRecord(artifact);
+    const blob = new Blob([JSON.stringify(record, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = artifact.id + "-release-gate.json";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const saveReview = async () => {
     if (saving) return;
@@ -103,6 +119,7 @@ export function ReleaseGateWorkbench({
         artifact={artifact}
         fingerprint={evidence.fingerprint}
         current={current}
+        onExport={exportAuditRecord}
       />
       <div className="grid gap-3 p-3 xl:grid-cols-[minmax(0,1fr)_360px]">
         <EvidenceMatrix evidence={evidence} current={current} artifact={artifact} />
@@ -129,10 +146,12 @@ function ReleaseGateHeader({
   artifact,
   fingerprint,
   current,
+  onExport,
 }: {
   artifact: BacktestRunArtifact;
   fingerprint: string;
   current: boolean;
+  onExport: () => void;
 }) {
   const state =
     artifact.releaseReview === undefined
@@ -161,6 +180,13 @@ function ReleaseGateHeader({
         <span className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[8px] text-zinc-600">
           FP {fingerprint}
         </span>
+        <button
+          type="button"
+          onClick={onExport}
+          className="rounded border border-zinc-700 px-2 py-1 font-mono text-[8px] text-zinc-500 hover:border-sky-800 hover:text-sky-300"
+        >
+          Export gate JSON
+        </button>
       </div>
     </header>
   );
