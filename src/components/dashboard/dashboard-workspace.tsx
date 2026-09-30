@@ -62,6 +62,41 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   }, [selectedSymbol]);
 
   useEffect(() => {
+    const focusReadySignal = () => {
+      const ready = allResults.find(
+        (result) =>
+          result.executionDecision === "EXECUTE" &&
+          result.signalState === "EXECUTE"
+      );
+
+      const target = ready
+        ? document.querySelector<HTMLElement>(
+            `[data-signal-symbol="${ready.symbol}"]`
+          )
+        : document.getElementById("scanner");
+
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+
+    window.addEventListener("fse:focus-ready-signal", focusReadySignal);
+
+    const requested =
+      window.sessionStorage.getItem("fse:focus-ready-signal") === "1";
+    if (requested && allResults.length > 0) {
+      window.sessionStorage.removeItem("fse:focus-ready-signal");
+      const timer = window.setTimeout(focusReadySignal, 0);
+      return () => {
+        window.clearTimeout(timer);
+        window.removeEventListener("fse:focus-ready-signal", focusReadySignal);
+      };
+    }
+
+    return () => {
+      window.removeEventListener("fse:focus-ready-signal", focusReadySignal);
+    };
+  }, [allResults]);
+
+  useEffect(() => {
     if (!data.automation?.enabled) return;
 
     const tick = () => setClockNow(Date.now());
