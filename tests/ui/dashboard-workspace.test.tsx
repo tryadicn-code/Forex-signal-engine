@@ -5,6 +5,12 @@ import { failureResult, type SymbolScanResult } from "@/scanner/scanner-result";
 import type { SignalView } from "@/scanner/scanner-api";
 import type { DashboardData } from "@/types/dashboard";
 
+vi.mock("@/components/signals/price-chart", () => ({
+  PriceChart: ({ symbol }: { symbol: string }) => (
+    <div aria-label={"Price chart for " + symbol} />
+  ),
+}));
+
 const T0 = Date.UTC(2024, 5, 3, 12, 0, 0);
 
 function analysed(
