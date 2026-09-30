@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ForwardValidationReport,
   ForwardValidationSnapshot,
@@ -10,9 +10,11 @@ export function ForwardValidationPanel() {
   const [report, setReport] = useState<ForwardValidationSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const refreshingRef = useRef(false);
 
-  const refresh = async () => {
-    if (loading) return;
+  const refresh = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     setLoading(true);
     try {
       const response = await fetch("/api/forward-validation", {
@@ -35,9 +37,10 @@ export function ForwardValidationPanel() {
           : String(refreshError)
       );
     } finally {
+      refreshingRef.current = false;
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initial = window.setTimeout(() => {
@@ -50,7 +53,7 @@ export function ForwardValidationPanel() {
       window.clearTimeout(initial);
       window.clearInterval(timer);
     };
-  }, []);
+  }, [refresh]);
 
   const exportReport = () => {
     if (!report) return;
