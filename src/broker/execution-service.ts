@@ -307,6 +307,20 @@ export class BrokerExecutionService {
     if (!intent) return;
     if (await this.findByKey(intent.idempotencyKey)) return;
 
+    const brokerState = await this.options.store.read();
+    if (
+      brokerState.records.some(
+        (record) =>
+          record.status === "RECONCILIATION_REQUIRED"
+      )
+    ) {
+      await this.recordLiveRejection(
+        intent,
+        "A previous live submission requires reconciliation; new live orders are blocked."
+      );
+      return;
+    }
+
     const blockers = this.intentLiveBlockers(
       intent,
       release,
@@ -551,6 +565,16 @@ export class BrokerExecutionService {
     }
     if (state.controls.killSwitchEngaged) {
       blockers.push("Kill-switch is engaged.");
+    }
+    if (
+      state.records.some(
+        (record) =>
+          record.status === "RECONCILIATION_REQUIRED"
+      )
+    ) {
+      blockers.push(
+        "A previous live submission requires reconciliation."
+      );
     }
     const arm = state.controls.liveArm;
     if (!arm) {
