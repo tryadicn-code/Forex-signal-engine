@@ -11,6 +11,7 @@ export default async function Home() {
     <DashboardShell
       providerId={data.providerId}
       liveMarketData={data.liveMarketData}
+      providerState={data.health?.providerStatus?.state ?? null}
       releaseLabel={
         data.releaseRuntime?.status === "ACTIVE"
           ? "STRAT · " + data.releaseRuntime.version
