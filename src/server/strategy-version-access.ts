@@ -6,6 +6,7 @@ import {
 import type {
   DeprecateStrategyVersionInput,
   RegisterStrategyVersionInput,
+  RollbackStrategyVersionInput,
   StrategyVersionRegistry,
 } from "@/replay/strategy-version-types";
 
@@ -31,4 +32,11 @@ export async function deprecateStrategyVersion(
   input: DeprecateStrategyVersionInput
 ): Promise<StrategyVersionRegistry> {
   return registry.deprecate(input);
+}
+
+
+export async function rollbackStrategyVersion(
+  input: RollbackStrategyVersionInput
+): Promise<StrategyVersionRegistry> {
+  return registry.rollback(input);
 }
