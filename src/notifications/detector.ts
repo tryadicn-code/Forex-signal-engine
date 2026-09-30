@@ -118,14 +118,13 @@ function isNearExecute(
     result.executionDecision === "WAIT" &&
     result.setupState === "ARMED" &&
     result.triggerState === "WAITING" &&
-    result.riskDetail?.approved === true &&
     (result.executionDetail?.triggeredVetoes.length ?? 0) === 0 &&
     Math.abs(result.biasScore ?? 0) >=
       config.nearExecuteBiasScore &&
     (result.setupScore ?? 0) >= config.nearExecuteSetupScore &&
     (result.triggerScore ?? 0) >= config.nearExecuteTriggerScore &&
-    (result.riskReward ?? 0) >=
-      config.nearExecuteMinRiskReward
+    (result.riskReward === null ||
+      result.riskReward >= config.nearExecuteMinRiskReward)
   );
 }
 
@@ -158,6 +157,13 @@ function waitingConditions(result: SymbolScanResult): string[] {
     !waiting.includes("TRIGGER_CONFIRMATION")
   ) {
     waiting.unshift("TRIGGER_CONFIRMATION");
+  }
+  if (
+    result.triggerState === "WAITING" &&
+    result.riskDetail === null &&
+    !waiting.includes("RISK_EVALUATION")
+  ) {
+    waiting.push("RISK_EVALUATION");
   }
   return [...new Set(waiting)].slice(0, 6);
 }
