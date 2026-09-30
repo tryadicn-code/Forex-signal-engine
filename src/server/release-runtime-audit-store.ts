@@ -1,4 +1,4 @@
-import path from "node:path";
+import { STORAGE_PATHS } from "@/config/storage";
 import {
   readDurableJson,
   writeDurableJson,
@@ -9,11 +9,7 @@ import type {
   ReleaseRuntimeState,
 } from "@/runtime/release-runtime-types";
 
-const DEFAULT_FILE = path.join(
-  process.cwd(),
-  ".data",
-  "release-runtime-audit.json"
-);
+const DEFAULT_FILE = STORAGE_PATHS.releaseRuntimeAudit;
 
 export class JsonFileReleaseRuntimeAuditStore {
   constructor(
