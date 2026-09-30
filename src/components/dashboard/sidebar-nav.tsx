@@ -5,47 +5,54 @@ import Link from "next/link";
 const NAV_ITEMS = [
   { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
   { kind: "paper", label: "Porto", desktopLabel: "Portfolio", glyph: "◫" },
-  { kind: "signal", label: "Signal", desktopLabel: "Signal", glyph: "⚡", primary: true },
+  { kind: "signal", label: "Signal", desktopLabel: "Signal", glyph: "⚡" },
   { kind: "link", href: "/backtest", label: "Backtest", desktopLabel: "Backtest", glyph: "▥" },
   { kind: "link", href: "/system", label: "System", desktopLabel: "System", glyph: "⚙" },
 ] as const;
 
-function navClassName(primary = false): string {
-  return [
-    "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded px-1 py-1.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
-    "md:flex-row md:justify-start md:gap-2 md:px-2.5 md:text-xs",
-    primary
-      ? "-top-7 z-20 text-amber-300 md:top-0"
-      : "text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-100",
-  ].join(" ");
-}
+const MOBILE_NAV_ITEMS = [
+  NAV_ITEMS[0],
+  NAV_ITEMS[1],
+  NAV_ITEMS[3],
+  NAV_ITEMS[4],
+] as const;
 
-function NavLabel({
+function MobileNavLabel({
   glyph,
   label,
-  desktopLabel,
+}: {
+  glyph: string;
+  label: string;
+}) {
+  return (
+    <>
+      <span aria-hidden="true" className="text-base leading-none">
+        {glyph}
+      </span>
+      <span>{label}</span>
+    </>
+  );
+}
+
+function DesktopNavLabel({
+  glyph,
+  label,
   primary = false,
 }: {
   glyph: string;
   label: string;
-  desktopLabel: string;
   primary?: boolean;
 }) {
   return (
     <>
       <span
         aria-hidden="true"
-        className={
-          primary
-            ? "flex h-14 w-14 items-center justify-center rounded-full border border-amber-500/70 bg-[#0b0e14] text-[28px] leading-none text-amber-300 shadow-lg shadow-amber-950/40 md:h-auto md:w-auto md:border-0 md:bg-transparent md:text-base md:shadow-none"
-            : "text-base leading-none md:text-sm"
-        }
+        className={primary ? "text-base text-amber-300" : "text-sm"}
       >
         {glyph}
       </span>
-      {!primary && <span className="md:hidden">{label}</span>}
-      <span className={primary ? "hidden font-semibold text-amber-300 md:inline" : "hidden md:inline"}>
-        {desktopLabel}
+      <span className={primary ? "font-semibold text-amber-300" : ""}>
+        {label}
       </span>
     </>
   );
@@ -69,85 +76,133 @@ export function SidebarNav() {
   };
 
   return (
-    <nav
-      aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-5 bg-transparent px-1 pb-[env(safe-area-inset-bottom)] md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:w-52 md:grid-cols-1 md:content-start md:border-r md:border-zinc-800 md:bg-transparent md:px-2 md:py-4"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 1000 80"
-        preserveAspectRatio="none"
-        className="pointer-events-none absolute inset-x-0 top-0 h-full w-full md:hidden"
+    <>
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-30 h-16 md:hidden"
       >
-        <path
-          d="M0 0 H425 C450 0 452 10 459 21 C468 35 481 42 500 42 C519 42 532 35 541 21 C548 10 550 0 575 0 H1000 V80 H0 Z"
-          fill="rgb(11 14 20 / 0.985)"
-        />
-        <path
-          d="M0 0 H425 C450 0 452 10 459 21 C468 35 481 42 500 42 C519 42 532 35 541 21 C548 10 550 0 575 0 H1000"
-          fill="none"
-          stroke="rgb(63 63 70)"
-          strokeWidth="1.25"
-          vectorEffect="non-scaling-stroke"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 1000 80"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+        >
+          <path
+            d="M0 0 H404 C432 0 438 34 500 34 C562 34 568 0 596 0 H1000 V80 H0 Z"
+            fill="rgb(11 14 20 / 0.985)"
+          />
+          <path
+            d="M0 0 H404 C432 0 438 34 500 34 C562 34 568 0 596 0 H1000"
+            fill="none"
+            stroke="rgb(63 63 70)"
+            strokeWidth="1.25"
+            vectorEffect="non-scaling-stroke"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
 
-      {NAV_ITEMS.map((item) => {
-        const primary = "primary" in item && item.primary === true;
+        <div className="relative z-10 grid h-full grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)]">
+          {MOBILE_NAV_ITEMS.map((item, index) => {
+            const colClass =
+              index === 0
+                ? "col-start-1"
+                : index === 1
+                  ? "col-start-2"
+                  : index === 2
+                    ? "col-start-4"
+                    : "col-start-5";
 
-        if (item.kind === "paper") {
+            if (item.kind === "paper") {
+              return (
+                <button
+                  key="portfolio"
+                  type="button"
+                  onClick={openPortfolio}
+                  className={`${colClass} flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`}
+                >
+                  <MobileNavLabel glyph={item.glyph} label={item.label} />
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`${colClass} flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`}
+              >
+                <MobileNavLabel glyph={item.glyph} label={item.label} />
+              </Link>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={focusReadySignal}
+          aria-label="Go to first ready signal"
+          className="absolute left-1/2 top-0 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-amber-500/70 bg-[#0b0e14] text-[28px] leading-none text-amber-300 shadow-lg shadow-amber-950/40 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+        >
+          <span aria-hidden="true">⚡</span>
+        </button>
+      </nav>
+
+      <nav
+        aria-label="Primary"
+        className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-52 grid-cols-1 content-start border-r border-zinc-800 bg-transparent px-2 py-4 md:grid"
+      >
+        {NAV_ITEMS.map((item) => {
+          const primary = item.kind === "signal";
+
+          if (item.kind === "paper") {
+            return (
+              <button
+                key="portfolio"
+                type="button"
+                onClick={openPortfolio}
+                className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              >
+                <DesktopNavLabel
+                  glyph={item.glyph}
+                  label={item.desktopLabel}
+                />
+              </button>
+            );
+          }
+
+          if (item.kind === "signal") {
+            return (
+              <button
+                key="signal"
+                type="button"
+                onClick={focusReadySignal}
+                className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-amber-300 transition-colors hover:bg-zinc-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              >
+                <DesktopNavLabel
+                  glyph={item.glyph}
+                  label={item.desktopLabel}
+                  primary
+                />
+              </button>
+            );
+          }
+
           return (
-            <button
-              key="portfolio"
-              type="button"
-              onClick={openPortfolio}
-              className={navClassName(false)}
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             >
-              <NavLabel
+              <DesktopNavLabel
                 glyph={item.glyph}
-                label={item.label}
-                desktopLabel={item.desktopLabel}
+                label={item.desktopLabel}
+                primary={primary}
               />
-            </button>
+            </Link>
           );
-        }
-
-        if (item.kind === "signal") {
-          return (
-            <button
-              key="signal"
-              type="button"
-              onClick={focusReadySignal}
-              aria-label="Go to first ready signal"
-              className={navClassName(true)}
-            >
-              <NavLabel
-                glyph={item.glyph}
-                label={item.label}
-                desktopLabel={item.desktopLabel}
-                primary
-              />
-            </button>
-          );
-        }
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={navClassName(primary)}
-          >
-            <NavLabel
-              glyph={item.glyph}
-              label={item.label}
-              desktopLabel={item.desktopLabel}
-              primary={primary}
-            />
-          </Link>
-        );
-      })}
-    </nav>
+        })}
+      </nav>
+    </>
   );
 }
