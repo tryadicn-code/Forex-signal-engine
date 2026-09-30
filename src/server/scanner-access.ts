@@ -47,6 +47,10 @@ import {
   transactionalStore,
 } from "@/transactional/runtime";
 import { TRANSACTIONAL_CONFIG } from "@/config/transactional";
+import {
+  processBrokerSnapshot,
+  readBrokerExecutionDashboard,
+} from "@/server/broker-execution-access";
 
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
@@ -126,6 +130,7 @@ async function dashboardView(
     providerId: runtimeProviderId(),
     liveMarketData: runtimeUsesLiveMarketData(),
     paper: await readPaperDashboard(),
+    broker: await readBrokerExecutionDashboard(),
     releaseRuntime: release.state,
     automation: {
       enabled:
@@ -203,6 +208,10 @@ async function runScanner(
       await recordForwardValidationObservation(
         snapshot,
         paper,
+        currentRelease.state
+      );
+      await processBrokerSnapshot(
+        snapshot,
         currentRelease.state
       );
       await emitRuntimeTelemetry({
