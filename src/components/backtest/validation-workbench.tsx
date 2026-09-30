@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { RobustnessWorkbench } from "@/components/backtest/robustness-workbench";
+import { StatisticalDiagnosticsWorkbench } from "@/components/backtest/statistical-diagnostics-workbench";
 import {
   compareHistoricalToForward,
   toComparableHistoricalPerformance,
@@ -240,6 +241,8 @@ export function ValidationWorkbench({
           </section>
 
           <RobustnessWorkbench artifact={artifact} />
+
+          <StatisticalDiagnosticsWorkbench artifact={artifact} />
 
           <MultiRunComparison
             runs={recentRuns}
