@@ -19,7 +19,7 @@ import {
 import type { DashboardData } from "@/types/dashboard";
 
 const DASHBOARD_READ_TIMEOUT_MS = 10_000;
-const SCANNER_REFRESH_TIMEOUT_MS = 55_000;
+const SCANNER_REFRESH_TIMEOUT_MS = 90_000;
 
 function scrollIntoViewIfAvailable(target: HTMLElement | null): void {
   if (target && typeof target.scrollIntoView === "function") {
@@ -237,42 +237,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       ? Math.max(0, Math.ceil((nextScanAt - clockNow) / 1000))
       : null;
 
-  useEffect(() => {
-    if (
-      !data.automation?.enabled ||
-      countdownSeconds !== 0 ||
-      nextScanAt === null
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      if (scanInFlightRef.current || cancelled) return;
-
-      scanInFlightRef.current = true;
-      setRefreshing(true);
-      setRequestError(null);
-
-      try {
-        const next = await requestDashboard("POST", SCANNER_REFRESH_TIMEOUT_MS);
-        if (!cancelled) setData(next);
-      } catch (error) {
-        if (!cancelled) {
-          setRequestError(error instanceof Error ? error.message : String(error));
-        }
-      } finally {
-        scanInFlightRef.current = false;
-        if (!cancelled) setRefreshing(false);
-      }
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [countdownSeconds, data.automation?.enabled, nextScanAt]);
-
   const clearFilters = () => {
     setQuery(DEFAULT_QUERY);
     setSort(DEFAULT_SORT);
@@ -296,7 +260,22 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         setSelectedSymbol(null);
       }
     } catch (error) {
-      setRequestError(error instanceof Error ? error.message : String(error));
+      // A browser/LAN connection can drop while the server scan continues.
+      // Never retry POST automatically: recover the latest committed scanner
+      // view with a read-only GET so a transport blip cannot duplicate a scan.
+      try {
+        const recovered = await requestDashboard("GET", DASHBOARD_READ_TIMEOUT_MS);
+        setData(recovered);
+        setRequestError(recovered.scanError);
+      } catch {
+        const message =
+          error instanceof TypeError && /failed to fetch/i.test(error.message)
+            ? "Scanner connection was interrupted. Last confirmed data is still shown."
+            : error instanceof Error
+              ? error.message
+              : String(error);
+        setRequestError(message);
+      }
     } finally {
       scanInFlightRef.current = false;
       setRefreshing(false);

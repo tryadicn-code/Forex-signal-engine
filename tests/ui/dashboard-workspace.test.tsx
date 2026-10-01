@@ -372,6 +372,57 @@ describe("Phase 10.5 trading workstation dashboard", () => {
     expect(screen.getByText("30s")).toBeInTheDocument();
   });
 
+  it("does not start a POST scan from the browser when auto-sync reaches zero", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const data = dashboard([analysed("EURUSD")]);
+    data.automation = {
+      enabled: true,
+      scanIntervalMs: 60_000,
+      dashboardSyncIntervalMs: 15_000,
+      nextScanAt: T0,
+    };
+
+    render(<DashboardWorkspace initialData={data} />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("recovers with a read-only GET when manual refresh loses the browser connection", async () => {
+    const next = dashboard([
+      analysed("NZDUSD", { bias: "NEUTRAL", biasDirection: "NEUTRAL" }),
+    ]);
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => next,
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<DashboardWorkspace initialData={dashboard([analysed("EURUSD")])} />);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh scan" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText("NZDUSD").length).toBeGreaterThan(0);
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[1]?.method).toBe("POST");
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBe("GET");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("refreshes through the scanner API and replaces the view model", async () => {
     const next = dashboard([analysed("NZDUSD", { bias: "NEUTRAL", biasDirection: "NEUTRAL" })]);
     vi.stubGlobal(
