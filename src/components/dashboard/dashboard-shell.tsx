@@ -67,7 +67,7 @@ export function DashboardShell({
         <div className="md:border-r md:border-zinc-800">
           <SidebarNav />
         </div>
-        <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
+        <main className="min-w-0 flex-1 pb-[68px] md:pb-0">{children}</main>
       </div>
 
       <GlobalPaperTradingOverlay />
