@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { PaperTradingService } from "@/paper/paper-trading-service";
 import { InMemoryPaperStore } from "@/paper/store";
 import { MockMarketDataProvider } from "@/providers/market-data/mock-provider";
@@ -320,7 +320,10 @@ describe("PaperTradingService", () => {
 
     await paper.processSnapshot(snapshot(result({ signalId: "signal-a" })), provider);
     const second = await paper.processSnapshot(
-      snapshot(result({ signalId: "signal-b" }), T0 + 60_000),
+      snapshot(
+        result({ signalId: "signal-b", symbol: "GBPUSD" }),
+        T0 + 60_000
+      ),
       provider
     );
 
@@ -328,6 +331,123 @@ describe("PaperTradingService", () => {
     const rejected = second.recentOrders.find((order) => order.signalId === "signal-b");
     expect(rejected?.status).toBe("REJECTED");
     expect(rejected?.rejectionReason).toBe("PAPER_MAX_TOTAL_RISK");
+  });
+
+
+  it("blocks repeated entries while the same symbol position is already open", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+
+    await paper.processSnapshot(
+      snapshot(result({ signalId: "signal-a" })),
+      provider
+    );
+    const second = await paper.processSnapshot(
+      snapshot(result({ signalId: "signal-b" }), T0 + 60_000),
+      provider
+    );
+
+    expect(second.openPositions).toHaveLength(1);
+    const rejected = second.recentOrders.find(
+      (order) => order.signalId === "signal-b"
+    );
+    expect(rejected?.rejectionReason).toBe(
+      "PAPER_MAX_OPEN_POSITIONS_PER_SYMBOL"
+    );
+  });
+
+  it("blocks a third position sharing the same directional currency exposure", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+
+    const short = (symbol: string, signalId: string) =>
+      result({
+        symbol,
+        signalId,
+        bias: "SHORT",
+        biasDirection: "SHORT",
+        riskDetail: {
+          ...result().riskDetail!,
+          entryPrice: 190,
+          stopLoss: 191,
+          stopDistancePips: 100,
+          takeProfit1: 188,
+          takeProfit2: 187,
+          plannedRR: 2,
+        },
+      });
+
+    await paper.processSnapshot(snapshot(short("EURJPY", "eurjpy")), provider);
+    await paper.processSnapshot(
+      snapshot(short("GBPJPY", "gbpjpy"), T0 + 60_000),
+      provider
+    );
+    const third = await paper.processSnapshot(
+      snapshot(short("AUDJPY", "audjpy"), T0 + 120_000),
+      provider
+    );
+
+    expect(third.openPositions).toHaveLength(2);
+    expect(
+      third.recentOrders.find((order) => order.signalId === "audjpy")
+        ?.rejectionReason
+    ).toBe("PAPER_DIRECTIONAL_CURRENCY_EXPOSURE");
+  });
+
+  it("enforces a cooldown after stop loss before the same symbol can re-enter", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+
+    await paper.processSnapshot(snapshot(result({ signalId: "signal-a" })), provider);
+    await paper.processSnapshot(
+      snapshot(
+        result({
+          signalId: "signal-a",
+          latestPrice: 1.094,
+          executionDecision: "WAIT",
+          signalState: "MANAGE",
+        }),
+        T0 + 60_000
+      ),
+      provider
+    );
+
+    const retry = await paper.processSnapshot(
+      snapshot(result({ signalId: "signal-b" }), T0 + 30 * 60_000),
+      provider
+    );
+
+    expect(retry.openPositions).toHaveLength(0);
+    expect(
+      retry.recentOrders.find((order) => order.signalId === "signal-b")
+        ?.rejectionReason
+    ).toBe("PAPER_STOP_LOSS_COOLDOWN");
+  });
+
+  it("manually closes at the latest provider price and records MFE", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    vi.spyOn(provider, "getLatestPrice").mockResolvedValue({
+      ok: true,
+      data: {
+        symbol: "EURUSD",
+        price: 1.105,
+        spreadPips: 1,
+        timestamp: T0 + 60_000,
+      },
+    });
+
+    await paper.processSnapshot(snapshot(result()), provider);
+    const closed = await paper.closePositionManually(
+      "position-signal-1",
+      provider,
+      T0 + 60_000
+    );
+
+    expect(closed.openPositions).toHaveLength(0);
+    expect(closed.recentTrades[0].closeReason).toBe("MANUAL_PAPER_CLOSE");
+    expect(closed.recentTrades[0].realizedR).toBeCloseTo(1);
+    expect(closed.recentTrades[0].maxFavorableR).toBeCloseTo(1);
   });
 
   it("reset restores the initial paper account and clears history", async () => {
