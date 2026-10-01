@@ -230,6 +230,28 @@ describe("Phase 10.5 trading workstation dashboard", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("opens signal detail when Paper Portfolio requests analysis for an open position", () => {
+    render(
+      <DashboardWorkspace
+        initialData={dashboard([analysed("EURUSD"), analysed("GBPUSD")])}
+      />
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent("fse:open-signal-detail", {
+          detail: { symbol: "GBPUSD" },
+        })
+      );
+    });
+
+    expect(
+      screen.getByRole("complementary", {
+        name: "Signal detail for GBPUSD",
+      })
+    ).toBeInTheDocument();
+  });
+
   it("renders engine evidence, conflicts, and lifecycle without generating new analysis", () => {
     render(<DashboardWorkspace initialData={dashboard([analysed("EURUSD")])} />);
 

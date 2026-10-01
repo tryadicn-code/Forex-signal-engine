@@ -26,8 +26,10 @@ function isScannerUniversePayload(
 }
 
 export function ScannerUniverseControl({
+  count,
   onUniverseChanged,
 }: {
+  count?: number;
   onUniverseChanged: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -122,10 +124,22 @@ export function ScannerUniverseControl({
           setError(null);
           setOpen(true);
         }}
-        className="rounded-md border border-zinc-700 bg-zinc-900/60 px-2.5 py-1.5 text-[10px] font-medium text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900/55 px-2.5 text-[10px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
         aria-label="Manage scanner pairs"
       >
-        Pairs {data ? data.selected.length : "—"}
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 20 20"
+          fill="none"
+          className="h-3.5 w-3.5 text-zinc-500"
+        >
+          <path d="M4 5h12M4 10h8M4 15h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M14.5 12.5v5M12 15h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+        <span>Pairs</span>
+        <span className="min-w-[1.35rem] rounded bg-zinc-800 px-1 py-0.5 text-center font-mono text-[9px] leading-none text-zinc-300">
+          {data?.selected.length ?? count ?? "—"}
+        </span>
       </button>
 
       {open && (

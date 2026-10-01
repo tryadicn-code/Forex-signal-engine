@@ -62,19 +62,28 @@ export function ScannerFilters({
 
   return (
     <div className="border-b border-zinc-800">
-      <div className="space-y-2.5 px-3 py-3 md:hidden">
+      <div className="space-y-2 px-3 py-2.5 md:hidden">
         <div className="flex gap-2">
-          <label className="min-w-0 flex-1">
+          <label className="relative min-w-0 flex-1">
             <span className="sr-only">Search symbols</span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-600"
+            >
+              <circle cx="8.5" cy="8.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="m12 12 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
             <input
               type="search"
               value={query.query}
               onChange={(event) =>
                 onQueryChange({ ...query, query: event.target.value })
               }
-              placeholder="Search EURUSD..."
+              placeholder="Search pair"
               aria-label="Search symbols"
-              className="h-9 w-full rounded-md border border-zinc-700 bg-[#0b0e14] px-3 font-mono text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
+              className="h-9 w-full rounded-md border border-zinc-700 bg-[#0b0e14] pl-8 pr-3 font-mono text-xs text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
             />
           </label>
           <button
@@ -83,17 +92,20 @@ export function ScannerFilters({
             aria-controls="mobile-scanner-filters"
             onClick={() => setMobileFiltersOpen((open) => !open)}
             className={cn(
-              "h-9 shrink-0 rounded-md border px-3 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
+              "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
               mobileFiltersOpen || advancedCount > 0
                 ? "border-emerald-700/60 bg-emerald-950/20 text-emerald-300"
                 : "border-zinc-700 bg-zinc-900 text-zinc-300"
             )}
           >
-            Filters{advancedCount > 0 ? ` ${advancedCount}` : ""}
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+              <path d="M3 5h14M5.5 10h9M8 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <span>Filters{advancedCount > 0 ? ` ${advancedCount}` : ""}</span>
           </button>
         </div>
 
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 scrollbar-none">
+        <div className="-mx-0.5 flex gap-1.5 overflow-x-auto px-0.5 pb-0.5 scrollbar-none">
           {MOBILE_STATE_FILTERS.map((chip) => (
             <StateChip
               key={chip}
@@ -305,8 +317,8 @@ function StateChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-md border font-mono font-medium uppercase tracking-wide transition-colors",
-        mobile ? "px-2.5 py-1.5 text-[11px]" : "px-2 py-0.5 text-[10px]",
+        "shrink-0 rounded-full border font-mono font-medium uppercase tracking-[0.08em] transition-colors",
+        mobile ? "h-7 px-2.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
         active
           ? "border-emerald-600/60 bg-emerald-600/15 text-emerald-300"
           : "border-zinc-700 text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-200"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { PaperTradingOverlay } from "@/components/paper/paper-trading-overlay";
 import type { PaperDashboardData } from "@/paper/types";
 
@@ -10,6 +11,7 @@ type PaperOverlayWindow = Window & {
 };
 
 export function GlobalPaperTradingOverlay() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"portfolio" | "journal">("portfolio");
   const [paper, setPaper] = useState<PaperDashboardData | undefined>(undefined);
@@ -92,6 +94,25 @@ export function GlobalPaperTradingOverlay() {
     }
   };
 
+  const openAnalysis = (symbol: string) => {
+    const normalized = symbol.trim().toUpperCase();
+    if (!normalized) return;
+
+    setOpen(false);
+
+    if (window.location.pathname === "/") {
+      window.dispatchEvent(
+        new CustomEvent("fse:open-signal-detail", {
+          detail: { symbol: normalized },
+        })
+      );
+      return;
+    }
+
+    window.sessionStorage.setItem("fse:open-signal-symbol", normalized);
+    router.push("/#scanner");
+  };
+
   const closePosition = async (positionId: string) => {
     if (closingPositionId) return;
     const position = paper?.openPositions.find((item) => item.id === positionId);
@@ -128,6 +149,7 @@ export function GlobalPaperTradingOverlay() {
       onReset={resetPaper}
       resetting={resetting}
       onClosePosition={closePosition}
+      onOpenAnalysis={openAnalysis}
       closingPositionId={closingPositionId}
       onSetInitialBalance={setInitialBalance}
       settingInitialBalance={settingInitialBalance}

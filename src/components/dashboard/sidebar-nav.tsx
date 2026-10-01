@@ -53,7 +53,10 @@ function MobileNavLabel({
 }) {
   return (
     <>
-      <NavIcon name={icon} className="h-5 w-5" />
+      <NavIcon
+        name={icon}
+        className={icon === "signal" ? "h-5 w-5 text-yellow-400" : "h-5 w-5"}
+      />
       <span className="leading-none">{label}</span>
     </>
   );
@@ -72,7 +75,7 @@ function DesktopNavLabel({
     <>
       <NavIcon
         name={icon}
-        className={primary ? "h-4 w-4 text-amber-300" : "h-4 w-4"}
+        className={primary ? "h-4 w-4 text-yellow-400" : "h-4 w-4"}
       />
       <span className={primary ? "font-semibold text-amber-300" : ""}>
         {label}

@@ -15,6 +15,7 @@ export function PaperTradingOverlay({
   onReset,
   resetting,
   onClosePosition,
+  onOpenAnalysis,
   closingPositionId,
   onSetInitialBalance,
   settingInitialBalance,
@@ -26,6 +27,7 @@ export function PaperTradingOverlay({
   onReset: () => Promise<void>;
   resetting: boolean;
   onClosePosition?: (positionId: string) => Promise<void>;
+  onOpenAnalysis?: (symbol: string) => void;
   closingPositionId?: string | null;
   onSetInitialBalance?: (initialBalance: number) => Promise<void>;
   settingInitialBalance?: boolean;
@@ -128,6 +130,7 @@ export function PaperTradingOverlay({
             onReset={onReset}
             resetting={resetting}
             onClosePosition={onClosePosition}
+            onOpenAnalysis={onOpenAnalysis}
             closingPositionId={closingPositionId}
             onSetInitialBalance={onSetInitialBalance}
             settingInitialBalance={settingInitialBalance}

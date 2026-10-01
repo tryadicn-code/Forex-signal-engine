@@ -100,6 +100,43 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   }, [selectedSymbol]);
 
   useEffect(() => {
+    const openSignalDetail = (symbol: string): boolean => {
+      const normalized = symbol.trim().toUpperCase();
+      if (!allResults.some((result) => result.symbol === normalized)) {
+        return false;
+      }
+
+      setSelectedSymbol(normalized);
+
+      window.setTimeout(() => {
+        const target =
+          document.querySelector<HTMLElement>(
+            `[data-signal-symbol="${normalized}"]`
+          ) ?? document.getElementById("signals");
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
+
+      return true;
+    };
+
+    const onOpenSignalDetail = (event: Event) => {
+      const detail = (event as CustomEvent<{ symbol?: string }>).detail;
+      if (detail?.symbol) openSignalDetail(detail.symbol);
+    };
+
+    window.addEventListener("fse:open-signal-detail", onOpenSignalDetail);
+
+    const requested = window.sessionStorage.getItem("fse:open-signal-symbol");
+    if (requested && allResults.length > 0 && openSignalDetail(requested)) {
+      window.sessionStorage.removeItem("fse:open-signal-symbol");
+    }
+
+    return () => {
+      window.removeEventListener("fse:open-signal-detail", onOpenSignalDetail);
+    };
+  }, [allResults]);
+
+  useEffect(() => {
     const focusReadySignal = () => {
       const ready = allResults.find(
         (result) =>
@@ -338,21 +375,19 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           aria-labelledby="scanner-title"
           className="min-w-0 scroll-mt-20 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/25"
         >
-          <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-3.5 sm:px-4">
-            <div>
-              <h2 id="scanner-title" className="text-base font-semibold text-zinc-100">
+          <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5 sm:items-center sm:px-4 sm:py-3">
+            <div className="min-w-0">
+              <h2 id="scanner-title" className="text-[15px] font-semibold leading-tight text-zinc-100 sm:text-base">
                 Scanner
               </h2>
-              <p className="mt-0.5 text-xs text-zinc-500">
-                Select a pair to inspect its current trading state.
+              <p className="mt-1 text-[11px] leading-snug text-zinc-500 sm:text-xs">
+                Select a pair to inspect current state.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <ScannerUniverseControl onUniverseChanged={refresh} />
-              <span className="font-mono text-xs text-zinc-600">
-                {visibleResults.length}/{allResults.length}
-              </span>
-            </div>
+            <ScannerUniverseControl
+              count={allResults.length}
+              onUniverseChanged={refresh}
+            />
           </header>
 
           <ScannerFilters
