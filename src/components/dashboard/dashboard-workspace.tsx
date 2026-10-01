@@ -179,7 +179,15 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     return () => window.clearInterval(timer);
   }, [data.automation?.dashboardSyncIntervalMs, data.automation?.enabled]);
 
-  const nextScanAt = data.automation?.nextScanAt ?? null;
+  const scanIntervalMs = data.automation?.scanIntervalMs ?? null;
+  const lastScanCompletedAt = data.health?.lastScanCompletedAt ?? null;
+  const nextScanAt =
+    data.automation?.nextScanAt ??
+    (data.automation?.enabled &&
+    scanIntervalMs !== null &&
+    lastScanCompletedAt !== null
+      ? lastScanCompletedAt + scanIntervalMs
+      : null);
   const countdownSeconds =
     clockNow !== null && nextScanAt !== null
       ? Math.max(0, Math.ceil((nextScanAt - clockNow) / 1000))
