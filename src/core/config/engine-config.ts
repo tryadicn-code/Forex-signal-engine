@@ -102,6 +102,8 @@ export interface EngineConfig {
     maxLotSize: number;
     /** R multiple used to project the second take-profit target. */
     tp2RR: number;
+    /** Buffer placed in front of confirmed structural target levels. */
+    structuralTargetBufferPips: number;
   };
   execution: {
     /** Market data older than this is stale and blocks execution. */
@@ -174,6 +176,7 @@ export const defaultEngineConfig: EngineConfig = {
     minRiskPercent: 0.1,
     maxLotSize: 100,
     tp2RR: 3.0,
+    structuralTargetBufferPips: 2,
   },
   execution: {
     maxDataAgeMs: 60_000,
