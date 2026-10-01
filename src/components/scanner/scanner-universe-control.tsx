@@ -52,7 +52,6 @@ export function ScannerUniverseControl({
     if (!open) return;
 
     let cancelled = false;
-    setError(null);
 
     void fetch("/api/scanner/symbols", { cache: "no-store" })
       .then(async (response) => {
@@ -119,7 +118,10 @@ export function ScannerUniverseControl({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
         className="rounded-md border border-zinc-700 bg-zinc-900/60 px-2.5 py-1.5 text-[10px] font-medium text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
         aria-label="Manage scanner pairs"
       >
