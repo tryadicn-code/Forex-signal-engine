@@ -62,17 +62,17 @@ export function PaperTradingPanel({
   settingInitialBalance?: boolean;
   view?: PaperPanelView;
 }) {
+  const [balanceInput, setBalanceInput] = useState("");
+
+  useEffect(() => {
+    if (paper) {
+      setBalanceInput(String(paper.account.initialBalance));
+    }
+  }, [paper?.account.initialBalance]);
+
   if (!paper) return null;
 
   const { account, performance } = paper;
-  const [balanceInput, setBalanceInput] = useState(
-    String(account.initialBalance)
-  );
-
-  useEffect(() => {
-    setBalanceInput(String(account.initialBalance));
-  }, [account.initialBalance]);
-
   const parsedBalance = Number(balanceInput);
   const balanceValid =
     Number.isFinite(parsedBalance) &&
