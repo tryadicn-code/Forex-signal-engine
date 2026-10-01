@@ -15,7 +15,13 @@ function pct(value: number | null): string {
   return value.toFixed(2) + "%";
 }
 
-function riskReward(entryPrice: number, takeProfit: number, stopLoss: number): string {
+function riskReward(
+  entryPrice: number,
+  takeProfit: number | null,
+  stopLoss: number
+): string {
+  if (takeProfit === null) return "—";
+
   const risk = Math.abs(entryPrice - stopLoss);
   const reward = Math.abs(takeProfit - entryPrice);
 
