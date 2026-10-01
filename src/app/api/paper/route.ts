@@ -16,27 +16,48 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       action?: string;
       positionId?: string;
+      initialBalance?: number;
     };
 
-    if (
-      body.action !== "close-position" ||
-      typeof body.positionId !== "string" ||
-      body.positionId.length === 0
-    ) {
+    if (body.action === "close-position") {
+      if (
+        typeof body.positionId !== "string" ||
+        body.positionId.length === 0
+      ) {
+        return NextResponse.json(
+          { error: "Invalid paper position." },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(await closePaperPosition(body.positionId));
+    }
+
+    if (body.action === "set-initial-balance") {
+      if (
+        typeof body.initialBalance !== "number" ||
+        !Number.isFinite(body.initialBalance)
+      ) {
+        return NextResponse.json(
+          { error: "Initial balance must be a valid number." },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
-        { error: "Invalid paper action." },
-        { status: 400 }
+        await resetPaperAccount(body.initialBalance)
       );
     }
 
-    return NextResponse.json(await closePaperPosition(body.positionId));
+    return NextResponse.json(
+      { error: "Invalid paper action." },
+      { status: 400 }
+    );
   } catch (error) {
     return NextResponse.json(
       {
         error:
           error instanceof Error
             ? error.message
-            : "Paper position close failed.",
+            : "Paper action failed.",
       },
       { status: 409 }
     );
