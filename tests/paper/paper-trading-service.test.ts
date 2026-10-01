@@ -450,6 +450,31 @@ describe("PaperTradingService", () => {
     expect(closed.recentTrades[0].maxFavorableR).toBeCloseTo(1);
   });
 
+  it("supports a custom initial balance and preserves it on later resets", async () => {
+    const paper = service();
+
+    const custom = await paper.reset(T0 + 1, 2_500);
+    expect(custom.account.initialBalance).toBe(2_500);
+    expect(custom.account.balance).toBe(2_500);
+    expect(custom.openPositions).toHaveLength(0);
+    expect(custom.recentTrades).toHaveLength(0);
+
+    const resetAgain = await paper.reset(T0 + 2);
+    expect(resetAgain.account.initialBalance).toBe(2_500);
+    expect(resetAgain.account.balance).toBe(2_500);
+  });
+
+  it("rejects invalid custom initial balances", async () => {
+    const paper = service();
+
+    await expect(paper.reset(T0 + 1, 0)).rejects.toThrow(
+      "Paper initial balance"
+    );
+    await expect(
+      paper.reset(T0 + 1, Number.POSITIVE_INFINITY)
+    ).rejects.toThrow("Paper initial balance");
+  });
+
   it("reset restores the initial paper account and clears history", async () => {
     const paper = service();
     const provider = new MockMarketDataProvider();

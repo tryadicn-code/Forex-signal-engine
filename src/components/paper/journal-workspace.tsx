@@ -11,12 +11,13 @@ export function JournalWorkspace({
 }) {
   const [paper, setPaper] = useState(initialPaper);
   const [resetting, setResetting] = useState(false);
+  const [settingInitialBalance, setSettingInitialBalance] = useState(false);
   const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const resetPaper = async () => {
     if (resetting) return;
-    if (!window.confirm("Reset all paper orders, positions, journal, and paper balance?")) return;
+    if (!window.confirm("Reset all paper orders, positions, journal, and restore the current initial balance?")) return;
 
     setResetting(true);
     setError(null);
@@ -28,6 +29,43 @@ export function JournalWorkspace({
       setError(resetError instanceof Error ? resetError.message : String(resetError));
     } finally {
       setResetting(false);
+    }
+  };
+
+  const setInitialBalance = async (initialBalance: number) => {
+    if (settingInitialBalance) return;
+    const currency = paper?.account.currency ?? "USD";
+    if (
+      !window.confirm(
+        `Set initial paper balance to ${currency} ${initialBalance.toLocaleString()}? This will clear all paper positions, orders, journal, and performance history.`
+      )
+    ) {
+      return;
+    }
+
+    setSettingInitialBalance(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/paper", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "set-initial-balance",
+          initialBalance,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Paper balance update failed.");
+      }
+      setPaper(payload as PaperDashboardData);
+    } catch (balanceError) {
+      setError(
+        balanceError instanceof Error ? balanceError.message : String(balanceError)
+      );
+    } finally {
+      setSettingInitialBalance(false);
     }
   };
 
@@ -88,6 +126,8 @@ export function JournalWorkspace({
         resetting={resetting}
         onClosePosition={closePosition}
         closingPositionId={closingPositionId}
+        onSetInitialBalance={setInitialBalance}
+        settingInitialBalance={settingInitialBalance}
       />
     </div>
   );
