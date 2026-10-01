@@ -153,11 +153,18 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     let inFlight = false;
 
     const syncLatestView = async () => {
-      if (inFlight || document.visibilityState === "hidden") return;
+      if (
+        inFlight ||
+        scanInFlightRef.current ||
+        document.visibilityState === "hidden"
+      ) {
+        return;
+      }
       inFlight = true;
 
       try {
-        setData(await requestDashboard("GET", DASHBOARD_READ_TIMEOUT_MS));
+        const next = await requestDashboard("GET", DASHBOARD_READ_TIMEOUT_MS);
+        if (!scanInFlightRef.current) setData(next);
       } catch {
         // Preserve the last good workstation state on read-only sync failure.
       } finally {
