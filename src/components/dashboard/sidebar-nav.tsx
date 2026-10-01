@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+type PaperOverlayWindow = Window & {
+  __fseOpenPaper?: (view: "portfolio" | "journal") => void;
+};
+
 const NAV_ITEMS = [
   { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
   { kind: "paper", label: "Porto", desktopLabel: "Portfolio", glyph: "◫" },
@@ -55,6 +59,18 @@ function DesktopNavLabel({
 export function SidebarNav() {
   const router = useRouter();
 
+  const openPortfolio = () => {
+    const browserWindow = window as PaperOverlayWindow;
+    if (browserWindow.__fseOpenPaper) {
+      browserWindow.__fseOpenPaper("portfolio");
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("fse:open-paper", { detail: { view: "portfolio" } })
+    );
+  };
+
   const focusReadySignal = () => {
     if (window.location.pathname !== "/") {
       window.sessionStorage.setItem("fse:focus-ready-signal", "1");
@@ -78,14 +94,15 @@ export function SidebarNav() {
 
             if (item.kind === "paper") {
               return (
-                <Link
+                <button
                   key="portfolio"
-                  href="/journal#portfolio"
+                  type="button"
+                  onClick={openPortfolio}
                   aria-label="Open paper portfolio"
                   className={itemClass}
                 >
                   <MobileNavLabel glyph={item.glyph} label={item.label} />
-                </Link>
+                </button>
               );
             }
 
@@ -124,16 +141,18 @@ export function SidebarNav() {
 
           if (item.kind === "paper") {
             return (
-              <Link
+              <button
                 key="portfolio"
-                href="/journal#portfolio"
+                type="button"
+                onClick={openPortfolio}
+                aria-label="Open paper portfolio"
                 className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               >
                 <DesktopNavLabel
                   glyph={item.glyph}
                   label={item.desktopLabel}
                 />
-              </Link>
+              </button>
             );
           }
 

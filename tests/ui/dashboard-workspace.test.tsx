@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { DashboardWorkspace } from "@/components/dashboard/dashboard-workspace";
 import { failureResult, type SymbolScanResult } from "@/scanner/scanner-result";
 import type { SignalView } from "@/scanner/scanner-api";
@@ -172,6 +172,7 @@ function dashboard(results: SymbolScanResult[]): DashboardData {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -326,6 +327,27 @@ describe("Phase 10.5 trading workstation dashboard", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("calendar dependency failed");
     expect(screen.getAllByText("EURUSD").length).toBeGreaterThan(0);
+  });
+
+  it("derives the auto-sync countdown from the last completed scan when nextScanAt is missing", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0 + 30_000);
+
+    const data = dashboard([analysed("EURUSD")]);
+    data.automation = {
+      enabled: true,
+      scanIntervalMs: 60_000,
+      dashboardSyncIntervalMs: 15_000,
+      nextScanAt: null,
+    };
+
+    render(<DashboardWorkspace initialData={data} />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(0);
+    });
+
+    expect(screen.getByText("30s")).toBeInTheDocument();
   });
 
   it("refreshes through the scanner API and replaces the view model", async () => {
