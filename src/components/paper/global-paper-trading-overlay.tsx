@@ -9,6 +9,7 @@ export function GlobalPaperTradingOverlay() {
   const [view, setView] = useState<"portfolio" | "journal">("portfolio");
   const [paper, setPaper] = useState<PaperDashboardData | undefined>(undefined);
   const [resetting, setResetting] = useState(false);
+  const [settingInitialBalance, setSettingInitialBalance] = useState(false);
   const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export function GlobalPaperTradingOverlay() {
 
   const resetPaper = async () => {
     if (resetting) return;
-    if (!window.confirm("Reset all paper orders, positions, journal, and paper balance?")) return;
+    if (!window.confirm("Reset all paper orders, positions, journal, and restore the current initial balance?")) return;
 
     setResetting(true);
     try {
@@ -42,6 +43,35 @@ export function GlobalPaperTradingOverlay() {
       setPaper((await response.json()) as PaperDashboardData);
     } finally {
       setResetting(false);
+    }
+  };
+
+  const setInitialBalance = async (initialBalance: number) => {
+    if (settingInitialBalance) return;
+    const currency = paper?.account.currency ?? "USD";
+    if (
+      !window.confirm(
+        `Set initial paper balance to ${currency} ${initialBalance.toLocaleString()}? This will clear all paper positions, orders, journal, and performance history.`
+      )
+    ) {
+      return;
+    }
+
+    setSettingInitialBalance(true);
+    try {
+      const response = await fetch("/api/paper", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "set-initial-balance",
+          initialBalance,
+        }),
+      });
+      if (!response.ok) return;
+      setPaper((await response.json()) as PaperDashboardData);
+    } finally {
+      setSettingInitialBalance(false);
     }
   };
 
@@ -82,6 +112,8 @@ export function GlobalPaperTradingOverlay() {
       resetting={resetting}
       onClosePosition={closePosition}
       closingPositionId={closingPositionId}
+      onSetInitialBalance={setInitialBalance}
+      settingInitialBalance={settingInitialBalance}
     />
   );
 }
