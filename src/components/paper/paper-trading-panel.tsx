@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { PaperDashboardData } from "@/paper/types";
 import { formatDuration, formatPrice } from "@/lib/format";
 
@@ -62,22 +62,9 @@ export function PaperTradingPanel({
   settingInitialBalance?: boolean;
   view?: PaperPanelView;
 }) {
-  const [balanceInput, setBalanceInput] = useState("");
-
-  useEffect(() => {
-    if (paper) {
-      setBalanceInput(String(paper.account.initialBalance));
-    }
-  }, [paper?.account.initialBalance]);
-
   if (!paper) return null;
 
   const { account, performance } = paper;
-  const parsedBalance = Number(balanceInput);
-  const balanceValid =
-    Number.isFinite(parsedBalance) &&
-    parsedBalance > 0 &&
-    parsedBalance <= 1_000_000_000;
 
   return (
     <div className="space-y-4">
@@ -112,46 +99,13 @@ export function PaperTradingPanel({
         </header>
 
         {onSetInitialBalance && (
-          <div className="border-b border-zinc-800 px-3 py-2.5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
-                  Initial paper balance
-                </div>
-                <div className="mt-0.5 text-[10px] text-zinc-600">
-                  Changing this resets paper positions, orders, journal, and performance.
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-zinc-500">
-                  {account.currency}
-                </span>
-                <input
-                  type="number"
-                  min="1"
-                  max="1000000000"
-                  step="100"
-                  inputMode="decimal"
-                  value={balanceInput}
-                  onChange={(event) => setBalanceInput(event.target.value)}
-                  className="w-32 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 font-mono text-xs text-zinc-100 outline-none focus:border-emerald-700"
-                  aria-label="Initial paper balance"
-                />
-                <button
-                  type="button"
-                  disabled={
-                    settingInitialBalance ||
-                    !balanceValid ||
-                    parsedBalance === account.initialBalance
-                  }
-                  onClick={() => void onSetInitialBalance(parsedBalance)}
-                  className="rounded-md border border-emerald-800/70 bg-emerald-950/20 px-2.5 py-1.5 text-[10px] font-medium text-emerald-300 hover:bg-emerald-950/35 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {settingInitialBalance ? "Applying..." : "Apply & Reset"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <InitialBalanceControl
+            key={account.initialBalance}
+            initialBalance={account.initialBalance}
+            currency={account.currency}
+            onApply={onSetInitialBalance}
+            applying={settingInitialBalance}
+          />
         )}
 
         {paper.persistenceError && (
@@ -383,6 +337,63 @@ export function PaperTradingPanel({
         )}
       </section>
       )}
+    </div>
+  );
+}
+
+
+function InitialBalanceControl({
+  initialBalance,
+  currency,
+  onApply,
+  applying,
+}: {
+  initialBalance: number;
+  currency: string;
+  onApply: (initialBalance: number) => Promise<void>;
+  applying: boolean;
+}) {
+  const [balanceInput, setBalanceInput] = useState(String(initialBalance));
+  const parsedBalance = Number(balanceInput);
+  const valid =
+    Number.isFinite(parsedBalance) &&
+    parsedBalance > 0 &&
+    parsedBalance <= 1_000_000_000;
+
+  return (
+    <div className="border-b border-zinc-800 px-3 py-2.5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+            Initial paper balance
+          </div>
+          <div className="mt-0.5 text-[10px] text-zinc-600">
+            Changing this resets paper positions, orders, journal, and performance.
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-zinc-500">{currency}</span>
+          <input
+            type="number"
+            min="1"
+            max="1000000000"
+            step="100"
+            inputMode="decimal"
+            value={balanceInput}
+            onChange={(event) => setBalanceInput(event.target.value)}
+            className="w-32 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 font-mono text-xs text-zinc-100 outline-none focus:border-emerald-700"
+            aria-label="Initial paper balance"
+          />
+          <button
+            type="button"
+            disabled={applying || !valid || parsedBalance === initialBalance}
+            onClick={() => void onApply(parsedBalance)}
+            className="rounded-md border border-emerald-800/70 bg-emerald-950/20 px-2.5 py-1.5 text-[10px] font-medium text-emerald-300 hover:bg-emerald-950/35 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {applying ? "Applying..." : "Apply & Reset"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
