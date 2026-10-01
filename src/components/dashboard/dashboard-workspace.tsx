@@ -21,6 +21,12 @@ import type { DashboardData } from "@/types/dashboard";
 const DASHBOARD_READ_TIMEOUT_MS = 10_000;
 const SCANNER_REFRESH_TIMEOUT_MS = 55_000;
 
+function scrollIntoViewIfAvailable(target: HTMLElement | null): void {
+  if (target && typeof target.scrollIntoView === "function") {
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
 async function requestDashboard(
   method: "GET" | "POST",
   timeoutMs: number
@@ -113,7 +119,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           document.querySelector<HTMLElement>(
             `[data-signal-symbol="${normalized}"]`
           ) ?? document.getElementById("signals");
-        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+        scrollIntoViewIfAvailable(target);
       }, 0);
 
       return true;
@@ -150,7 +156,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           )
         : document.getElementById("scanner");
 
-      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      scrollIntoViewIfAvailable(target);
     };
 
     window.addEventListener("fse:focus-ready-signal", focusReadySignal);
