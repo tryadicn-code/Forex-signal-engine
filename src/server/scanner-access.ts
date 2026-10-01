@@ -389,6 +389,19 @@ export async function refreshScanner(
   }
 
   const scanError = await runScanner(inst, asOf, release);
+
+  if (
+    DEFAULT_PAPER_TRADING_CONFIG.autoScanEnabled &&
+    !PRODUCTION_CONFIG.maintenanceMode
+  ) {
+    const interval = Math.max(
+      5_000,
+      DEFAULT_PAPER_TRADING_CONFIG.autoScanIntervalMs
+    );
+    (globalThis as ScannerRuntimeGlobal).__fseNextAutoScanAt =
+      Date.now() + interval;
+  }
+
   const currentRelease = await resolveRuntimeRelease();
   const currentInst = await scannerForRelease(currentRelease);
   return dashboardView(currentInst, scanError, currentRelease);
