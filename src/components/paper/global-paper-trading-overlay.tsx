@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { PaperTradingOverlay } from "@/components/paper/paper-trading-overlay";
 import type { PaperDashboardData } from "@/paper/types";
 
+type PaperOverlayView = "portfolio" | "journal";
+type PaperOverlayWindow = Window & {
+  __fseOpenPaper?: (view: PaperOverlayView) => void;
+};
+
 export function GlobalPaperTradingOverlay() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"portfolio" | "journal">("portfolio");
@@ -13,9 +18,8 @@ export function GlobalPaperTradingOverlay() {
   const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
 
   useEffect(() => {
-    const openPaper = (event: Event) => {
-      const detail = (event as CustomEvent<{ view?: "portfolio" | "journal" }>).detail;
-      setView(detail?.view ?? "portfolio");
+    const openPaperView = (nextView: PaperOverlayView = "portfolio") => {
+      setView(nextView);
       setOpen(true);
 
       void fetch("/api/paper", { method: "GET", cache: "no-store" })
@@ -28,8 +32,21 @@ export function GlobalPaperTradingOverlay() {
         });
     };
 
-    window.addEventListener("fse:open-paper", openPaper);
-    return () => window.removeEventListener("fse:open-paper", openPaper);
+    const openPaperEvent = (event: Event) => {
+      const detail = (event as CustomEvent<{ view?: PaperOverlayView }>).detail;
+      openPaperView(detail?.view ?? "portfolio");
+    };
+
+    const browserWindow = window as PaperOverlayWindow;
+    browserWindow.__fseOpenPaper = openPaperView;
+    window.addEventListener("fse:open-paper", openPaperEvent);
+
+    return () => {
+      if (browserWindow.__fseOpenPaper === openPaperView) {
+        delete browserWindow.__fseOpenPaper;
+      }
+      window.removeEventListener("fse:open-paper", openPaperEvent);
+    };
   }, []);
 
   const resetPaper = async () => {
