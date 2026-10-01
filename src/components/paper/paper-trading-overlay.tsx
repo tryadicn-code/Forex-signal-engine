@@ -14,6 +14,8 @@ export function PaperTradingOverlay({
   onClose,
   onReset,
   resetting,
+  onClosePosition,
+  closingPositionId,
 }: {
   open: boolean;
   view: Exclude<PaperPanelView, "both">;
@@ -21,6 +23,8 @@ export function PaperTradingOverlay({
   onClose: () => void;
   onReset: () => Promise<void>;
   resetting: boolean;
+  onClosePosition?: (positionId: string) => Promise<void>;
+  closingPositionId?: string | null;
 }) {
   const [activeView, setActiveView] = useState<Exclude<PaperPanelView, "both">>(
     view
@@ -119,6 +123,8 @@ export function PaperTradingOverlay({
             paper={paper}
             onReset={onReset}
             resetting={resetting}
+            onClosePosition={onClosePosition}
+            closingPositionId={closingPositionId}
             view={activeView}
           />
         </div>
