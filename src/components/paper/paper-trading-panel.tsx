@@ -15,6 +15,22 @@ function pct(value: number | null): string {
   return value.toFixed(2) + "%";
 }
 
+function riskReward(entryPrice: number, takeProfit: number, stopLoss: number): string {
+  const risk = Math.abs(entryPrice - stopLoss);
+  const reward = Math.abs(takeProfit - entryPrice);
+
+  if (
+    !Number.isFinite(risk) ||
+    !Number.isFinite(reward) ||
+    risk <= 0 ||
+    reward < 0
+  ) {
+    return "—";
+  }
+
+  return `1:${(reward / risk).toFixed(2)}`;
+}
+
 function metric(
   label: string,
   value: string,
@@ -229,7 +245,12 @@ export function PaperTradingPanel({
                   <div className="mt-1.5 font-mono text-[8px] text-zinc-600">
                     MFE {(position.maxFavorableR ?? 0) >= 0 ? "+" : ""}
                     {(position.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
-                    {(position.maxAdverseR ?? 0).toFixed(2)}R
+                    {(position.maxAdverseR ?? 0).toFixed(2)}R · RR{" "}
+                    {riskReward(
+                      position.entryPrice,
+                      position.takeProfit,
+                      position.stopLoss
+                    )}
                   </div>
                 </article>
               ))}
