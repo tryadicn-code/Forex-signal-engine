@@ -19,6 +19,7 @@ import { analyzeBias } from "@/core/bias";
 import { analyzeSetup } from "@/core/setup";
 import { evaluateTrigger } from "@/core/trigger";
 import { evaluateRisk } from "@/core/risk";
+import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import type { ExecutionContext, Veto } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
@@ -188,6 +189,18 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
   const entry =
     last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
     (setup.data.zoneHigh + setup.data.zoneLow) / 2;
+  const structuralTargets =
+    context.targetLevels && context.targetLevels.length > 0
+      ? context.targetLevels
+      : deriveStructuralTargetLevels({
+          entry,
+          direction: bias.data.direction,
+          pipSize,
+          setupStructure: setupStructure.data,
+          biasStructure: distinctTimeframes ? structure.data : undefined,
+          bufferPips: config.risk.structuralTargetBufferPips,
+        });
+
   const risk =
     trigger.data.state === "CONFIRMED"
       ? evaluateRisk(
@@ -198,7 +211,8 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
             accountCurrency: context.accountCurrency,
             riskPercent: context.riskPercent ?? config.risk.defaultRiskPercent,
             instrument,
-            targetLevels: context.targetLevels,
+            targetLevels:
+              structuralTargets.length > 0 ? structuralTargets : undefined,
             direction: bias.data.direction,
             quoteToAccountConversionRate: context.quoteToAccountConversionRate,
             marketAsOf: triggerAsOf,
