@@ -61,9 +61,28 @@ export class PaperTradingService {
     return structuredClone(await this.loadOrCreate(Date.now()));
   }
 
-  async reset(at: number = Date.now()): Promise<PaperDashboardData> {
+  async reset(
+    at: number = Date.now(),
+    initialBalance?: number
+  ): Promise<PaperDashboardData> {
     return this.serialize(async () => {
-      const state = this.initialState(at);
+      const existing = await this.store.load();
+      const nextInitialBalance =
+        initialBalance ??
+        existing?.account.initialBalance ??
+        this.config.initialBalance;
+
+      if (
+        !Number.isFinite(nextInitialBalance) ||
+        nextInitialBalance <= 0 ||
+        nextInitialBalance > 1_000_000_000
+      ) {
+        throw new Error(
+          "Paper initial balance must be greater than 0 and no more than 1,000,000,000."
+        );
+      }
+
+      const state = this.initialState(at, nextInitialBalance);
       await this.store.save(state);
       return this.toDashboard(state, null);
     });
@@ -131,12 +150,15 @@ export class PaperTradingService {
     return run;
   }
 
-  private initialState(at: number): PaperStoreState {
+  private initialState(
+    at: number,
+    initialBalance: number = this.config.initialBalance
+  ): PaperStoreState {
     return {
       schemaVersion: 1,
       account: {
         currency: this.config.accountCurrency,
-        initialBalance: this.config.initialBalance,
+        initialBalance,
         createdAt: at,
       },
       orders: [],
@@ -149,8 +171,8 @@ export class PaperTradingService {
           timestamp: at,
           symbol: null,
           signalId: null,
-          amount: this.config.initialBalance,
-          note: `Paper account created with ${this.config.initialBalance} ${this.config.accountCurrency}.`,
+          amount: initialBalance,
+          note: `Paper account created with ${initialBalance} ${this.config.accountCurrency}.`,
         },
       ],
     };
