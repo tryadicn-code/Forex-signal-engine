@@ -213,7 +213,7 @@ describe("evaluateTrigger - structural + location confirmation", () => {
     const result = evaluateTrigger(
       candles,
       setup({ zoneLow: 0.999, zoneHigh: 1.001, invalidationLevel: 0.995 }),
-      structureWithBOS(45, "LONG"),
+      structureWithBOS(47, "LONG"),
       "LONG"
     );
 
@@ -228,7 +228,7 @@ describe("evaluateTrigger - structural + location confirmation", () => {
     const result = evaluateTrigger(
       candles,
       setup({ zoneLow: 0.999, zoneHigh: 1.001, invalidationLevel: 0.995 }),
-      structureWithBOS(45, "LONG"),
+      structureWithBOS(47, "LONG"),
       "LONG"
     );
 
