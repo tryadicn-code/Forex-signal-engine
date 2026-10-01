@@ -7,6 +7,7 @@ import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
 import { ScannerTable } from "@/components/scanner/scanner-table";
+import { ScannerUniverseControl } from "@/components/scanner/scanner-universe-control";
 import { SignalDetailPanel } from "@/components/signals/signal-detail-panel";
 import {
   DEFAULT_QUERY,
@@ -346,9 +347,12 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
                 Select a pair to inspect its current trading state.
               </p>
             </div>
-            <span className="font-mono text-xs text-zinc-600">
-              {visibleResults.length}/{allResults.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <ScannerUniverseControl onUniverseChanged={refresh} />
+              <span className="font-mono text-xs text-zinc-600">
+                {visibleResults.length}/{allResults.length}
+              </span>
+            </div>
           </header>
 
           <ScannerFilters

@@ -10,6 +10,7 @@ export interface StoragePaths {
   snapshots: string;
   brokerExecution: string;
   notifications: string;
+  scannerUniverse: string;
 }
 
 export function resolveStoragePaths(
@@ -40,6 +41,7 @@ export function resolveStoragePaths(
     snapshots: path.join(dataDirectory, "snapshots"),
     brokerExecution: path.join(dataDirectory, "broker-execution.json"),
     notifications: path.join(dataDirectory, "notifications.json"),
+    scannerUniverse: path.join(dataDirectory, "scanner-universe.json"),
   };
 }
 

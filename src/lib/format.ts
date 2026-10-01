@@ -46,15 +46,21 @@ function pad2(value: number): string {
   return String(value).padStart(2, "0");
 }
 
+const WITA_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+function witaDate(epoch: number): Date {
+  return new Date(epoch + WITA_OFFSET_MS);
+}
+
 /**
- * Deterministic UTC clock formatting.
+ * Deterministic Bali / WITA clock formatting (UTC+8).
  *
- * Do not use locale-sensitive formatting in the server/client shared render
- * path: differing ICU implementations can produce hydration mismatches.
+ * A fixed offset keeps server and browser renders identical while presenting
+ * the workstation in the operator's local Bali time.
  */
 export function formatTime(epoch: number | null | undefined): string {
   if (epoch === null || epoch === undefined || !Number.isFinite(epoch)) return NOT_AVAILABLE;
-  const d = new Date(epoch);
+  const d = witaDate(epoch);
   if (Number.isNaN(d.getTime())) return NOT_AVAILABLE;
   return (
     pad2(d.getUTCHours()) +
@@ -62,13 +68,13 @@ export function formatTime(epoch: number | null | undefined): string {
     pad2(d.getUTCMinutes()) +
     ":" +
     pad2(d.getUTCSeconds()) +
-    " UTC"
+    " WITA"
   );
 }
 
 export function formatTimeShort(epoch: number | null | undefined): string {
   if (epoch === null || epoch === undefined || !Number.isFinite(epoch)) return NOT_AVAILABLE;
-  const d = new Date(epoch);
+  const d = witaDate(epoch);
   if (Number.isNaN(d.getTime())) return NOT_AVAILABLE;
   return pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes());
 }

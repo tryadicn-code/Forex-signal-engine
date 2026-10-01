@@ -33,7 +33,8 @@ import {
 } from "@/server/release-runtime-access";
 import type { ReleaseRuntimeResolution } from "@/runtime/release-runtime-types";
 import type { DeepPartial } from "@/core/config/engine-config";
-import type { ScannerConfig } from "@/config/scanner";
+import { DEFAULT_SYMBOL_UNIVERSE, type ScannerConfig } from "@/config/scanner";
+import { readScannerUniverse } from "@/server/scanner-universe-access";
 import {
   assertForwardValidationPersistenceHealthy,
   recordForwardValidationObservation,
@@ -75,7 +76,20 @@ async function scannerForRelease(
   if (!release.state.canScan || PRODUCTION_CONFIG.maintenanceMode) return null;
 
   const runtime = globalThis as ScannerRuntimeGlobal;
-  const identity = releaseRuntimeIdentity(release);
+  const releaseSymbols = Array.isArray(release.scannerOverrides?.symbols)
+    ? release.scannerOverrides.symbols.filter(
+        (symbol): symbol is string => typeof symbol === "string"
+      )
+    : null;
+  const stagedSymbols = resolveRuntimeSymbols();
+  const universe = await readScannerUniverse(
+    releaseSymbols?.length
+      ? releaseSymbols
+      : stagedSymbols ?? DEFAULT_SYMBOL_UNIVERSE
+  );
+  const identity =
+    releaseRuntimeIdentity(release) + "|symbols:" + universe.selected.join(",");
+
   if (
     runtime.__fseScannerApi &&
     runtime.__fseScannerReleaseIdentity === identity
@@ -88,15 +102,15 @@ async function scannerForRelease(
     await runtime.__fseScanInFlight;
   }
 
-  const runtimeSymbols =
-    release.state.status === "ACTIVE" ? null : resolveRuntimeSymbols();
   const releaseOverrides =
     release.scannerOverrides ?? ({} as DeepPartial<ScannerConfig>);
   const overrides: DeepPartial<ScannerConfig> = {
     ...releaseOverrides,
     providerId: runtimeProviderId(),
     executionMode: "PAPER",
-    ...(runtimeSymbols ? { symbols: runtimeSymbols } : {}),
+    // Pair selection is an operational universe choice; strategy thresholds
+    // and all other release-pinned settings remain untouched.
+    symbols: universe.selected,
   };
 
   runtime.__fseScannerApi = new ScannerApi(overrides, {

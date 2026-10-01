@@ -22,29 +22,51 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * Metadata for every supported pair.
- *
- * JPY pairs use a 0.01 pip size and 3-digit precision; everything else uses
- * 0.0001 / 5. Lot metadata is per-instrument and never assumed universal.
+ * Supported FX catalog. The default scanner universe intentionally stays
+ * smaller; operators can opt into additional crosses from the app.
  */
-export const SYMBOL_METADATA: Record<string, SymbolMetadata> = {
-  EURUSD: { symbol: "EURUSD", baseCurrency: "EUR", quoteCurrency: "USD", pipSize: 0.0001, pricePrecision: 5, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  GBPUSD: { symbol: "GBPUSD", baseCurrency: "GBP", quoteCurrency: "USD", pipSize: 0.0001, pricePrecision: 5, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  USDJPY: { symbol: "USDJPY", baseCurrency: "USD", quoteCurrency: "JPY", pipSize: 0.01, pricePrecision: 3, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  USDCHF: { symbol: "USDCHF", baseCurrency: "USD", quoteCurrency: "CHF", pipSize: 0.0001, pricePrecision: 5, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  AUDUSD: { symbol: "AUDUSD", baseCurrency: "AUD", quoteCurrency: "USD", pipSize: 0.0001, pricePrecision: 5, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  NZDUSD: { symbol: "NZDUSD", baseCurrency: "NZD", quoteCurrency: "USD", pipSize: 0.0001, pricePrecision: 5, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  USDCAD: { symbol: "USDCAD", baseCurrency: "USD", quoteCurrency: "CAD", pipSize: 0.0001, pricePrecision: 5, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  EURJPY: { symbol: "EURJPY", baseCurrency: "EUR", quoteCurrency: "JPY", pipSize: 0.01, pricePrecision: 3, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  GBPJPY: { symbol: "GBPJPY", baseCurrency: "GBP", quoteCurrency: "JPY", pipSize: 0.01, pricePrecision: 3, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  EURGBP: { symbol: "EURGBP", baseCurrency: "EUR", quoteCurrency: "GBP", pipSize: 0.0001, pricePrecision: 5, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  AUDJPY: { symbol: "AUDJPY", baseCurrency: "AUD", quoteCurrency: "JPY", pipSize: 0.01, pricePrecision: 3, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  EURAUD: { symbol: "EURAUD", baseCurrency: "EUR", quoteCurrency: "AUD", pipSize: 0.0001, pricePrecision: 5, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-  GBPAUD: { symbol: "GBPAUD", baseCurrency: "GBP", quoteCurrency: "AUD", pipSize: 0.0001, pricePrecision: 5, contractSize: 100_000, minLot: 0.01, maxLot: 100, lotStep: 0.01 },
-};
+export const SUPPORTED_SYMBOL_UNIVERSE = [
+  "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "NZDUSD", "USDCAD",
+  "EURJPY", "GBPJPY", "EURGBP", "AUDJPY", "EURAUD", "GBPAUD",
+  "AUDCAD", "AUDCHF", "AUDNZD", "CADCHF", "CADJPY", "CHFJPY",
+  "EURCAD", "EURCHF", "EURNZD", "GBPCAD", "GBPCHF", "GBPNZD",
+  "NZDCAD", "NZDCHF", "NZDJPY",
+] as const;
 
-/** The single source of truth for the enabled universe. */
-export const DEFAULT_SYMBOL_UNIVERSE: string[] = Object.keys(SYMBOL_METADATA);
+/** The 13-pair baseline used unless the operator explicitly changes it. */
+export const DEFAULT_SYMBOL_UNIVERSE: string[] = [
+  "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "NZDUSD", "USDCAD",
+  "EURJPY", "GBPJPY", "EURGBP", "AUDJPY", "EURAUD", "GBPAUD",
+];
+
+function createFxMetadata(symbol: string): SymbolMetadata {
+  const baseCurrency = symbol.slice(0, 3);
+  const quoteCurrency = symbol.slice(3, 6);
+  const jpyQuoted = quoteCurrency === "JPY";
+  return {
+    symbol,
+    baseCurrency,
+    quoteCurrency,
+    pipSize: jpyQuoted ? 0.01 : 0.0001,
+    pricePrecision: jpyQuoted ? 3 : 5,
+    contractSize: 100_000,
+    minLot: 0.01,
+    maxLot: 100,
+    lotStep: 0.01,
+  };
+}
+
+/** Metadata for every pair the UI is allowed to add to the scanner. */
+export const SYMBOL_METADATA: Record<string, SymbolMetadata> = Object.fromEntries(
+  SUPPORTED_SYMBOL_UNIVERSE.map((symbol) => [symbol, createFxMetadata(symbol)])
+);
+
+export function normalizeSupportedSymbol(value: string): string | null {
+  const symbol = value.trim().toUpperCase().replace(/[^A-Z]/g, "");
+  return /^[A-Z]{6}$/.test(symbol) && Boolean(SYMBOL_METADATA[symbol])
+    ? symbol
+    : null;
+}
 
 // ---------------------------------------------------------------------------
 // Timeframe roles

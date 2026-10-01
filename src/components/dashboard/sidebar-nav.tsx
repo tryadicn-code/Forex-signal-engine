@@ -8,47 +8,72 @@ type PaperOverlayWindow = Window & {
 };
 
 const NAV_ITEMS = [
-  { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
-  { kind: "paper", label: "Porto", desktopLabel: "Portfolio", glyph: "◫" },
-  { kind: "signal", label: "Signal", desktopLabel: "Signal", glyph: "⚡" },
-  { kind: "link", href: "/backtest", label: "Backtest", desktopLabel: "Backtest", glyph: "▥" },
-  { kind: "link", href: "/system", label: "System", desktopLabel: "System", glyph: "⚙" },
+  { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", icon: "home" },
+  { kind: "paper", label: "Porto", desktopLabel: "Portfolio", icon: "wallet" },
+  { kind: "signal", label: "Signal", desktopLabel: "Signal", icon: "signal" },
+  { kind: "link", href: "/backtest", label: "Backtest", desktopLabel: "Backtest", icon: "backtest" },
+  { kind: "link", href: "/system", label: "System", desktopLabel: "System", icon: "system" },
 ] as const;
 
+type NavIconName = (typeof NAV_ITEMS)[number]["icon"];
+
+function NavIcon({ name, className }: { name: NavIconName; className?: string }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    className,
+    "aria-hidden": true,
+  };
+
+  if (name === "home") {
+    return <svg {...common}><path d="M3 10.5 12 3l9 7.5" /><path d="M5.5 9.5V21h13V9.5" /><path d="M9.5 21v-6h5v6" /></svg>;
+  }
+  if (name === "wallet") {
+    return <svg {...common}><path d="M4 6.5h14a2 2 0 0 1 2 2V19H5a2 2 0 0 1-2-2V6.5A2.5 2.5 0 0 1 5.5 4H17" /><path d="M16 11h5v4h-5a2 2 0 1 1 0-4Z" /></svg>;
+  }
+  if (name === "signal") {
+    return <svg {...common}><path d="m13 2-7 11h6l-1 9 7-12h-6l1-8Z" /></svg>;
+  }
+  if (name === "backtest") {
+    return <svg {...common}><path d="M4 19V5" /><path d="M4 19h16" /><path d="m7 15 4-4 3 2 5-6" /><path d="M16 7h3v3" /></svg>;
+  }
+  return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" /></svg>;
+}
+
 function MobileNavLabel({
-  glyph,
+  icon,
   label,
 }: {
-  glyph: string;
+  icon: NavIconName;
   label: string;
 }) {
   return (
     <>
-      <span aria-hidden="true" className="text-xl leading-none">
-        {glyph}
-      </span>
+      <NavIcon name={icon} className="h-5 w-5" />
       <span className="leading-none">{label}</span>
     </>
   );
 }
 
 function DesktopNavLabel({
-  glyph,
+  icon,
   label,
   primary = false,
 }: {
-  glyph: string;
+  icon: NavIconName;
   label: string;
   primary?: boolean;
 }) {
   return (
     <>
-      <span
-        aria-hidden="true"
-        className={primary ? "text-base text-amber-300" : "text-sm"}
-      >
-        {glyph}
-      </span>
+      <NavIcon
+        name={icon}
+        className={primary ? "h-4 w-4 text-amber-300" : "h-4 w-4"}
+      />
       <span className={primary ? "font-semibold text-amber-300" : ""}>
         {label}
       </span>
@@ -101,7 +126,7 @@ export function SidebarNav() {
                   aria-label="Open paper portfolio"
                   className={itemClass}
                 >
-                  <MobileNavLabel glyph={item.glyph} label={item.label} />
+                  <MobileNavLabel icon={item.icon} label={item.label} />
                 </button>
               );
             }
@@ -114,7 +139,7 @@ export function SidebarNav() {
                   onClick={focusReadySignal}
                   className={`${itemClass} text-amber-300`}
                 >
-                  <MobileNavLabel glyph={item.glyph} label={item.label} />
+                  <MobileNavLabel icon={item.icon} label={item.label} />
                 </button>
               );
             }
@@ -125,7 +150,7 @@ export function SidebarNav() {
                 href={item.href}
                 className={itemClass}
               >
-                <MobileNavLabel glyph={item.glyph} label={item.label} />
+                <MobileNavLabel icon={item.icon} label={item.label} />
               </Link>
             );
           })}
@@ -149,7 +174,7 @@ export function SidebarNav() {
                 className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               >
                 <DesktopNavLabel
-                  glyph={item.glyph}
+                  icon={item.icon}
                   label={item.desktopLabel}
                 />
               </button>
@@ -165,7 +190,7 @@ export function SidebarNav() {
                 className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-amber-300 transition-colors hover:bg-zinc-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               >
                 <DesktopNavLabel
-                  glyph={item.glyph}
+                  icon={item.icon}
                   label={item.desktopLabel}
                   primary
                 />
@@ -180,7 +205,7 @@ export function SidebarNav() {
               className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             >
               <DesktopNavLabel
-                glyph={item.glyph}
+                icon={item.icon}
                 label={item.desktopLabel}
                 primary={primary}
               />
