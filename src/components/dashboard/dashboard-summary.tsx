@@ -1,80 +1,71 @@
 /**
- * Dashboard summary tiles.
+ * Compact trading-workstation summary.
  *
- * Mobile prioritises the six operational counts a trader needs at a glance.
- * Provider and timing diagnostics remain available below in Market Data Health
- * and reappear as summary tiles on larger screens.
+ * Keeps only action-oriented counts and lightweight scanner metadata.
  */
 
 import type { ScannerHealth, ScannerSnapshot, SymbolScanResult } from "@/scanner/scanner-result";
 import type { SignalView } from "@/scanner/scanner-api";
-import { ProviderStateBadge } from "@/components/common/badges";
-import { NOT_AVAILABLE, formatDuration, formatTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
-
-function SummaryTile({
-  label,
-  value,
-  glyph,
-  tone,
-  note,
-  className,
-}: {
-  label: string;
-  value: React.ReactNode;
-  glyph: string;
-  tone?: "default" | "warn" | "danger" | "good";
-  note?: string;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "min-w-0 rounded-md border border-zinc-800 bg-zinc-900/35 px-3 py-2.5",
-        className
-      )}
-    >
-      <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
-        <span aria-hidden="true" className="text-zinc-600">
-          {glyph}
-        </span>
-        <span className="truncate">{label}</span>
-      </div>
-      <div
-        className={cn(
-          "mt-1.5 font-mono text-xl font-semibold leading-none tabular-nums sm:text-lg",
-          tone === "warn" && "text-amber-300",
-          tone === "danger" && "text-orange-300",
-          tone === "good" && "text-emerald-300",
-          (!tone || tone === "default") && "text-zinc-100"
-        )}
-      >
-        {value}
-      </div>
-      {note && (
-        <div className="mt-1 hidden truncate text-[10px] text-zinc-600 sm:block">
-          {note}
-        </div>
-      )}
-    </div>
-  );
-}
+import { formatTime } from "@/lib/format";
 
 export function summarizeResults(results: SymbolScanResult[]) {
   return {
     scanned: results.length,
-    executable: results.filter(
-      (r) => r.executionDecision === "EXECUTE" && r.signalState === "EXECUTE"
+    ready: results.filter(
+      (result) =>
+        result.executionDecision === "EXECUTE" &&
+        result.signalState === "EXECUTE"
     ).length,
-    engineExecute: results.filter((r) => r.executionDecision === "EXECUTE").length,
-    blocked: results.filter((r) => r.executionDecision === "BLOCKED").length,
+    engineExecute: results.filter(
+      (result) => result.executionDecision === "EXECUTE"
+    ).length,
+    blocked: results.filter(
+      (result) =>
+        result.executionDecision === "BLOCKED" ||
+        result.signalState === "BLOCKED"
+    ).length,
     armed: results.filter(
-      (r) => r.setupState === "ARMED" || r.signalState === "ARMED"
+      (result) =>
+        result.setupState === "ARMED" ||
+        result.signalState === "ARMED"
     ).length,
-    stale: results.filter((r) => r.freshness === "STALE").length,
-    failed: results.filter((r) => r.status !== "ANALYSED").length,
-    triggered: results.filter((r) => r.signalState === "TRIGGERED").length,
+    dataIssues: results.filter(
+      (result) =>
+        result.status !== "ANALYSED" ||
+        result.freshness === "DELAYED" ||
+        result.freshness === "STALE"
+    ).length,
   };
+}
+
+function Kpi({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: number;
+  tone?: "default" | "ready" | "warn" | "danger";
+}) {
+  const valueClass =
+    tone === "ready"
+      ? "text-emerald-300"
+      : tone === "warn"
+        ? "text-amber-300"
+        : tone === "danger"
+          ? "text-red-300"
+          : "text-zinc-100";
+
+  return (
+    <div className="min-w-0 px-2 py-2 text-center sm:px-3">
+      <div className="truncate text-[10px] font-medium text-zinc-500 sm:text-[11px]">
+        {label}
+      </div>
+      <div className={`mt-0.5 font-mono text-lg font-semibold tabular-nums sm:text-xl ${valueClass}`}>
+        {value}
+      </div>
+    </div>
+  );
 }
 
 export function DashboardSummary({
@@ -89,69 +80,29 @@ export function DashboardSummary({
   const counts = summarizeResults(snapshot?.results ?? []);
 
   return (
-    <section aria-label="Scanner summary">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
-        <SummaryTile glyph="◉" label="Pairs" value={counts.scanned} />
-        <SummaryTile
-          glyph="⚡"
-          label="Active"
-          value={activeSignals.length}
-          note={health ? health.activeSignals + " tracked" : undefined}
-          tone={activeSignals.length > 0 ? "good" : "default"}
-        />
-        <SummaryTile glyph="◉" label="Armed" value={counts.armed} />
-        <SummaryTile
-          glyph="▶"
-          label="Executable"
-          value={counts.executable}
-          tone={counts.executable > 0 ? "good" : "default"}
-          note={
-            counts.engineExecute > counts.executable
-              ? counts.engineExecute + " engine execute · " + counts.executable + " actionable"
-              : undefined
-          }
-        />
-        <SummaryTile
-          glyph="✕"
-          label="Blocked"
-          value={counts.blocked}
-          tone={counts.blocked > 0 ? "danger" : "default"}
-        />
-        <SummaryTile
-          glyph="◷"
-          label="Stale / failed"
-          value={counts.stale + counts.failed}
-          note={counts.stale + counts.failed > 0 ? "execution data-gated" : undefined}
-          tone={counts.stale + counts.failed > 0 ? "warn" : "default"}
-        />
-        <SummaryTile
-          glyph="◈"
-          label="Provider"
-          value={<ProviderStateBadge state={health?.providerStatus?.state ?? null} />}
-          className="hidden xl:block"
-        />
-        <SummaryTile
-          glyph="◷"
-          label="Last scan"
-          value={<span className="text-sm">{formatTime(health?.lastScanCompletedAt)}</span>}
-          note={
-            health
-              ? "Duration " +
-                formatDuration(health.durationMs) +
-                " · " +
-                health.symbolsSuccessful +
-                " ok / " +
-                health.symbolsFailed +
-                " failed"
-              : undefined
-          }
-          className="hidden xl:block"
-        />
+    <section
+      aria-label="Actionable market summary"
+      className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/20"
+    >
+      <div className="grid grid-cols-4 divide-x divide-zinc-800">
+        <Kpi label="Ready" value={counts.ready} tone={counts.ready > 0 ? "ready" : "default"} />
+        <Kpi label="Armed" value={counts.armed} tone={counts.armed > 0 ? "warn" : "default"} />
+        <Kpi label="Blocked" value={counts.blocked} tone={counts.blocked > 0 ? "danger" : "default"} />
+        <Kpi label="Issues" value={counts.dataIssues} tone={counts.dataIssues > 0 ? "warn" : "default"} />
       </div>
-      {snapshot === null && (
-        <p className="mt-2 text-xs text-zinc-600">
-          {NOT_AVAILABLE} No scan has completed yet.
-        </p>
+
+      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-zinc-800 px-3 py-2 text-[11px] text-zinc-500 sm:text-xs">
+        <span><span className="font-mono text-zinc-300">{counts.scanned}</span> pairs</span>
+        <span aria-hidden="true" className="text-zinc-700">·</span>
+        <span><span className="font-mono text-zinc-300">{activeSignals.length}</span> active</span>
+        <span aria-hidden="true" className="text-zinc-700">·</span>
+        <span>Last scan <span className="font-mono tabular-nums text-zinc-300">{formatTime(health?.lastScanCompletedAt)}</span></span>
+      </div>
+
+      {counts.engineExecute > counts.ready && (
+        <div className="border-t border-zinc-800 px-3 py-1.5 text-center text-[10px] text-amber-300">
+          {counts.engineExecute - counts.ready} engine-ready awaiting lifecycle
+        </div>
       )}
     </section>
   );

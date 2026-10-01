@@ -17,7 +17,7 @@ export function BrokerExecutionPanel({
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-red-400/80">
-            Phase 10 · Broker Execution Safety
+            Broker Safety
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             {broker.mode} · {broker.providerId.toUpperCase()}
@@ -74,7 +74,7 @@ export function BrokerExecutionPanel({
           </h3>
           {recent.length === 0 ? (
             <p className="mt-2 rounded border border-zinc-800 bg-zinc-950/45 px-3 py-3 text-[9px] text-zinc-600">
-              No Phase 10 execution record has been created.
+              No execution record has been created.
             </p>
           ) : (
             <div className="mt-2 space-y-1.5">

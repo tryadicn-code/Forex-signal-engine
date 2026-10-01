@@ -84,7 +84,7 @@ export function ForwardValidationPanel() {
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
-            Phase 7 · Forward Validation
+            Forward Validation
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             Runtime drift monitor

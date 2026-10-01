@@ -175,7 +175,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("Phase 3 dashboard workspace", () => {
+describe("Phase 10.5 trading workstation dashboard", () => {
   it("renders analysed, stale, blocked, and failed symbols without collapsing the scanner", () => {
     const rows = [
       analysed("EURUSD"),
@@ -204,9 +204,9 @@ describe("Phase 3 dashboard workspace", () => {
     render(<DashboardWorkspace initialData={dashboard(rows)} />);
 
     expect(screen.getAllByText("EURUSD").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("BLOCKED").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Blocked").length).toBeGreaterThan(0);
     expect(screen.getAllByText("STALE").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("PROVIDER FAILURE").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Engine status PROVIDER FAILURE/).length).toBeGreaterThan(0);
     expect(screen.getAllByText("4 shown").length).toBeGreaterThan(0);
   });
 
@@ -267,7 +267,7 @@ describe("Phase 3 dashboard workspace", () => {
     const detail = screen.getByRole("complementary", {
       name: "Signal detail for GBPUSD",
     });
-    expect(within(detail).getByText(/SPREAD_TOO_WIDE/)).toBeInTheDocument();
+    expect(within(detail).getAllByText(/SPREAD_TOO_WIDE/).length).toBeGreaterThan(0);
     expect(within(detail).getByText("Spread exceeded the limit.")).toBeInTheDocument();
   });
 
@@ -292,7 +292,7 @@ describe("Phase 3 dashboard workspace", () => {
     expect(screen.getByText("No symbols scanned")).toBeInTheDocument();
   });
 
-  it("surfaces the Phase 6 ACTIVE release identity and drift state", () => {
+  it("keeps a healthy ACTIVE strategy out of the primary trading hierarchy", () => {
     const data = dashboard([analysed("EURUSD")]);
     data.releaseRuntime = {
       status: "ACTIVE",
@@ -313,10 +313,9 @@ describe("Phase 3 dashboard workspace", () => {
 
     render(<DashboardWorkspace initialData={data} />);
 
-    expect(screen.getByText("Strategy runtime")).toBeInTheDocument();
-    expect(screen.getByText("v1.0.0")).toBeInTheDocument();
-    expect(screen.getByText("PINNED")).toBeInTheDocument();
-    expect(screen.getByText(/DEFAULT DRIFT engineConfig/)).toBeInTheDocument();
+    expect(screen.queryByText("Strategy runtime")).not.toBeInTheDocument();
+    expect(screen.queryByText("Strategy needs attention.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Market overview")).toBeInTheDocument();
   });
 
   it("surfaces a scan-level error instead of silently clearing the dashboard", () => {

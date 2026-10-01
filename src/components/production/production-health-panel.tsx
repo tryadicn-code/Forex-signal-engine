@@ -69,7 +69,7 @@ export function ProductionHealthPanel() {
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-violet-400/80">
-            Phase 11 · Production Health
+            System Health
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             Alerts, execution safety & infrastructure
