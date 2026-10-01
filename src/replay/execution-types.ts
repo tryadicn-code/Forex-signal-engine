@@ -84,6 +84,8 @@ export interface HistoricalPosition {
   status: HistoricalPositionStatus;
   unrealizedPnL: number;
   currentR: number;
+  maxFavorableR?: number;
+  maxAdverseR?: number;
   engine: HistoricalEngineSnapshot;
 }
 
@@ -105,6 +107,8 @@ export interface HistoricalTrade {
   realizedPnL: number;
   realizedPnLPercent: number;
   realizedR: number;
+  maxFavorableR?: number;
+  maxAdverseR?: number;
   openedAt: number;
   closedAt: number;
   holdingDurationMs: number;
