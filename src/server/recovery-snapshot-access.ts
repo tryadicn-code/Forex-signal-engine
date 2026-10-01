@@ -15,6 +15,7 @@ const service = new RecoverySnapshotService(
     releaseRuntimeAudit: STORAGE_PATHS.releaseRuntimeAudit,
     forwardValidation: STORAGE_PATHS.forwardValidation,
     brokerExecution: STORAGE_PATHS.brokerExecution,
+    notifications: STORAGE_PATHS.notifications,
   },
   STORAGE_PATHS.snapshots,
   10

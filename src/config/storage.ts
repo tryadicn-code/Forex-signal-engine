@@ -9,6 +9,7 @@ export interface StoragePaths {
   backtestRuns: string;
   snapshots: string;
   brokerExecution: string;
+  notifications: string;
 }
 
 export function resolveStoragePaths(
@@ -38,6 +39,7 @@ export function resolveStoragePaths(
     backtestRuns: path.join(dataDirectory, "backtest-runs"),
     snapshots: path.join(dataDirectory, "snapshots"),
     brokerExecution: path.join(dataDirectory, "broker-execution.json"),
+    notifications: path.join(dataDirectory, "notifications.json"),
   };
 }
 

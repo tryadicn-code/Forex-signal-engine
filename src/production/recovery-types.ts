@@ -4,7 +4,8 @@ export interface RecoverySnapshotFile {
     | "strategyRegistry"
     | "releaseRuntimeAudit"
     | "forwardValidation"
-    | "brokerExecution";
+    | "brokerExecution"
+    | "notifications";
   sourceName: string;
   present: boolean;
   bytes: number;

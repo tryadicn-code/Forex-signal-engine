@@ -9,6 +9,7 @@ import { JsonFileStrategyVersionStore } from "@/server/strategy-version-store";
 import { JsonFileReleaseRuntimeAuditStore } from "@/server/release-runtime-audit-store";
 import { JsonFileBacktestRunStore } from "@/server/backtest-run-store";
 import { JsonFileBrokerExecutionStore } from "@/broker/execution-store";
+import { JsonFileNotificationStore } from "@/notifications/store";
 import {
   sharedTransactionalMode,
   transactionalStore,
@@ -104,6 +105,17 @@ export async function migrateLocalStateToShared(
   await seed(
     "state/broker-execution",
     brokerExecution,
+    remote,
+    seeded,
+    alreadyEquivalent
+  );
+
+  const notifications = await new JsonFileNotificationStore(
+    STORAGE_PATHS.notifications
+  ).read();
+  await seed(
+    "state/notifications",
+    notifications,
     remote,
     seeded,
     alreadyEquivalent

@@ -14,6 +14,7 @@ export interface RecoverySourcePaths {
   releaseRuntimeAudit: string;
   forwardValidation: string;
   brokerExecution?: string;
+  notifications?: string;
 }
 
 export class RecoverySnapshotService {

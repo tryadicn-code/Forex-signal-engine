@@ -22,7 +22,7 @@ export function ProductionHealthPanel() {
         | { error?: string };
       if (
         !("protocol" in payload) ||
-        payload.protocol !== "phase-10-health-v1"
+        payload.protocol !== "phase-11-health-v1"
       ) {
         throw new Error(
           "error" in payload && payload.error
@@ -72,10 +72,10 @@ export function ProductionHealthPanel() {
             System Health
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
-            Execution safety & infrastructure
+            Alerts, execution safety & infrastructure
           </h2>
           <p className="mt-0.5 text-[10px] text-zinc-600">
-            Broker safety, shared state, lease ownership and deployment readiness.
+            Alerts, broker safety, shared state and deployment readiness.
           </p>
         </div>
         <button
@@ -204,6 +204,14 @@ export function ProductionHealthPanel() {
                   <Fact
                     label="Reconcile"
                     value={String(health.broker.unresolvedCount)}
+                  />
+                  <Fact
+                    label="Alerts"
+                    value={health.notifications.enabled ? "ON" : "OFF"}
+                  />
+                  <Fact
+                    label="Alert fail"
+                    value={String(health.notifications.failedDeliveries)}
                   />
                 </dl>
               </section>

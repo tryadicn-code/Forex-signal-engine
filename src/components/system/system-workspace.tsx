@@ -1,6 +1,7 @@
 import { BrokerExecutionPanel } from "@/components/broker/broker-execution-panel";
 import { ForwardValidationPanel } from "@/components/forward-validation/forward-validation-panel";
 import { ProductionHealthPanel } from "@/components/production/production-health-panel";
+import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { TransitionHistory } from "@/components/signals/transition-history";
 import type { DashboardData } from "@/types/dashboard";
 
@@ -33,6 +34,7 @@ export function SystemWorkspace({ data }: { data: DashboardData }) {
 
       <ProductionHealthPanel />
       <BrokerExecutionPanel broker={data.broker} />
+      <NotificationPanel notifications={data.notifications} />
       <ForwardValidationPanel />
 
       <details className="rounded-lg border border-zinc-800 bg-zinc-900/25">

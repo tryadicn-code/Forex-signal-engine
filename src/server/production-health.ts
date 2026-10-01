@@ -5,6 +5,7 @@ import path from "node:path";
 import { PRODUCTION_CONFIG } from "@/config/production";
 import { BROKER_EXECUTION_CONFIG } from "@/config/broker";
 import { TRANSACTIONAL_CONFIG } from "@/config/transactional";
+import { NOTIFICATION_CONFIG } from "@/config/notifications";
 import { STORAGE_PATHS } from "@/config/storage";
 import { inspectDurableJson } from "@/persistence/durable-json";
 import type { DurableFileHealth } from "@/persistence/types";
@@ -21,6 +22,7 @@ import {
 import { resolveRuntimeRelease } from "@/server/release-runtime-access";
 import { scannerRuntimeStatus } from "@/server/scanner-access";
 import { readBrokerExecutionDashboard } from "@/server/broker-execution-access";
+import { readNotificationDashboard } from "@/server/notification-access";
 import { ensureStartupRecovery } from "@/server/startup-recovery";
 import {
   runtimeInstanceId,
@@ -32,7 +34,7 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
   const generatedAt = Date.now();
   const startupRecovery = await ensureStartupRecovery();
   const sharedMode = sharedTransactionalMode();
-  const [release, persistence, storageWritable, transactional, broker] =
+  const [release, persistence, storageWritable, transactional, broker, notifications] =
     await Promise.all([
       resolveRuntimeRelease(),
       sharedMode ? Promise.resolve([]) : inspectCriticalPersistence(),
@@ -47,6 +49,7 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
         ? transactionalStore().health()
         : Promise.resolve(null),
       readBrokerExecutionDashboard(),
+      readNotificationDashboard(),
     ]);
   const provider = runtimeMarketDataProvider().getProviderStatus();
   const runtime = scannerRuntimeStatus();
@@ -120,6 +123,36 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
   });
 
   checks.push({
+    id: "notifications",
+    status:
+      !NOTIFICATION_CONFIG.enabled
+        ? "PASS"
+        : notifications.error ||
+            notifications.channels.filter((item) => item.enabled).length === 0 ||
+            notifications.channels.some(
+              (item) => item.enabled && !item.configured
+            ) ||
+            notifications.failedDeliveries > 0
+          ? "WARN"
+          : "PASS",
+    message:
+      !NOTIFICATION_CONFIG.enabled
+        ? "Realtime notifications are disabled."
+        : notifications.error
+          ? "Notification state is degraded: " + notifications.error
+          : notifications.channels.filter((item) => item.enabled).length === 0
+          ? "Alerts are enabled but no notification channel is enabled."
+          : notifications.channels.some(
+                (item) => item.enabled && !item.configured
+              )
+            ? "At least one enabled notification channel is not fully configured."
+            : notifications.failedDeliveries > 0
+              ? notifications.failedDeliveries +
+                " notification delivery record(s) are failed and require attention."
+              : "Realtime notification channels are configured with no failed delivery backlog.",
+  });
+
+  checks.push({
     id: "transactional-store",
     status: sharedMode
       ? transactional?.ok
@@ -153,7 +186,12 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
   checks.push({
     id: "execution-mode",
     status: "PASS",
-    message: "Execution mode is PAPER; real broker orders are not enabled.",
+    message:
+      brokerMode === "LIVE"
+        ? "LIVE broker mode is selected; Phase 10 safety gates remain authoritative."
+        : brokerMode === "SHADOW"
+          ? "SHADOW broker mode is active; no real broker order is transmitted."
+          : "PAPER is the only execution path.",
   });
 
   checks.push({
@@ -272,7 +310,7 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
 
   return {
     schemaVersion: 1,
-    protocol: "phase-10-health-v1",
+    protocol: "phase-11-health-v1",
     generatedAt,
     uptimeSeconds: Math.max(0, Math.floor(process.uptime())),
     readiness,
@@ -299,6 +337,7 @@ export async function readProductionHealth(): Promise<ProductionHealthSnapshot> 
       transactional,
     },
     broker,
+    notifications,
     providerId: runtimeProviderId(),
     liveMarketData: runtimeUsesLiveMarketData(),
     provider,
@@ -315,6 +354,8 @@ async function inspectCriticalPersistence(): Promise<DurableFileHealth[]> {
     STORAGE_PATHS.strategyRegistry,
     STORAGE_PATHS.releaseRuntimeAudit,
     STORAGE_PATHS.forwardValidation,
+    STORAGE_PATHS.brokerExecution,
+    STORAGE_PATHS.notifications,
   ];
 
   try {
