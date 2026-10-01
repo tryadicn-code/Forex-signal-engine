@@ -9,6 +9,7 @@ export function GlobalPaperTradingOverlay() {
   const [view, setView] = useState<"portfolio" | "journal">("portfolio");
   const [paper, setPaper] = useState<PaperDashboardData | undefined>(undefined);
   const [resetting, setResetting] = useState(false);
+  const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
 
   useEffect(() => {
     const openPaper = (event: Event) => {
@@ -44,6 +45,33 @@ export function GlobalPaperTradingOverlay() {
     }
   };
 
+  const closePosition = async (positionId: string) => {
+    if (closingPositionId) return;
+    const position = paper?.openPositions.find((item) => item.id === positionId);
+    if (!position) return;
+    if (
+      !window.confirm(
+        `Close ${position.symbol} ${position.side} at the latest provider price?`
+      )
+    ) {
+      return;
+    }
+
+    setClosingPositionId(positionId);
+    try {
+      const response = await fetch("/api/paper", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "close-position", positionId }),
+      });
+      if (!response.ok) return;
+      setPaper((await response.json()) as PaperDashboardData);
+    } finally {
+      setClosingPositionId(null);
+    }
+  };
+
   return (
     <PaperTradingOverlay
       open={open}
@@ -52,6 +80,8 @@ export function GlobalPaperTradingOverlay() {
       onClose={() => setOpen(false)}
       onReset={resetPaper}
       resetting={resetting}
+      onClosePosition={closePosition}
+      closingPositionId={closingPositionId}
     />
   );
 }
