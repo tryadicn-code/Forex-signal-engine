@@ -79,20 +79,20 @@ export function SidebarNav() {
     <>
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-30 h-16 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 h-[calc(3.5rem+env(safe-area-inset-bottom))] bg-[#0b0e14] md:hidden"
       >
         <svg
           aria-hidden="true"
-          viewBox="0 0 1000 80"
+          viewBox="0 0 1000 56"
           preserveAspectRatio="none"
-          className="pointer-events-none absolute inset-0 h-full w-full"
+          className="pointer-events-none absolute inset-x-0 top-0 h-14 w-full"
         >
           <path
-            d="M0 0 H396 C428 0 438 37 500 37 C562 37 572 0 604 0 H1000 V80 H0 Z"
+            d="M0 0 H376 C414 0 426 6 447 24 C463 39 478 36 500 36 C522 36 537 39 553 24 C574 6 586 0 624 0 H1000 V56 H0 Z"
             fill="rgb(11 14 20 / 0.985)"
           />
           <path
-            d="M0 0 H396 C428 0 438 37 500 37 C562 37 572 0 604 0 H1000"
+            d="M0 0 H376 C414 0 426 6 447 24 C463 39 478 36 500 36 C522 36 537 39 553 24 C574 6 586 0 624 0 H1000"
             fill="none"
             stroke="rgb(63 63 70)"
             strokeWidth="1.25"
@@ -119,7 +119,7 @@ export function SidebarNav() {
                   key="portfolio"
                   type="button"
                   onClick={openPortfolio}
-                  className={`${colClass} flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`}
+                  className={`${colClass} flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[10px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`}
                 >
                   <MobileNavLabel glyph={item.glyph} label={item.label} />
                 </button>
@@ -130,7 +130,7 @@ export function SidebarNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`${colClass} flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`}
+                className={`${colClass} flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[10px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500`}
               >
                 <MobileNavLabel glyph={item.glyph} label={item.label} />
               </Link>
@@ -142,7 +142,7 @@ export function SidebarNav() {
           type="button"
           onClick={focusReadySignal}
           aria-label="Go to first ready signal"
-          className="absolute left-1/2 -top-0.5 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-amber-500/70 bg-[#0b0e14] text-[28px] leading-none text-amber-300 shadow-lg shadow-amber-950/40 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          className="absolute left-1/2 top-0 z-20 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-amber-500/75 bg-[#0b0e14] text-[27px] leading-none text-amber-300 shadow-[0_5px_18px_rgba(120,53,15,0.32)] transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <span aria-hidden="true">⚡</span>
         </button>
