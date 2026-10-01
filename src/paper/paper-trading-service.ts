@@ -12,6 +12,7 @@ import {
   evaluateBarExit,
   evaluatePriceExit,
   markPosition,
+  markPositionExcursion,
   type ExitDecision,
 } from "@/paper/calculations";
 import type {
@@ -25,6 +26,7 @@ import type {
   PaperTrade,
 } from "@/paper/types";
 import type { PaperStore } from "@/paper/store";
+import { findDirectionalCurrencyExposureBlock } from "@/paper/exposure";
 
 const ENGINE_VERSION = "phase-4";
 const PAPER_CONFIG_VERSION = "phase-4.1";
@@ -62,6 +64,42 @@ export class PaperTradingService {
   async reset(at: number = Date.now()): Promise<PaperDashboardData> {
     return this.serialize(async () => {
       const state = this.initialState(at);
+      await this.store.save(state);
+      return this.toDashboard(state, null);
+    });
+  }
+
+  async closePositionManually(
+    positionId: string,
+    marketData: MarketDataProvider,
+    at: number = Date.now()
+  ): Promise<PaperDashboardData> {
+    return this.serialize(async () => {
+      const state = await this.loadOrCreate(at);
+      const position = state.positions.find(
+        (item) => item.id === positionId && item.status === "OPEN"
+      );
+      if (!position) {
+        throw new Error("Paper position is not open or does not exist.");
+      }
+
+      const quote = await marketData.getLatestPrice(position.symbol, at);
+      if (!quote.ok || !Number.isFinite(quote.data.price) || quote.data.price <= 0) {
+        throw new Error(
+          quote.ok
+            ? "Latest market price is invalid."
+            : "Latest market price is unavailable: " + quote.error.message
+        );
+      }
+
+      const marked = markPosition(position, quote.data.price, at);
+      this.replacePosition(state, marked);
+      this.closePosition(
+        state,
+        marked,
+        { exitPrice: quote.data.price, reason: "MANUAL_PAPER_CLOSE" },
+        at
+      );
       await this.store.save(state);
       return this.toDashboard(state, null);
     });
@@ -174,6 +212,13 @@ export class PaperTradingService {
         // boundary here as a second no-look-ahead guard.
         if (candleCloseTime("M15", candle.timestamp) > asOf) continue;
 
+        position = markPositionExcursion(
+          position,
+          candle,
+          candleCloseTime("M15", candle.timestamp)
+        );
+        this.replacePosition(state, position);
+
         const decision = evaluateBarExit(
           position,
           candle,
@@ -242,7 +287,7 @@ export class PaperTradingService {
         }
       }
 
-      const rejection = this.validateCandidate(state, result);
+      const rejection = this.validateCandidate(state, result, asOf);
       if (rejection) {
         this.rejectOrder(state, result, executionKey, rejection, asOf, release);
         continue;
@@ -254,7 +299,8 @@ export class PaperTradingService {
 
   private validateCandidate(
     state: PaperStoreState,
-    result: SymbolScanResult
+    result: SymbolScanResult,
+    asOf: number
   ): string | null {
     const risk = result.riskDetail;
     if (result.status !== "ANALYSED") return "PAPER_UPSTREAM_NOT_ANALYSED";
@@ -297,6 +343,38 @@ export class PaperTradingService {
     if (open.length >= this.config.maxOpenPositions) {
       return "PAPER_MAX_OPEN_POSITIONS";
     }
+
+    const sameSymbolCount = open.filter(
+      (position) => position.symbol === result.symbol
+    ).length;
+    if (sameSymbolCount >= this.config.maxOpenPositionsPerSymbol) {
+      return "PAPER_MAX_OPEN_POSITIONS_PER_SYMBOL";
+    }
+
+    const exposureBlock = findDirectionalCurrencyExposureBlock(
+      open,
+      result.symbol,
+      result.biasDirection,
+      this.config.maxDirectionalCurrencyExposure
+    );
+    if (exposureBlock) {
+      return "PAPER_DIRECTIONAL_CURRENCY_EXPOSURE";
+    }
+
+    const lastStop = [...state.trades]
+      .filter(
+        (trade) =>
+          trade.symbol === result.symbol &&
+          trade.closeReason === "STOP_LOSS"
+      )
+      .sort((a, b) => b.closedAt - a.closedAt)[0];
+    if (
+      lastStop &&
+      asOf - lastStop.closedAt < this.config.stopLossReentryCooldownMs
+    ) {
+      return "PAPER_STOP_LOSS_COOLDOWN";
+    }
+
     const candidateTotalRisk = account.openRiskAmount + riskAmount;
     const candidateTotalRiskPercent =
       account.balance > 0 ? (candidateTotalRisk / account.balance) * 100 : Infinity;
@@ -410,6 +488,8 @@ export class PaperTradingService {
       status: "OPEN",
       unrealizedPnL: 0,
       currentR: 0,
+      maxFavorableR: 0,
+      maxAdverseR: 0,
       engine: order.engine,
     };
 
@@ -463,6 +543,8 @@ export class PaperTradingService {
       realizedPnL,
       realizedPnLPercent: balanceBefore > 0 ? (realizedPnL / balanceBefore) * 100 : 0,
       realizedR,
+      maxFavorableR: current.maxFavorableR ?? Math.max(0, realizedR),
+      maxAdverseR: current.maxAdverseR ?? Math.min(0, realizedR),
       openedAt: current.openedAt,
       closedAt,
       holdingDurationMs: Math.max(0, closedAt - current.openedAt),
@@ -551,6 +633,10 @@ export class PaperTradingService {
       config: {
         maxOpenPositions: this.config.maxOpenPositions,
         maxTotalOpenRiskPercent: this.config.maxTotalOpenRiskPercent,
+        maxOpenPositionsPerSymbol: this.config.maxOpenPositionsPerSymbol,
+        maxDirectionalCurrencyExposure:
+          this.config.maxDirectionalCurrencyExposure,
+        stopLossReentryCooldownMs: this.config.stopLossReentryCooldownMs,
         intrabarConflictPolicy: this.config.intrabarConflictPolicy,
       },
       account: this.accountSummary(state),
