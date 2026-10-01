@@ -39,6 +39,14 @@ describe("resolveScannerConfig immutability", () => {
     expect(b.symbols).not.toContain("AAA");
   });
 
+  it("ships the hardened entry-quality defaults", () => {
+    expect(DEFAULT_SCANNER_CONFIG.engineConfig.setup.minSetupScore).toBe(60);
+    expect(DEFAULT_SCANNER_CONFIG.engineConfig.trigger.minTriggerScore).toBe(80);
+    expect(DEFAULT_SCANNER_CONFIG.engineConfig.trigger.volumeLookback).toBe(20);
+    expect(DEFAULT_SCANNER_CONFIG.engineConfig.trigger.volumeExpansionRatio).toBe(1.2);
+    expect(DEFAULT_SCANNER_CONFIG.engineConfig.trigger.maxTriggerAgeBars).toBe(3);
+  });
+
   it("applies scalar overrides without touching unrelated defaults", () => {
     const resolved = resolveScannerConfig({ candleLookback: 100 });
     expect(resolved.candleLookback).toBe(100);

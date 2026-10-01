@@ -185,6 +185,13 @@ export function analyzeSetup(
     Math.abs(bias.score)
   );
 
+  evidence.push({
+    code: "SETUP_QUALITY",
+    label: "Setup quality",
+    description: `Quality score ${setupScore} from zone source ${selected.zone.source}, proximity, confluence and bias strength; minimum ${config.setup.minSetupScore}.`,
+    value: setupScore,
+  });
+
   // Minimum quality applies to every actionable state. Letting an ARMED zone
   // keep its state below the minimum would let a setup bypass the quality gate
   // merely because price happened to travel deeper into the zone (audit #7).
@@ -343,22 +350,44 @@ function computeSetupScore(
 ): number {
   const proximityRatio =
     proximityPips > 0 ? Math.max(0, 1 - distancePips / proximityPips) : 1;
-  const proximityBonus = proximityRatio * 30;
+  const proximityBonus = proximityRatio * 20;
 
   let confluence = 0;
   for (const zone of zones) {
     if (zone === selected) continue;
-    const centerDistance = Math.abs((zone.low + zone.high) / 2 - (selected.low + selected.high) / 2);
+    const centerDistance = Math.abs(
+      (zone.low + zone.high) / 2 - (selected.low + selected.high) / 2
+    );
     if (centerDistance <= Math.max(selected.high - selected.low, 0)) {
       confluence++;
     }
   }
-  const confluenceBonus = Math.min(confluence * 8, 20);
+  const confluenceBonus = Math.min(confluence * 10, 25);
+
+  const sourceBonus =
+    selected.source === "htf-confluence"
+      ? 25
+      : selected.source === "demand-zone" || selected.source === "supply-zone"
+        ? 20
+        : selected.source === "support-swing-low" ||
+            selected.source === "resistance-swing-high"
+          ? 18
+          : selected.source === "retracement"
+            ? 15
+            : selected.source === "ema-dynamic"
+              ? 8
+              : 10;
 
   const biasBonus = Math.min(biasStrength * 0.1, 10);
 
   return Math.round(
-    Math.max(0, Math.min(100, 40 + proximityBonus + confluenceBonus + biasBonus))
+    Math.max(
+      0,
+      Math.min(
+        100,
+        20 + proximityBonus + sourceBonus + confluenceBonus + biasBonus
+      )
+    )
   );
 }
 

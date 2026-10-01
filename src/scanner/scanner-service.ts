@@ -324,12 +324,17 @@ export class ScannerService {
     newsPending?: boolean
   ): PipelineResult {
     const instrument = toCurrencyPair(context!.metadata);
+    const macroTimeframe = context!.d1.timeframe;
     const biasTimeframe = context!.h4.timeframe;
     const setupTimeframe = context!.h1.timeframe;
     const triggerTimeframe = context!.m15.timeframe;
 
     return analyzeMarket({
       instrument,
+      macroTimeframe: {
+        timeframe: macroTimeframe,
+        snapshot: toSnapshot(context!.symbol, context!.d1),
+      },
       biasTimeframe: {
         timeframe: biasTimeframe,
         snapshot: toSnapshot(context!.symbol, context!.h4),
@@ -539,7 +544,7 @@ export class ScannerService {
       setupState: setup.state,
       setupScore: setup.setupScore,
       triggerState: trigger?.state ?? null,
-      triggerScore: trigger ? (trigger.state === "CONFIRMED" ? 100 : trigger.state === "WAITING" ? 50 : 0) : null,
+      triggerScore: trigger?.breakdown.score ?? null,
       triggerAgeInBars: trigger?.ageInBars ?? null,
       riskReward: risk?.rr ?? null,
       positionSize: risk?.positionSize ?? null,

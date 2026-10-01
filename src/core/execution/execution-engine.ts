@@ -197,6 +197,10 @@ export function decide(input: ExecutionInput): EngineResult<ExecutionResultData>
     decision = "BLOCKED";
   } else if (!biasValid) {
     decision = "WAIT";
+  } else if (!setupValid) {
+    // A setup that is still WATCH/NONE is incomplete, not structurally broken.
+    // INVALIDATED is reserved for an explicit invalidation state above.
+    decision = "WAIT";
   } else if (!triggerConfirmed) {
     decision = "WAIT";
   } else {

@@ -212,6 +212,13 @@ export interface TriggerBreakdown {
   candle: TriggerComponentState;
   /** Momentum readings backing the optional momentum component. */
   momentum: { rsi: number; macdHistogram: number; aligned: boolean };
+  /** Relative/tick-volume expansion backing the optional volume component. */
+  volume?: {
+    current: number;
+    baseline: number;
+    ratio: number;
+    confirmed: boolean;
+  };
   /** Composite trigger score on the 0-100 scale. */
   score: number;
 }

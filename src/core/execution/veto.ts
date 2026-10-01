@@ -1,4 +1,9 @@
-import type { MarketSnapshot, ExecutionMode } from "@/types/market";
+import type {
+  Direction,
+  MarketSnapshot,
+  ExecutionMode,
+  RegimeLabel,
+} from "@/types/market";
 import type {
   BiasResultData,
   RiskResultData,
@@ -41,6 +46,14 @@ export interface ExecutionContext {
   dailyRiskLimitPercent?: number;
   /** When the signal was created, as UTC epoch milliseconds. */
   signalTimestamp?: number;
+  /** D1 macro alignment relative to the H4 trading bias. */
+  macroAlignment?: "ALIGNED" | "NEUTRAL" | "OPPOSED";
+  /** Direction produced by the D1 macro context, when available. */
+  macroDirection?: Direction;
+  /** H4 regime label used by the strategy-compatibility gate. */
+  regime?: RegimeLabel;
+  /** Whether the H4 regime is compatible with the current directional strategy. */
+  regimeCompatible?: boolean;
 }
 
 /**
@@ -263,6 +276,54 @@ export const DAILY_RISK_LIMIT_VETO: Veto = {
   },
 };
 
+export const MACRO_ALIGNMENT_VETO: Veto = {
+  code: "MACRO_ALIGNMENT",
+  label: "Macro timeframe opposes entry",
+  description:
+    "Blocks execution when the D1 directional context opposes the H4 trading bias.",
+  evaluate(context) {
+    const alignment = context.execution?.macroAlignment;
+    if (alignment === undefined) {
+      return {
+        triggered: false,
+        skipped: true,
+        reason: "No macro-alignment context supplied.",
+      };
+    }
+    if (alignment === "OPPOSED") {
+      return {
+        triggered: true,
+        reason: `D1 macro direction ${context.execution?.macroDirection ?? "UNKNOWN"} opposes the H4 entry direction.`,
+      };
+    }
+    return { triggered: false };
+  },
+};
+
+export const REGIME_COMPATIBILITY_VETO: Veto = {
+  code: "REGIME_COMPATIBILITY",
+  label: "Regime incompatible with entry",
+  description:
+    "Blocks execution when the H4 market regime is not compatible with the directional trend/pullback strategy.",
+  evaluate(context) {
+    const compatible = context.execution?.regimeCompatible;
+    if (compatible === undefined) {
+      return {
+        triggered: false,
+        skipped: true,
+        reason: "No regime-compatibility context supplied.",
+      };
+    }
+    if (!compatible) {
+      return {
+        triggered: true,
+        reason: `H4 regime ${context.execution?.regime ?? "UNKNOWN"} is not compatible with the current directional entry.`,
+      };
+    }
+    return { triggered: false };
+  },
+};
+
 export const SIGNAL_EXPIRED_VETO: Veto = {
   code: "SIGNAL_EXPIRED",
   label: "Signal expired",
@@ -301,6 +362,8 @@ export const DEFAULT_VETOES: Veto[] = [
   NEWS_BLOCK_VETO,
   CORRELATION_LIMIT_VETO,
   DAILY_RISK_LIMIT_VETO,
+  MACRO_ALIGNMENT_VETO,
+  REGIME_COMPATIBILITY_VETO,
   SIGNAL_EXPIRED_VETO,
 ];
 

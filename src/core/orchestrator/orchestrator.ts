@@ -1,5 +1,6 @@
 import type {
   CurrencyPair,
+  Direction,
   MarketSnapshot,
   Timeframe,
 } from "@/types/market";
@@ -34,6 +35,8 @@ export interface TimeframeInput {
 
 export interface AnalysisContext {
   instrument: CurrencyPair;
+  /** Optional D1 macro context used as a directional safety filter. */
+  macroTimeframe?: TimeframeInput;
   /** Snapshot used for structure / regime / bias (the directional view). */
   biasTimeframe: TimeframeInput;
   /** Snapshot used for setup / zone detection. Defaults to the bias timeframe. */
@@ -94,11 +97,13 @@ export interface PipelineResult {
 export function analyzeMarket(context: AnalysisContext): PipelineResult {
   const config = resolveConfig(context.configOverrides);
   const { instrument, biasTimeframe } = context;
+  const macroTimeframe = context.macroTimeframe;
   const setupTimeframe = context.setupTimeframe ?? biasTimeframe;
   const triggerTimeframe = context.triggerTimeframe ?? setupTimeframe;
   const pipSize = instrument.pipSize;
 
   const biasAsOf = biasTimeframe.snapshot.asOf;
+  const macroAsOf = macroTimeframe?.snapshot.asOf;
   const setupAsOf = setupTimeframe.snapshot.asOf;
   const triggerAsOf = triggerTimeframe.snapshot.asOf;
 
@@ -127,6 +132,49 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
     biasAsOf
   );
 
+  // D1 is a macro safety filter rather than another scoring component. A
+  // neutral D1 does not block an H4 opportunity, but a directional D1 that
+  // opposes the H4 bias prevents execution through a hard veto later.
+  let macroDirection: Direction | undefined;
+  let macroAlignment: "ALIGNED" | "NEUTRAL" | "OPPOSED" | undefined;
+  if (macroTimeframe && macroAsOf !== undefined) {
+    const macroStructure = analyzeStructure(
+      macroTimeframe.snapshot.candles,
+      context.configOverrides,
+      pipSize,
+      macroAsOf
+    );
+    const macroRegime = classifyRegime(
+      macroTimeframe.snapshot.candles,
+      macroStructure.data,
+      context.configOverrides,
+      macroAsOf
+    );
+    const macroBias = analyzeBias(
+      macroTimeframe.snapshot.candles,
+      macroStructure.data,
+      macroRegime.data,
+      context.configOverrides,
+      macroAsOf
+    );
+    macroDirection = macroBias.data.direction;
+    macroAlignment =
+      macroDirection === "NEUTRAL" || bias.data.direction === "NEUTRAL"
+        ? "NEUTRAL"
+        : macroDirection === bias.data.direction
+          ? "ALIGNED"
+          : "OPPOSED";
+  }
+
+  const regimeCompatible =
+    bias.data.direction !== "NEUTRAL" &&
+    ((regime.data.baseRegime === "TREND_UP" &&
+      bias.data.direction === "LONG") ||
+      (regime.data.baseRegime === "TREND_DOWN" &&
+        bias.data.direction === "SHORT") ||
+      (regime.data.baseRegime === "BREAKOUT" &&
+        regime.data.direction === bias.data.direction));
+
   // 4. Setup on the setup timeframe. The setup structure is computed from the
   // setup candles themselves, so swing indexes resolve against the right
   // array; the bias-timeframe structure is passed only as price confluence and
@@ -152,6 +200,7 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
   // 5-7. Trigger, Risk and Execution only make sense for an actionable zone.
   if (
     setup.data.state === "NONE" ||
+    setup.data.state === "WATCH" ||
     setup.data.state === "INVALIDATED" ||
     bias.data.direction === "NEUTRAL"
   ) {
@@ -255,6 +304,10 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
       signalTimestamp:
         trigger.data.triggerTimestamp ??
         context.execution?.signalTimestamp,
+      macroAlignment,
+      macroDirection,
+      regime: regime.data.regime,
+      regimeCompatible,
     },
     snapshot: triggerTimeframe.snapshot,
     configOverrides: context.configOverrides,

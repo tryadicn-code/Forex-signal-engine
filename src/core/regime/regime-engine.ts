@@ -156,7 +156,7 @@ export function classifyRegime(
   const data: RegimeResultData = {
     regime,
     baseRegime: regimeToBase(regime),
-    direction: regimeDirection(regime),
+    direction: regime === "BREAKOUT" ? trendDirection : regimeDirection(regime),
     strength,
     adx: adxValue,
     ema20: emaShort,

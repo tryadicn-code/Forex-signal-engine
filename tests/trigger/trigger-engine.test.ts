@@ -142,6 +142,17 @@ function seriesEndingInsideZone(count = 50): OHLCV[] {
   return out;
 }
 
+function seriesEndingInsideZoneWithVolumeExpansion(count = 50): OHLCV[] {
+  const out = seriesEndingInsideZone(count);
+  if (out.length > 0) {
+    out[out.length - 1] = {
+      ...out[out.length - 1],
+      volume: 1500,
+    };
+  }
+  return out;
+}
+
 describe("evaluateTrigger - momentum alone never confirms", () => {
   it("stays WAITING when momentum aligns but structure and location are absent", () => {
     // A clean downtrend: RSI and MACD both bearish, i.e. momentum genuinely
@@ -197,8 +208,23 @@ describe("evaluateTrigger - candle confirmation outside the zone never confirms"
 });
 
 describe("evaluateTrigger - structural + location confirmation", () => {
-  it("confirms with BOS+IN_ZONE and records the trigger candle", () => {
+  it("waits when BOS+IN_ZONE has no candle, momentum, or volume confirmation", () => {
     const candles = seriesEndingInsideZone(50);
+    const result = evaluateTrigger(
+      candles,
+      setup({ zoneLow: 0.999, zoneHigh: 1.001, invalidationLevel: 0.995 }),
+      structureWithBOS(45, "LONG"),
+      "LONG"
+    );
+
+    expect(result.data.state).toBe("WAITING");
+    expect(result.data.triggerType).toBeNull();
+    expect(result.data.breakdown.score).toBe(70);
+    expect(result.data.breakdown.volume?.confirmed).toBe(false);
+  });
+
+  it("confirms BOS+IN_ZONE when relative volume expands", () => {
+    const candles = seriesEndingInsideZoneWithVolumeExpansion(50);
     const result = evaluateTrigger(
       candles,
       setup({ zoneLow: 0.999, zoneHigh: 1.001, invalidationLevel: 0.995 }),
@@ -211,6 +237,7 @@ describe("evaluateTrigger - structural + location confirmation", () => {
     expect(result.data.triggerIndex).toBe(49);
     expect(result.data.triggerTimestamp).toBe(candles[49].timestamp);
     expect(result.data.ageInBars).toBe(0);
+    expect(result.data.breakdown.volume?.confirmed).toBe(true);
     expect(result.data.breakdown.score).toBe(80);
   });
 });
@@ -232,7 +259,7 @@ describe("evaluateTrigger - trigger freshness", () => {
   });
 
   it("fires on the same structural event when it is still fresh", () => {
-    const candles = seriesEndingInsideZone(50);
+    const candles = seriesEndingInsideZoneWithVolumeExpansion(50);
     const result = evaluateTrigger(
       candles,
       setup({ zoneLow: 0.999, zoneHigh: 1.001, invalidationLevel: 0.995 }),
@@ -242,6 +269,7 @@ describe("evaluateTrigger - trigger freshness", () => {
     );
 
     expect(result.data.breakdown.structural.fired).toBe(true);
+    expect(result.data.breakdown.volume?.confirmed).toBe(true);
     expect(result.data.state).toBe("CONFIRMED");
   });
 });

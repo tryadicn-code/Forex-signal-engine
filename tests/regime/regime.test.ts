@@ -34,6 +34,17 @@ describe("classifyRegime", () => {
     );
   });
 
+  it("preserves trend direction when a trending market is classified as BREAKOUT", () => {
+    const candles = bullishTrend(200);
+    const structure = analyzeStructure(candles);
+    const result = classifyRegime(candles, structure.data, {
+      regime: { breakoutBandWidthRatio: 0 },
+    });
+
+    expect(result.data.regime).toBe("BREAKOUT");
+    expect(result.data.direction).toBe("LONG");
+  });
+
   it("reports strength between 0 and 100", () => {
     const result = regimeFor(bullishTrend(200));
     expect(result.data.strength).toBeGreaterThanOrEqual(0);

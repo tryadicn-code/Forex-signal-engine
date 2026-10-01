@@ -220,6 +220,58 @@ describe("decide - market data fails closed", () => {
   });
 });
 
+describe("decide - entry quality gates", () => {
+  it("waits when the setup is still WATCH instead of invalidating the lifecycle", () => {
+    const result = decide(
+      greenInput({
+        setup: {
+          ...setup,
+          state: "WATCH",
+        },
+      })
+    );
+
+    expect(result.data.decision).toBe("WAIT");
+    expect(conditionNamed(result, "setup_valid")?.passed).toBe(false);
+  });
+
+  it("blocks when D1 macro direction opposes the H4 entry bias", () => {
+    const result = decide(
+      greenInput({
+        context: {
+          mode: "SIGNAL_ONLY",
+          now: NOW,
+          macroAlignment: "OPPOSED",
+          macroDirection: "SHORT",
+          regime: "TREND_UP",
+          regimeCompatible: true,
+        },
+      })
+    );
+
+    expect(result.data.decision).toBe("BLOCKED");
+    expect(result.data.triggeredVetoes).toContain("MACRO_ALIGNMENT");
+  });
+
+  it("blocks when the H4 regime is incompatible with the directional strategy", () => {
+    const result = decide(
+      greenInput({
+        context: {
+          mode: "SIGNAL_ONLY",
+          now: NOW,
+          macroAlignment: "ALIGNED",
+          macroDirection: "LONG",
+          regime: "RANGE",
+          regimeCompatible: false,
+        },
+      })
+    );
+
+    expect(result.data.decision).toBe("BLOCKED");
+    expect(result.data.triggeredVetoes).toContain("REGIME_COMPATIBILITY");
+  });
+});
+
 describe("decide - risk is not evaluated before trigger confirmation", () => {
   const waiting: TriggerResultData = {
     ...trigger,

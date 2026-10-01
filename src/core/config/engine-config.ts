@@ -86,6 +86,10 @@ export interface EngineConfig {
     engulfMinBodyRatio: number;
     /** Minimum composite trigger score required to confirm an entry. */
     minTriggerScore: number;
+    /** Closed trigger bars used as the baseline for relative/tick volume. */
+    volumeLookback: number;
+    /** Current volume must clear this multiple of the recent baseline to confirm expansion. */
+    volumeExpansionRatio: number;
     /** A structural event older than this many bars may not fire a fresh trigger. */
     maxTriggerAgeBars: number;
   };
@@ -157,7 +161,7 @@ export const defaultEngineConfig: EngineConfig = {
   setup: {
     zoneProximityPips: 40,
     armThresholdRatio: 0.25,
-    minSetupScore: 40,
+    minSetupScore: 60,
     invalidationBufferPips: 10,
     zoneLookback: 60,
   },
@@ -167,7 +171,9 @@ export const defaultEngineConfig: EngineConfig = {
     rejectionWickRatio: 2,
     engulfMinBodyRatio: 0.7,
     minTriggerScore: 80,
-    maxTriggerAgeBars: 10,
+    volumeLookback: 20,
+    volumeExpansionRatio: 1.2,
+    maxTriggerAgeBars: 3,
   },
   risk: {
     minRR: 2.0,

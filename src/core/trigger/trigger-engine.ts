@@ -13,10 +13,11 @@ import type { DeepPartial, EngineConfig } from "@/core/config/engine-config";
 import { engineTimestamp, last, macd, rsi } from "@/core/indicators";
 
 /** Component contributions to the composite trigger score. */
-const SCORE_STRUCTURAL = 50;
-const SCORE_LOCATION = 30;
+const SCORE_STRUCTURAL = 45;
+const SCORE_LOCATION = 25;
 const SCORE_CANDLE = 10;
 const SCORE_MOMENTUM = 10;
+const SCORE_VOLUME = 10;
 
 /**
  * Trigger Engine (Section 9 spec).
@@ -66,13 +67,15 @@ export function evaluateTrigger(
   const location = detectLocation(candles, setup, long);
   const candleEvidence = detectCandle(candles, long, config);
   const momentum = momentumReadings(candles, direction, config);
+  const volume = volumeReadings(candles, config);
 
   const score = Math.min(
     100,
     (structural.fired ? SCORE_STRUCTURAL : 0) +
       (location.fired ? SCORE_LOCATION : 0) +
       (candleEvidence.fired ? SCORE_CANDLE : 0) +
-      (momentum.aligned ? SCORE_MOMENTUM : 0)
+      (momentum.aligned ? SCORE_MOMENTUM : 0) +
+      (volume.confirmed ? SCORE_VOLUME : 0)
   );
 
   const breakdown: TriggerBreakdown = {
@@ -80,6 +83,7 @@ export function evaluateTrigger(
     location,
     candle: candleEvidence,
     momentum,
+    volume,
     score,
   };
 
@@ -98,8 +102,13 @@ export function evaluateTrigger(
     return triggerResult("INVALIDATED", breakdown, null, null, null, null, evidence, conflicts, marketAsOf);
   }
 
+  const optionalConfirmation =
+    candleEvidence.fired || momentum.aligned || volume.confirmed;
   const confirmed =
-    structural.fired && location.fired && score >= config.trigger.minTriggerScore;
+    structural.fired &&
+    location.fired &&
+    optionalConfirmation &&
+    score >= config.trigger.minTriggerScore;
 
   const firedComponents = [structural, location, candleEvidence].filter(
     (component) => component.fired && component.index !== null
@@ -143,9 +152,20 @@ export function evaluateTrigger(
     value: momentum.aligned,
   });
   evidence.push({
+    code: volume.confirmed
+      ? "TRIGGER_VOLUME_EXPANSION"
+      : "TRIGGER_VOLUME_NO_EXPANSION",
+    label: "volume",
+    description:
+      volume.baseline > 0
+        ? `Current volume ${volume.current.toFixed(0)} is ${volume.ratio.toFixed(2)}x the ${config.trigger.volumeLookback}-bar baseline ${volume.baseline.toFixed(0)}; required ${config.trigger.volumeExpansionRatio.toFixed(2)}x.`
+        : "Relative volume could not be confirmed because the recent baseline is unavailable.",
+    value: volume.ratio,
+  });
+  evidence.push({
     code: "TRIGGER_SCORE",
     label: "Composite trigger score",
-    description: `Composite score ${score} (structural ${structural.fired ? SCORE_STRUCTURAL : 0} + location ${location.fired ? SCORE_LOCATION : 0} + candle ${candleEvidence.fired ? SCORE_CANDLE : 0} + momentum ${momentum.aligned ? SCORE_MOMENTUM : 0}) against minimum ${config.trigger.minTriggerScore}.`,
+    description: `Composite score ${score} (structural ${structural.fired ? SCORE_STRUCTURAL : 0} + location ${location.fired ? SCORE_LOCATION : 0} + candle ${candleEvidence.fired ? SCORE_CANDLE : 0} + momentum ${momentum.aligned ? SCORE_MOMENTUM : 0} + volume ${volume.confirmed ? SCORE_VOLUME : 0}) against minimum ${config.trigger.minTriggerScore}. At least one optional confirmation is required.`,
     value: score,
   });
 
@@ -153,7 +173,7 @@ export function evaluateTrigger(
     conflicts.push({
       code: "TRIGGER_INCOMPLETE",
       label: "Trigger not fully confirmed",
-      description: `Score ${score} needs a structural break, location validation and at least ${config.trigger.minTriggerScore} points.`,
+      description: `Score ${score} needs a structural break, location validation, at least one of candle/momentum/volume confirmation, and at least ${config.trigger.minTriggerScore} points.`,
       value: score,
     });
   }
@@ -390,6 +410,35 @@ function momentumReadings(
     ? rsiValue > 50 && hist > 0
     : rsiValue < 50 && hist < 0;
   return { rsi: rsiValue, macdHistogram: hist, aligned };
+}
+
+function volumeReadings(
+  candles: OHLCV[],
+  config: EngineConfig
+): NonNullable<TriggerBreakdown["volume"]> {
+  if (candles.length === 0) {
+    return { current: 0, baseline: 0, ratio: 0, confirmed: false };
+  }
+
+  const current = Number.isFinite(candles[candles.length - 1].volume)
+    ? Math.max(0, candles[candles.length - 1].volume)
+    : 0;
+  const lookback = Math.max(1, Math.floor(config.trigger.volumeLookback));
+  const prior = candles
+    .slice(Math.max(0, candles.length - 1 - lookback), candles.length - 1)
+    .map((candle) => candle.volume)
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const baseline =
+    prior.length > 0
+      ? prior.reduce((sum, value) => sum + value, 0) / prior.length
+      : 0;
+  const ratio = baseline > 0 ? current / baseline : 0;
+  const confirmed =
+    current > 0 &&
+    baseline > 0 &&
+    ratio >= config.trigger.volumeExpansionRatio;
+
+  return { current, baseline, ratio, confirmed };
 }
 
 function notFired(reason: string): CandleCheck {
