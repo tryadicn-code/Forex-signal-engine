@@ -11,6 +11,7 @@ export function JournalWorkspace({
 }) {
   const [paper, setPaper] = useState(initialPaper);
   const [resetting, setResetting] = useState(false);
+  const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const resetPaper = async () => {
@@ -27,6 +28,39 @@ export function JournalWorkspace({
       setError(resetError instanceof Error ? resetError.message : String(resetError));
     } finally {
       setResetting(false);
+    }
+  };
+
+  const closePosition = async (positionId: string) => {
+    if (closingPositionId) return;
+    const position = paper?.openPositions.find((item) => item.id === positionId);
+    if (!position) return;
+    if (
+      !window.confirm(
+        `Close ${position.symbol} ${position.side} at the latest provider price?`
+      )
+    ) {
+      return;
+    }
+
+    setClosingPositionId(positionId);
+    setError(null);
+    try {
+      const response = await fetch("/api/paper", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "close-position", positionId }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Paper close failed.");
+      }
+      setPaper(payload as PaperDashboardData);
+    } catch (closeError) {
+      setError(closeError instanceof Error ? closeError.message : String(closeError));
+    } finally {
+      setClosingPositionId(null);
     }
   };
 
@@ -48,7 +82,13 @@ export function JournalWorkspace({
         </div>
       )}
 
-      <PaperTradingPanel paper={paper} onReset={resetPaper} resetting={resetting} />
+      <PaperTradingPanel
+        paper={paper}
+        onReset={resetPaper}
+        resetting={resetting}
+        onClosePosition={closePosition}
+        closingPositionId={closingPositionId}
+      />
     </div>
   );
 }
