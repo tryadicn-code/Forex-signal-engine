@@ -16,6 +16,8 @@ export function PaperTradingOverlay({
   resetting,
   onClosePosition,
   closingPositionId,
+  onSetInitialBalance,
+  settingInitialBalance,
 }: {
   open: boolean;
   view: Exclude<PaperPanelView, "both">;
@@ -25,6 +27,8 @@ export function PaperTradingOverlay({
   resetting: boolean;
   onClosePosition?: (positionId: string) => Promise<void>;
   closingPositionId?: string | null;
+  onSetInitialBalance?: (initialBalance: number) => Promise<void>;
+  settingInitialBalance?: boolean;
 }) {
   const [activeView, setActiveView] = useState<Exclude<PaperPanelView, "both">>(
     view
@@ -125,6 +129,8 @@ export function PaperTradingOverlay({
             resetting={resetting}
             onClosePosition={onClosePosition}
             closingPositionId={closingPositionId}
+            onSetInitialBalance={onSetInitialBalance}
+            settingInitialBalance={settingInitialBalance}
             view={activeView}
           />
         </div>
