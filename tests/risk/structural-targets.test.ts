@@ -46,11 +46,10 @@ describe("deriveStructuralTargetLevels", () => {
       bufferPips: 2,
     });
 
-    expect(levels).toEqual([
-      1.1048,
-      1.1078,
-      1.1118,
-    ]);
+    expect(levels).toHaveLength(3);
+    expect(levels[0]).toBeCloseTo(1.1048, 8);
+    expect(levels[1]).toBeCloseTo(1.1078, 8);
+    expect(levels[2]).toBeCloseTo(1.1118, 8);
   });
 
   it("returns nearest buffered downside swing levels for SHORT", () => {
