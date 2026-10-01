@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 
+type PaperOverlayWindow = Window & {
+  __fseOpenPaper?: (view: "portfolio" | "journal") => void;
+};
+
 const NAV_ITEMS = [
   { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
   { kind: "paper", label: "Porto", desktopLabel: "Portfolio", glyph: "◫" },
@@ -53,6 +57,12 @@ function DesktopNavLabel({
 
 export function SidebarNav() {
   const openPortfolio = () => {
+    const browserWindow = window as PaperOverlayWindow;
+    if (browserWindow.__fseOpenPaper) {
+      browserWindow.__fseOpenPaper("portfolio");
+      return;
+    }
+
     window.dispatchEvent(
       new CustomEvent("fse:open-paper", { detail: { view: "portfolio" } })
     );
@@ -72,12 +82,12 @@ export function SidebarNav() {
     <>
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-30 h-[calc(3.75rem+env(safe-area-inset-bottom))] border-t border-zinc-800 bg-[#0b0e14]/98 md:hidden"
+        className="pointer-events-auto fixed inset-x-0 bottom-0 z-40 h-[calc(3.75rem+env(safe-area-inset-bottom))] border-t border-zinc-800 bg-[#0b0e14]/98 md:hidden"
       >
         <div className="grid h-full grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)]">
           {NAV_ITEMS.map((item) => {
             const itemClass =
-              "flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500";
+              "relative z-10 flex min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 px-1 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500";
 
             if (item.kind === "paper") {
               return (
@@ -85,6 +95,7 @@ export function SidebarNav() {
                   key="portfolio"
                   type="button"
                   onClick={openPortfolio}
+                  aria-label="Open paper portfolio"
                   className={itemClass}
                 >
                   <MobileNavLabel glyph={item.glyph} label={item.label} />
