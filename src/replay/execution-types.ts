@@ -25,6 +25,12 @@ export interface HistoricalExecutionConfig {
   maxOpenPositions?: number;
   /** Maximum aggregate open risk as percent of realized balance. Defaults to 5%. */
   maxTotalOpenRiskPercent?: number;
+  /** Maximum concurrent positions per symbol. Defaults to 1. */
+  maxOpenPositionsPerSymbol?: number;
+  /** Maximum positions sharing the same directional currency leg. Defaults to 2. */
+  maxDirectionalCurrencyExposure?: number;
+  /** Cooldown after a stop loss before the same symbol may re-enter. Defaults to 60m. */
+  stopLossReentryCooldownMs?: number;
 }
 
 export interface HistoricalEngineSnapshot {
