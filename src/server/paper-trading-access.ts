@@ -102,9 +102,11 @@ export async function closePaperPosition(
   }
 }
 
-export async function resetPaperAccount(): Promise<PaperDashboardData> {
+export async function resetPaperAccount(
+  initialBalance?: number
+): Promise<PaperDashboardData> {
   try {
-    const data = await paperService().reset();
+    const data = await paperService().reset(Date.now(), initialBalance);
     setLastPaperError(null);
     return data;
   } catch (error) {
