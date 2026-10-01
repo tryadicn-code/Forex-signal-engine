@@ -17,6 +17,42 @@ import {
 } from "@/lib/scanner-query";
 import type { DashboardData } from "@/types/dashboard";
 
+const DASHBOARD_READ_TIMEOUT_MS = 10_000;
+const SCANNER_REFRESH_TIMEOUT_MS = 55_000;
+
+async function requestDashboard(
+  method: "GET" | "POST",
+  timeoutMs: number
+): Promise<DashboardData> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch("/api/scanner", {
+      method,
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Scanner ${method === "POST" ? "refresh" : "sync"} failed with HTTP ${response.status}.`
+      );
+    }
+
+    return (await response.json()) as DashboardData;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(
+        `Scanner ${method === "POST" ? "refresh" : "sync"} timed out.`
+      );
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 export function DashboardWorkspace({ initialData }: { initialData: DashboardData }) {
   const [data, setData] = useState(initialData);
   const [query, setQuery] = useState<ScannerQuery>(DEFAULT_QUERY);
@@ -26,6 +62,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [requestError, setRequestError] = useState<string | null>(null);
   const [clockNow, setClockNow] = useState<number | null>(null);
   const restoredSelectionRef = useRef(false);
+  const scanInFlightRef = useRef(false);
 
   const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
   const visibleResults = useMemo(
@@ -120,12 +157,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       inFlight = true;
 
       try {
-        const response = await fetch("/api/scanner", {
-          method: "GET",
-          cache: "no-store",
-        });
-        if (!response.ok) return;
-        setData((await response.json()) as DashboardData);
+        setData(await requestDashboard("GET", DASHBOARD_READ_TIMEOUT_MS));
       } catch {
         // Preserve the last good workstation state on read-only sync failure.
       } finally {
@@ -157,17 +189,24 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
     let cancelled = false;
     const timer = window.setTimeout(async () => {
+      if (scanInFlightRef.current || cancelled) return;
+
+      scanInFlightRef.current = true;
+      setRefreshing(true);
+      setRequestError(null);
+
       try {
-        const response = await fetch("/api/scanner", {
-          method: "GET",
-          cache: "no-store",
-        });
-        if (!response.ok || cancelled) return;
-        setData((await response.json()) as DashboardData);
-      } catch {
-        // Normal polling will retry.
+        const next = await requestDashboard("POST", SCANNER_REFRESH_TIMEOUT_MS);
+        if (!cancelled) setData(next);
+      } catch (error) {
+        if (!cancelled) {
+          setRequestError(error instanceof Error ? error.message : String(error));
+        }
+      } finally {
+        scanInFlightRef.current = false;
+        if (!cancelled) setRefreshing(false);
       }
-    }, 750);
+    }, 250);
 
     return () => {
       cancelled = true;
@@ -181,22 +220,14 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   };
 
   const refresh = async () => {
-    if (refreshing) return;
+    if (refreshing || scanInFlightRef.current) return;
 
+    scanInFlightRef.current = true;
     setRefreshing(true);
     setRequestError(null);
 
     try {
-      const response = await fetch("/api/scanner", {
-        method: "POST",
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error("Scanner refresh failed with HTTP " + response.status + ".");
-      }
-
-      const next = (await response.json()) as DashboardData;
+      const next = await requestDashboard("POST", SCANNER_REFRESH_TIMEOUT_MS);
       setData(next);
 
       if (
@@ -208,6 +239,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : String(error));
     } finally {
+      scanInFlightRef.current = false;
       setRefreshing(false);
     }
   };
