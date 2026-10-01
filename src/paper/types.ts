@@ -82,6 +82,10 @@ export interface PaperPosition {
   status: PaperPositionStatus;
   unrealizedPnL: number;
   currentR: number;
+  /** Maximum favorable excursion observed while the position was open, in R. */
+  maxFavorableR?: number;
+  /** Maximum adverse excursion observed while the position was open, in R. */
+  maxAdverseR?: number;
   engine: PaperEngineSnapshot;
 }
 
@@ -103,6 +107,10 @@ export interface PaperTrade {
   realizedPnL: number;
   realizedPnLPercent: number;
   realizedR: number;
+  /** Maximum favorable excursion observed before close, in R. */
+  maxFavorableR?: number;
+  /** Maximum adverse excursion observed before close, in R. */
+  maxAdverseR?: number;
   openedAt: number;
   closedAt: number;
   holdingDurationMs: number;
@@ -181,6 +189,9 @@ export interface PaperDashboardData {
   config: {
     maxOpenPositions: number;
     maxTotalOpenRiskPercent: number;
+    maxOpenPositionsPerSymbol: number;
+    maxDirectionalCurrencyExposure: number;
+    stopLossReentryCooldownMs: number;
     intrabarConflictPolicy: IntrabarConflictPolicy;
   };
   account: PaperAccountSummary;
