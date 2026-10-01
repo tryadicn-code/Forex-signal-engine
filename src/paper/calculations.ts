@@ -56,12 +56,55 @@ export function markPosition(
     positionSize: position.positionSize,
     pipValuePerLotAccountCurrency: position.pipValuePerLotAccountCurrency,
   });
+  const currentR = calculateR(unrealizedPnL, position.riskAmount);
   return {
     ...position,
     currentPrice,
     updatedAt,
     unrealizedPnL,
-    currentR: calculateR(unrealizedPnL, position.riskAmount),
+    currentR,
+    maxFavorableR: Math.max(position.maxFavorableR ?? 0, currentR),
+    maxAdverseR: Math.min(position.maxAdverseR ?? 0, currentR),
+  };
+}
+
+export function markPositionExcursion(
+  position: PaperPosition,
+  candle: CanonicalCandle,
+  updatedAt: number
+): PaperPosition {
+  const favorablePrice =
+    position.side === "LONG" ? candle.high : candle.low;
+  const adversePrice =
+    position.side === "LONG" ? candle.low : candle.high;
+  const favorableR = calculateR(
+    calculatePnl({
+      side: position.side,
+      entryPrice: position.entryPrice,
+      exitPrice: favorablePrice,
+      pipSize: position.pipSize,
+      positionSize: position.positionSize,
+      pipValuePerLotAccountCurrency: position.pipValuePerLotAccountCurrency,
+    }),
+    position.riskAmount
+  );
+  const adverseR = calculateR(
+    calculatePnl({
+      side: position.side,
+      entryPrice: position.entryPrice,
+      exitPrice: adversePrice,
+      pipSize: position.pipSize,
+      positionSize: position.positionSize,
+      pipValuePerLotAccountCurrency: position.pipValuePerLotAccountCurrency,
+    }),
+    position.riskAmount
+  );
+
+  return {
+    ...position,
+    updatedAt,
+    maxFavorableR: Math.max(position.maxFavorableR ?? 0, favorableR),
+    maxAdverseR: Math.min(position.maxAdverseR ?? 0, adverseR),
   };
 }
 

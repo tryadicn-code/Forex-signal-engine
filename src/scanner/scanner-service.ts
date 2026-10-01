@@ -260,9 +260,12 @@ export class ScannerService {
     }
 
     const context = outcome.context;
-    const pipeline = this.runPipeline(context, asOf);
-
     const news = await this.fetchNewsRisk(symbol, asOf);
+    const pipeline = this.runPipeline(
+      context,
+      asOf,
+      news?.evaluationStatus === "EVALUATED" ? news.newsPending : undefined
+    );
     const stale = context.freshness.status === "STALE";
     const conversionUnresolved =
       context.metadata.quoteCurrency !== context.accountCurrency &&
@@ -315,7 +318,11 @@ export class ScannerService {
   // -------------------------------------------------------------------------
 
   /** Convert the canonical context into the Phase 1 orchestrator's input. */
-  private runPipeline(context: BuildContextOutcome["context"], asOf: number): PipelineResult {
+  private runPipeline(
+    context: BuildContextOutcome["context"],
+    asOf: number,
+    newsPending?: boolean
+  ): PipelineResult {
     const instrument = toCurrencyPair(context!.metadata);
     const biasTimeframe = context!.h4.timeframe;
     const setupTimeframe = context!.h1.timeframe;
@@ -346,6 +353,7 @@ export class ScannerService {
         marketDataFreshness: context!.freshness.status,
         marketDataAgeMs: context!.freshness.ageMs,
         spreadPips: context!.spreadPips,
+        newsPending,
       },
     });
   }

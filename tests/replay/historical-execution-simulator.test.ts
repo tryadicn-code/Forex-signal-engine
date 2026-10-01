@@ -216,6 +216,8 @@ describe("HistoricalExecutionSimulator", () => {
     expect(trade.closeReason).toBe("STOP_LOSS");
     expect(trade.exitPrice).toBe(1.095);
     expect(trade.realizedR).toBeCloseTo(-1);
+    expect(trade.maxFavorableR).toBeGreaterThan(2);
+    expect(trade.maxAdverseR).toBeLessThan(-1);
   });
 
   it("can explicitly use TARGET_FIRST for ambiguous bars", () => {
@@ -347,7 +349,7 @@ describe("HistoricalExecutionSimulator", () => {
 
     simulator.processStep(step(T0, result({ signalId: "signal-a" })));
     simulator.processStep(
-      step(T0, result({ signalId: "signal-b" }))
+      step(T0, result({ signalId: "signal-b", symbol: "GBPUSD" }))
     );
 
     const summary = simulator.getSummary();
@@ -357,6 +359,51 @@ describe("HistoricalExecutionSimulator", () => {
     );
     expect(rejected?.status).toBe("REJECTED");
     expect(rejected?.rejectionReason).toBe("HISTORICAL_MAX_TOTAL_RISK");
+  });
+
+
+  it("blocks a fresh signal while the same symbol is already open", () => {
+    const simulator = new HistoricalExecutionSimulator({
+      dataset: dataset([]),
+      initialBalance: 10_000,
+    });
+
+    simulator.processStep(step(T0, result({ signalId: "signal-a" })));
+    simulator.processStep(step(T0, result({ signalId: "signal-b" })));
+
+    const summary = simulator.getSummary();
+    expect(summary.openPositionCount).toBe(1);
+    expect(
+      summary.orders.find((order) => order.signalId === "signal-b")
+        ?.rejectionReason
+    ).toBe("HISTORICAL_MAX_OPEN_POSITIONS_PER_SYMBOL");
+  });
+
+  it("blocks same-symbol re-entry during the stop-loss cooldown", () => {
+    const simulator = new HistoricalExecutionSimulator({
+      dataset: dataset([
+        candle({
+          timestamp: T0,
+          high: 1.101,
+          low: 1.094,
+          close: 1.096,
+        }),
+      ]),
+      initialBalance: 10_000,
+    });
+
+    simulator.processStep(step(T0, result({ signalId: "signal-a" })));
+    simulator.processStep(
+      step(T0 + M15, result({ signalId: "signal-b" }))
+    );
+
+    const summary = simulator.getSummary();
+    expect(summary.closedTradeCount).toBe(1);
+    expect(summary.openPositionCount).toBe(0);
+    expect(
+      summary.orders.find((order) => order.signalId === "signal-b")
+        ?.rejectionReason
+    ).toBe("HISTORICAL_STOP_LOSS_COOLDOWN");
   });
 
   it("does not reopen a closed signal id on later replay steps", () => {

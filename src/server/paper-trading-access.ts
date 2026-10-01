@@ -86,6 +86,22 @@ export async function processPaperSnapshot(
   }
 }
 
+export async function closePaperPosition(
+  positionId: string
+): Promise<PaperDashboardData> {
+  try {
+    const data = await paperService().closePositionManually(
+      positionId,
+      runtimeMarketDataProvider()
+    );
+    setLastPaperError(null);
+    return data;
+  } catch (error) {
+    setLastPaperError(error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+}
+
 export async function resetPaperAccount(): Promise<PaperDashboardData> {
   try {
     const data = await paperService().reset();

@@ -14,6 +14,7 @@ import type {
 import type { ReplayDataset, ReplayStep } from "@/replay/types";
 import type { SymbolScanResult } from "@/scanner/scanner-result";
 import type { CanonicalCandle } from "@/types/market-data";
+import { findDirectionalCurrencyExposureBlock } from "@/paper/exposure";
 
 interface HistoricalExitDecision {
   exitPrice: number;
@@ -29,6 +30,9 @@ export class HistoricalExecutionSimulator {
   private readonly intrabarConflictPolicy: HistoricalIntrabarConflictPolicy;
   private readonly maxOpenPositions: number;
   private readonly maxTotalOpenRiskPercent: number;
+  private readonly maxOpenPositionsPerSymbol: number;
+  private readonly maxDirectionalCurrencyExposure: number;
+  private readonly stopLossReentryCooldownMs: number;
   private orders: HistoricalOrder[] = [];
   private positions: HistoricalPosition[] = [];
   private trades: HistoricalTrade[] = [];
@@ -50,6 +54,12 @@ export class HistoricalExecutionSimulator {
     this.maxOpenPositions = input.config?.maxOpenPositions ?? 10;
     this.maxTotalOpenRiskPercent =
       input.config?.maxTotalOpenRiskPercent ?? 5;
+    this.maxOpenPositionsPerSymbol =
+      input.config?.maxOpenPositionsPerSymbol ?? 1;
+    this.maxDirectionalCurrencyExposure =
+      input.config?.maxDirectionalCurrencyExposure ?? 2;
+    this.stopLossReentryCooldownMs =
+      input.config?.stopLossReentryCooldownMs ?? 60 * 60_000;
 
     if (!Number.isInteger(this.maxOpenPositions) || this.maxOpenPositions <= 0) {
       throw new Error("Historical maxOpenPositions must be a positive integer.");
@@ -143,18 +153,29 @@ export class HistoricalExecutionSimulator {
         );
         if (!current) break;
 
-        const exit = evaluateHistoricalBarExit(
+        const excursionMarked = markHistoricalExcursion(
           current,
+          candle,
+          candleCloseTime(this.executionTimeframe, candle.timestamp)
+        );
+        this.replacePosition(excursionMarked);
+
+        const exit = evaluateHistoricalBarExit(
+          excursionMarked,
           candle,
           this.intrabarConflictPolicy
         );
         if (exit) {
-          this.closePosition(current, exit, candleCloseTime(this.executionTimeframe, candle.timestamp));
+          this.closePosition(
+            excursionMarked,
+            exit,
+            candleCloseTime(this.executionTimeframe, candle.timestamp)
+          );
           break;
         }
 
         this.replacePosition(markHistoricalPosition(
-          current,
+          excursionMarked,
           candle.close,
           candleCloseTime(this.executionTimeframe, candle.timestamp),
           candle.timestamp
@@ -185,7 +206,7 @@ export class HistoricalExecutionSimulator {
         continue;
       }
 
-      const portfolioRejection = this.validatePortfolioRisk(result);
+      const portfolioRejection = this.validatePortfolioRisk(result, step.asOf);
       if (portfolioRejection) {
         this.orders.push(
           rejectedOrder(result, executionKey, step.asOf, portfolioRejection)
@@ -197,12 +218,48 @@ export class HistoricalExecutionSimulator {
     }
   }
 
-  private validatePortfolioRisk(result: SymbolScanResult): string | null {
+  private validatePortfolioRisk(
+    result: SymbolScanResult,
+    asOf: number
+  ): string | null {
     const openPositions = this.positions.filter(
       (position) => position.status === "OPEN"
     );
     if (openPositions.length >= this.maxOpenPositions) {
       return "HISTORICAL_MAX_OPEN_POSITIONS";
+    }
+
+    const sameSymbolCount = openPositions.filter(
+      (position) => position.symbol === result.symbol
+    ).length;
+    if (sameSymbolCount >= this.maxOpenPositionsPerSymbol) {
+      return "HISTORICAL_MAX_OPEN_POSITIONS_PER_SYMBOL";
+    }
+
+    const side =
+      result.biasDirection === "SHORT" ? "SHORT" : "LONG";
+    const exposureBlock = findDirectionalCurrencyExposureBlock(
+      openPositions,
+      result.symbol,
+      side,
+      this.maxDirectionalCurrencyExposure
+    );
+    if (exposureBlock) {
+      return "HISTORICAL_DIRECTIONAL_CURRENCY_EXPOSURE";
+    }
+
+    const lastStop = [...this.trades]
+      .filter(
+        (trade) =>
+          trade.symbol === result.symbol &&
+          trade.closeReason === "STOP_LOSS"
+      )
+      .sort((a, b) => b.closedAt - a.closedAt)[0];
+    if (
+      lastStop &&
+      asOf - lastStop.closedAt < this.stopLossReentryCooldownMs
+    ) {
+      return "HISTORICAL_STOP_LOSS_COOLDOWN";
     }
 
     const balance = this.balance();
@@ -280,6 +337,8 @@ export class HistoricalExecutionSimulator {
       status: "OPEN",
       unrealizedPnL: 0,
       currentR: 0,
+      maxFavorableR: 0,
+      maxAdverseR: 0,
       engine: order.engine,
     };
 
@@ -327,6 +386,8 @@ export class HistoricalExecutionSimulator {
       realizedPnLPercent:
         balanceBefore > 0 ? (realizedPnL / balanceBefore) * 100 : 0,
       realizedR,
+      maxFavorableR: current.maxFavorableR ?? Math.max(0, realizedR),
+      maxAdverseR: current.maxAdverseR ?? Math.min(0, realizedR),
       openedAt: current.openedAt,
       closedAt,
       holdingDurationMs: Math.max(0, closedAt - current.openedAt),
@@ -548,6 +609,54 @@ function markHistoricalPosition(
     lastEvaluatedCandleTimestamp: candleTimestamp,
     unrealizedPnL,
     currentR: calculateR(unrealizedPnL, position.riskAmount),
+    maxFavorableR: Math.max(
+      position.maxFavorableR ?? 0,
+      calculateR(unrealizedPnL, position.riskAmount)
+    ),
+    maxAdverseR: Math.min(
+      position.maxAdverseR ?? 0,
+      calculateR(unrealizedPnL, position.riskAmount)
+    ),
+  };
+}
+
+function markHistoricalExcursion(
+  position: HistoricalPosition,
+  candle: CanonicalCandle,
+  updatedAt: number
+): HistoricalPosition {
+  const favorablePrice =
+    position.side === "LONG" ? candle.high : candle.low;
+  const adversePrice =
+    position.side === "LONG" ? candle.low : candle.high;
+  const favorableR = calculateR(
+    calculatePnl({
+      side: position.side,
+      entryPrice: position.entryPrice,
+      exitPrice: favorablePrice,
+      pipSize: position.pipSize,
+      positionSize: position.positionSize,
+      pipValuePerLotAccountCurrency: position.pipValuePerLotAccountCurrency,
+    }),
+    position.riskAmount
+  );
+  const adverseR = calculateR(
+    calculatePnl({
+      side: position.side,
+      entryPrice: position.entryPrice,
+      exitPrice: adversePrice,
+      pipSize: position.pipSize,
+      positionSize: position.positionSize,
+      pipValuePerLotAccountCurrency: position.pipValuePerLotAccountCurrency,
+    }),
+    position.riskAmount
+  );
+
+  return {
+    ...position,
+    updatedAt,
+    maxFavorableR: Math.max(position.maxFavorableR ?? 0, favorableR),
+    maxAdverseR: Math.min(position.maxAdverseR ?? 0, adverseR),
   };
 }
 

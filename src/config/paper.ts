@@ -8,6 +8,12 @@ export interface PaperTradingConfig {
   initialBalance: number;
   maxOpenPositions: number;
   maxTotalOpenRiskPercent: number;
+  /** Hard cap per symbol so one setup cannot stack repeated entries. */
+  maxOpenPositionsPerSymbol: number;
+  /** Max positions sharing the same directional currency leg (e.g. JPY LONG). */
+  maxDirectionalCurrencyExposure: number;
+  /** Cooldown after a stop loss before the same symbol may open again. */
+  stopLossReentryCooldownMs: number;
   intrabarConflictPolicy: IntrabarConflictPolicy;
   /** Run the scanner continuously while the Phase 4 server process is alive. */
   autoScanEnabled: boolean;
@@ -23,6 +29,9 @@ export const DEFAULT_PAPER_TRADING_CONFIG: PaperTradingConfig = {
   initialBalance: DEFAULT_ACCOUNT.balance,
   maxOpenPositions: 10,
   maxTotalOpenRiskPercent: 5,
+  maxOpenPositionsPerSymbol: 1,
+  maxDirectionalCurrencyExposure: 2,
+  stopLossReentryCooldownMs: 60 * 60_000,
   intrabarConflictPolicy: "STOP_FIRST",
   autoScanEnabled: true,
   autoScanIntervalMs: 60_000,
