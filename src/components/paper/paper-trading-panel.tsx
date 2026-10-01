@@ -46,11 +46,15 @@ export function PaperTradingPanel({
   paper,
   onReset,
   resetting,
+  onClosePosition,
+  closingPositionId = null,
   view = "both",
 }: {
   paper: PaperDashboardData | undefined;
   onReset: () => Promise<void>;
   resetting: boolean;
+  onClosePosition?: (positionId: string) => Promise<void>;
+  closingPositionId?: string | null;
   view?: PaperPanelView;
 }) {
   if (!paper) return null;
@@ -125,7 +129,7 @@ export function PaperTradingPanel({
               Open positions
             </h3>
             <span className="font-mono text-[10px] text-zinc-600">
-              max {paper.config.maxOpenPositions} · risk cap {paper.config.maxTotalOpenRiskPercent}%
+              max {paper.config.maxOpenPositions} · {paper.config.maxOpenPositionsPerSymbol}/symbol · currency cap {paper.config.maxDirectionalCurrencyExposure}
             </span>
           </div>
 
@@ -160,18 +164,30 @@ export function PaperTradingPanel({
                       {position.positionSize.toFixed(2)} lot
                     </span>
 
-                    <span
-                      className={
-                        "ml-auto whitespace-nowrap font-mono text-xs font-semibold " +
-                        (position.unrealizedPnL > 0
-                          ? "text-emerald-300"
-                          : position.unrealizedPnL < 0
-                            ? "text-red-300"
-                            : "text-zinc-200")
-                      }
-                    >
-                      {money(position.unrealizedPnL, account.currency)}
-                    </span>
+                    <div className="ml-auto flex items-center gap-2">
+                      <span
+                        className={
+                          "whitespace-nowrap font-mono text-xs font-semibold " +
+                          (position.unrealizedPnL > 0
+                            ? "text-emerald-300"
+                            : position.unrealizedPnL < 0
+                              ? "text-red-300"
+                              : "text-zinc-200")
+                        }
+                      >
+                        {money(position.unrealizedPnL, account.currency)}
+                      </span>
+                      {onClosePosition && (
+                        <button
+                          type="button"
+                          disabled={closingPositionId !== null}
+                          onClick={() => void onClosePosition(position.id)}
+                          className="rounded border border-zinc-700 px-2 py-1 text-[9px] font-medium text-zinc-400 hover:border-red-800/70 hover:bg-red-950/20 hover:text-red-300 disabled:opacity-40"
+                        >
+                          {closingPositionId === position.id ? "Closing…" : "Close"}
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-2 grid grid-cols-4 gap-2 text-[9px] sm:text-[10px]">
@@ -193,6 +209,12 @@ export function PaperTradingPanel({
                       value={formatPrice(position.symbol, position.stopLoss)}
                       tone="negative"
                     />
+                  </div>
+
+                  <div className="mt-1.5 font-mono text-[8px] text-zinc-600">
+                    MFE {(position.maxFavorableR ?? 0) >= 0 ? "+" : ""}
+                    {(position.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
+                    {(position.maxAdverseR ?? 0).toFixed(2)}R
                   </div>
                 </article>
               ))}
@@ -260,6 +282,11 @@ export function PaperTradingPanel({
                     {formatPrice(trade.symbol, trade.entryPrice)} → {formatPrice(trade.symbol, trade.exitPrice)}
                     {" · "}
                     {formatDuration(trade.holdingDurationMs)}
+                  </div>
+                  <div className="mt-1 font-mono text-[9px] text-zinc-700">
+                    MFE {(trade.maxFavorableR ?? 0) >= 0 ? "+" : ""}
+                    {(trade.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
+                    {(trade.maxAdverseR ?? 0).toFixed(2)}R
                   </div>
                 </div>
                 <div className="text-right">
