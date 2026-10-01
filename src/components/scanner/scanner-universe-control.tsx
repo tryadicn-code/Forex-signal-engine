@@ -8,6 +8,23 @@ interface ScannerUniversePayload {
   updatedAt: number | null;
 }
 
+function isScannerUniversePayload(
+  value: unknown
+): value is ScannerUniversePayload {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Partial<ScannerUniversePayload>;
+  return (
+    Array.isArray(candidate.selected) &&
+    candidate.selected.every((item) => typeof item === "string") &&
+    Array.isArray(candidate.supported) &&
+    candidate.supported.every((item) => typeof item === "string") &&
+    (candidate.updatedAt === null ||
+      typeof candidate.updatedAt === "number" ||
+      candidate.updatedAt === undefined)
+  );
+}
+
 export function ScannerUniverseControl({
   onUniverseChanged,
 }: {
@@ -19,17 +36,32 @@ export function ScannerUniverseControl({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const available = useMemo(
-    () => data?.supported.filter((item) => !data.selected.includes(item)) ?? [],
-    [data]
-  );
+  const available = useMemo(() => {
+    if (
+      !data ||
+      !Array.isArray(data.supported) ||
+      !Array.isArray(data.selected)
+    ) {
+      return [];
+    }
+
+    return data.supported.filter((item) => !data.selected.includes(item));
+  }, [data]);
 
   useEffect(() => {
+    if (!open) return;
+
     let cancelled = false;
+    setError(null);
+
     void fetch("/api/scanner/symbols", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Unable to load scanner pairs.");
-        return response.json() as Promise<ScannerUniversePayload>;
+        const payload = (await response.json()) as unknown;
+        if (!isScannerUniversePayload(payload)) {
+          throw new Error("Scanner pair response was invalid.");
+        }
+        return payload;
       })
       .then((next) => {
         if (!cancelled) setData(next);
@@ -39,10 +71,11 @@ export function ScannerUniverseControl({
           setError(cause instanceof Error ? cause.message : String(cause));
         }
       });
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [open]);
 
   const mutate = async (action: "add" | "remove", target: string) => {
     if (busy) return;
@@ -63,7 +96,10 @@ export function ScannerUniverseControl({
           "error" in next && next.error ? next.error : "Pair update failed."
         );
       }
-      setData(next as ScannerUniversePayload);
+      if (!isScannerUniversePayload(next)) {
+        throw new Error("Scanner pair update returned an invalid response.");
+      }
+      setData(next);
       setSymbol("");
       await onUniverseChanged();
     } catch (cause) {
