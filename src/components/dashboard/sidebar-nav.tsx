@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const NAV_ITEMS = [
   { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", glyph: "▦" },
@@ -52,10 +53,12 @@ function DesktopNavLabel({
 }
 
 export function SidebarNav() {
+  const router = useRouter();
+
   const focusReadySignal = () => {
     if (window.location.pathname !== "/") {
       window.sessionStorage.setItem("fse:focus-ready-signal", "1");
-      window.location.assign("/#scanner");
+      router.push("/#scanner");
       return;
     }
 
