@@ -189,17 +189,35 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
   const entry =
     last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
     (setup.data.zoneHigh + setup.data.zoneLow) / 2;
-  const structuralTargets =
+  const explicitTargets =
     context.targetLevels && context.targetLevels.length > 0
       ? context.targetLevels
-      : deriveStructuralTargetLevels({
-          entry,
-          direction: bias.data.direction,
-          pipSize,
-          setupStructure: setupStructure.data,
-          biasStructure: distinctTimeframes ? structure.data : undefined,
-          bufferPips: config.risk.structuralTargetBufferPips,
-        });
+      : undefined;
+  const structuralTargets = explicitTargets
+    ? []
+    : deriveStructuralTargetLevels({
+        entry,
+        direction: bias.data.direction,
+        pipSize,
+        setupStructure: setupStructure.data,
+        biasStructure: distinctTimeframes ? structure.data : undefined,
+        bufferPips: config.risk.structuralTargetBufferPips,
+      });
+
+  // Structure is used as a clearance gate, not as permission to stretch TP
+  // farther than the strategy's baseline target. If the nearest confirmed
+  // obstacle sits inside the minimum-R window, pass that obstacle to the Risk
+  // Engine so RR_TOO_LOW rejects the trade. Otherwise the Risk Engine keeps its
+  // normal 2R baseline. Explicit caller targets retain their existing meaning.
+  const minimumTargetDistance =
+    Math.abs(entry - setup.data.invalidationLevel) * config.risk.minRR;
+  const nearestStructuralTarget = structuralTargets[0];
+  const targetLevelsForRisk = explicitTargets
+    ? explicitTargets
+    : nearestStructuralTarget !== undefined &&
+        Math.abs(nearestStructuralTarget - entry) < minimumTargetDistance
+      ? [nearestStructuralTarget]
+      : undefined;
 
   const risk =
     trigger.data.state === "CONFIRMED"
@@ -211,8 +229,7 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
             accountCurrency: context.accountCurrency,
             riskPercent: context.riskPercent ?? config.risk.defaultRiskPercent,
             instrument,
-            targetLevels:
-              structuralTargets.length > 0 ? structuralTargets : undefined,
+            targetLevels: targetLevelsForRisk,
             direction: bias.data.direction,
             quoteToAccountConversionRate: context.quoteToAccountConversionRate,
             marketAsOf: triggerAsOf,
