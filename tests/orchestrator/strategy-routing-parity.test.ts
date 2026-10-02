@@ -134,6 +134,36 @@ describe("Phase 12.3 routed orchestrator parity", () => {
     expect(routed.pipeline.setup.data.setupType).toBe("breakout-retest");
   });
 
+  it("enforces LOW_VOLATILITY WAIT as a fail-closed no-strategy pipeline", () => {
+    const input = context(
+      rangeSeries(140, 1.105, 0.001, "H4"),
+      rangeSeries(120, 1.105, 0.001, "H1"),
+      rangeSeries(80, 1.105, 0.001, "M15")
+    );
+    input.configOverrides = {
+      regime: {
+        adxTrendThreshold: 999,
+        adxStrongTrend: 999,
+        highVolatilityAtrPct: 999,
+        lowVolatilityAtrPct: 999,
+        breakoutBandWidthRatio: 999,
+      },
+    };
+
+    const routed = analyzeMarketWithRouting(input);
+
+    expect(routed.routing.regime).toBe("LOW_VOLATILITY");
+    expect(routed.routing.preferredStrategyId).toBeNull();
+    expect(routed.routing.selectedStrategyId).toBeNull();
+    expect(routed.routing.mode).toBe("NO_STRATEGY");
+    expect(routed.pipeline.bias.data.direction).toBe("NEUTRAL");
+    expect(routed.pipeline.setup.data.state).toBe("NONE");
+    expect(routed.pipeline.setup.data.setupType).toBe("router-wait");
+    expect(routed.pipeline.trigger).toBeNull();
+    expect(routed.pipeline.risk).toBeNull();
+    expect(routed.pipeline.execution).toBeNull();
+  });
+
   it("is deterministic for both routing metadata and pipeline output", () => {
     const input = context(
       bullishTrend(140),
