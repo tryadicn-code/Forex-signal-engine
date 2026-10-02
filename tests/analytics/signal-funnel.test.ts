@@ -283,6 +283,10 @@ describe("Signal Funnel rolling summaries", () => {
       T0 - 40 * 24 * 60 * 60 * 1000
     );
 
+    recent[0].strategyId = "TREND_PULLBACK";
+    recent[0].preferredStrategyId = "BREAKOUT_RETEST";
+    recent[0].routingMode = "COMPATIBILITY_FALLBACK";
+
     const dashboard = buildSignalFunnelDashboard([...recent, old], T0);
     const summary = dashboard.windows["24H"];
 
@@ -295,6 +299,14 @@ describe("Signal Funnel rolling summaries", () => {
     ).toBe(1);
     expect(
       summary.stageStats.find((item) => item.stage === "TRIGGER_CONFIRMED")?.dropOff
+    ).toBe(1);
+    expect(
+      summary.strategyRoutingStats.find(
+        (item) =>
+          item.preferredStrategyId === "BREAKOUT_RETEST" &&
+          item.selectedStrategyId === "TREND_PULLBACK" &&
+          item.routingMode === "COMPATIBILITY_FALLBACK"
+      )?.observations
     ).toBe(1);
   });
 });
