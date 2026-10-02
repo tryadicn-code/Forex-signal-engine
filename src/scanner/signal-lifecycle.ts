@@ -119,6 +119,31 @@ export function resolveLifecycleIdentity(
   return base;
 }
 
+export function shouldCloseSupersededLifecycle(input: {
+  lifecycle: SignalLifecycleState;
+  keepSignalId: string | null;
+  activeStrategyId: string | null;
+  closeSameStrategy: boolean;
+}): boolean {
+  const { lifecycle } = input;
+  if (
+    lifecycle.state === "CLOSED" ||
+    lifecycle.state === "INVALIDATED" ||
+    lifecycle.identity.signalId === input.keepSignalId
+  ) {
+    return false;
+  }
+
+  const lifecycleStrategy = lifecycle.identity.strategyId ?? null;
+  const strategyChanged = lifecycleStrategy !== input.activeStrategyId;
+
+  return (
+    input.activeStrategyId === null ||
+    strategyChanged ||
+    input.closeSameStrategy
+  );
+}
+
 export function createLifecycle(
   identity: SignalIdentity,
   now: number
