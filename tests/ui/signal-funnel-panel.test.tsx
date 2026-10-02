@@ -52,6 +52,17 @@ function summary(
           observations === 0 ? 0 : Math.round((executions / observations) * 100),
       },
     ],
+    strategyRoutingStats: [
+      {
+        preferredStrategyId: "BREAKOUT_RETEST",
+        selectedStrategyId: "TREND_PULLBACK",
+        routingMode: "COMPATIBILITY_FALLBACK",
+        observations,
+        executions,
+        executionRate:
+          observations === 0 ? 0 : Math.round((executions / observations) * 100),
+      },
+    ],
   };
 }
 
@@ -64,6 +75,15 @@ describe("Phase 12 SignalFunnelPanel", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("SETUP_ZONE_TOO_FAR")).toBeInTheDocument();
     expect(screen.getAllByText("10").length).toBeGreaterThan(0);
+  });
+
+  it("renders preferred-to-active strategy routing", () => {
+    render(<SignalFunnelPanel analytics={analytics()} />);
+
+    expect(
+      screen.getByText("BREAKOUT_RETEST → TREND_PULLBACK")
+    ).toBeInTheDocument();
+    expect(screen.getByText(/COMPATIBILITY_FALLBACK/)).toBeInTheDocument();
   });
 
   it("switches rolling windows without rescanning", () => {
