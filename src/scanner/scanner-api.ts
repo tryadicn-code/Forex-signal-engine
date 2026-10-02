@@ -23,6 +23,7 @@ import {
   buildSignalFunnelDashboard,
   SIGNAL_FUNNEL_MAX_RETENTION_MS,
   type SignalFunnelDashboard,
+  type SignalFunnelObservation,
 } from "@/analytics/signal-funnel";
 
 /** Read-only view of one signal, safe to hand to the UI. */
@@ -144,6 +145,14 @@ export class ScannerApi {
         referenceTime
       ) ?? [];
     return buildSignalFunnelDashboard(observations, referenceTime);
+  }
+
+  /** Read recorded observations for persistence/diagnostics. */
+  getSignalFunnelObservations(
+    since: number,
+    until = Number.POSITIVE_INFINITY
+  ): SignalFunnelObservation[] {
+    return this.repositories.funnelAnalytics?.getSince(since, until) ?? [];
   }
 }
 
