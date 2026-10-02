@@ -6,6 +6,7 @@ import {
   DEFAULT_TIMEFRAME_ROLES,
 } from "@/config/scanner";
 import { defaultEngineConfig } from "@/core/config/engine-config";
+import { DEFAULT_STRATEGY_CONFIG } from "@/core/strategies/config";
 import {
   findActiveStrategyVersion,
   verifyStrategyVersionManifest,
@@ -115,6 +116,10 @@ export function resolveReleaseRuntimeFromRegistry(
       engineConfig: structuredClone(
         manifest.strategySnapshot.engineConfig
       ),
+      strategyConfig: structuredClone(
+        manifest.strategySnapshot.strategyConfig ??
+          DEFAULT_STRATEGY_CONFIG
+      ),
     },
   };
 }
@@ -163,6 +168,14 @@ function detectDefaultDrift(
     stableStringify(defaultEngineConfig)
   ) {
     drift.push("engineConfig");
+  }
+  if (manifest.strategySnapshot.strategyConfig === undefined) {
+    drift.push("strategyConfigLegacyUnpinned");
+  } else if (
+    stableStringify(manifest.strategySnapshot.strategyConfig) !==
+    stableStringify(DEFAULT_STRATEGY_CONFIG)
+  ) {
+    drift.push("strategyConfig");
   }
   if (
     stableStringify(manifest.strategySnapshot.scanner.timeframeRoles) !==
