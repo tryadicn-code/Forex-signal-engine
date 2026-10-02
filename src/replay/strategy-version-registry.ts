@@ -9,6 +9,7 @@ import {
   DEFAULT_TIMEFRAME_ROLES,
 } from "@/config/scanner";
 import type { BacktestRunArtifact } from "@/replay/backtest-run-types";
+import { DEFAULT_STRATEGY_CONFIG } from "@/core/strategies/config";
 import {
   buildReleaseGateAuditRecord,
   isReleaseReviewCurrent,
@@ -131,6 +132,7 @@ export function compareSemanticStrategyVersions(
 function buildStrategyBaselineSnapshot(): StrategyBaselineSnapshot {
   return {
     engineConfig: structuredClone(defaultEngineConfig) as EngineConfig,
+    strategyConfig: structuredClone(DEFAULT_STRATEGY_CONFIG),
     scanner: {
       timeframeRoles: structuredClone(DEFAULT_TIMEFRAME_ROLES),
       signalTtl: structuredClone(DEFAULT_SIGNAL_TTL),
