@@ -10,6 +10,12 @@ export {
   DEFAULT_BREAKOUT_RETEST_CONFIG,
 } from "./breakout-retest";
 export {
+  analyzeRangeMeanReversion,
+  RANGE_MEAN_REVERSION_STRATEGY,
+  RANGE_MEAN_REVERSION_STRATEGY_ID,
+  DEFAULT_RANGE_MEAN_REVERSION_CONFIG,
+} from "./range-mean-reversion";
+export {
   getImplementedStrategy,
   IMPLEMENTED_STRATEGY_IDS,
   isStrategyImplemented,
