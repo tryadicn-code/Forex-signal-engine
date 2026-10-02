@@ -72,6 +72,11 @@ import type { FreshnessStatus } from "@/types/market-data";
 import type { ProviderStatus } from "@/types/market-data";
 import type { RepositoryBundle } from "@/repositories/in-memory";
 import { createInMemoryRepositories } from "@/repositories/in-memory";
+import {
+  buildSignalFunnelObservation,
+  SIGNAL_FUNNEL_MAX_RETENTION_MS,
+  type SignalFunnelObservation,
+} from "@/analytics/signal-funnel";
 
 /** Constructed dependencies for the scanner, all injectable for testing. */
 export interface ScannerDeps {
@@ -91,6 +96,8 @@ interface SymbolAnalysis {
   lifecycle: SignalLifecycleState | null;
   /** Transitions recorded this cycle, to append to history. */
   transitions: SignalStateTransition[];
+  /** Observability-only record; never fed back into trading decisions. */
+  funnelObservation: SignalFunnelObservation;
 }
 
 export class ScannerService {
@@ -167,21 +174,35 @@ export class ScannerService {
     const startedAt = asOf;
     const results: SymbolScanResult[] = [];
     const transitionsToAppend: SignalStateTransition[] = [];
+    const funnelObservations: SignalFunnelObservation[] = [];
 
     for (const symbol of this.symbols) {
       try {
         const analysis = await this.scanSymbol(symbol, asOf);
         results.push(analysis.result);
         transitionsToAppend.push(...analysis.transitions);
+        funnelObservations.push(analysis.funnelObservation);
       } catch (error) {
         // Last-resort guard: a symbol must never take the cycle down with it.
-        results.push(this.unexpectedFailure(symbol, asOf, error));
+        const failure = this.unexpectedFailure(symbol, asOf, error);
+        results.push(failure);
+        funnelObservations.push(
+          buildSignalFunnelObservation(failure, null, asOf)
+        );
       }
     }
 
     for (const transition of transitionsToAppend) {
       this.deps.repositories.transitions.append(transition);
     }
+
+    // Analytics is intentionally append-only and observational. Retention is
+    // bounded to the longest dashboard window so repeated scans cannot grow
+    // process memory without limit.
+    this.deps.repositories.funnelAnalytics?.appendMany(funnelObservations);
+    this.deps.repositories.funnelAnalytics?.pruneBefore(
+      asOf - SIGNAL_FUNNEL_MAX_RETENTION_MS
+    );
 
     const successful = results.filter((r) => r.status === "ANALYSED").length;
     const snapshot: ScannerSnapshot = {
@@ -211,15 +232,17 @@ export class ScannerService {
    */
   async scanSymbol(symbol: string, asOf: number): Promise<SymbolAnalysis> {
     if (!(symbol in SYMBOL_METADATA)) {
+      const result = failureResult(
+        symbol,
+        "PROVIDER_FAILURE",
+        `Symbol ${symbol} is not in the configured universe.`,
+        asOf
+      );
       return {
-        result: failureResult(
-          symbol,
-          "PROVIDER_FAILURE",
-          `Symbol ${symbol} is not in the configured universe.`,
-          asOf
-        ),
+        result,
         lifecycle: null,
         transitions: [],
+        funnelObservation: buildSignalFunnelObservation(result, null, asOf),
       };
     }
 
@@ -244,18 +267,20 @@ export class ScannerService {
             ? "INVALID_DATA"
             : "PROVIDER_FAILURE";
       const timeframeDetail = outcome.rejection?.timeframes.join(", ") ?? "";
+      const result = failureResult(
+        symbol,
+        status,
+        outcome.rejection === null
+          ? outcome.providerError ?? "Market context could not be built."
+          : `${outcome.rejection.reason} for ${timeframeDetail}.`,
+        asOf,
+        outcome.providerError ? [outcome.providerError] : []
+      );
       return {
-        result: failureResult(
-          symbol,
-          status,
-          outcome.rejection === null
-            ? outcome.providerError ?? "Market context could not be built."
-            : `${outcome.rejection.reason} for ${timeframeDetail}.`,
-          asOf,
-          outcome.providerError ? [outcome.providerError] : []
-        ),
+        result,
         lifecycle: null,
         transitions: [],
+        funnelObservation: buildSignalFunnelObservation(result, null, asOf),
       };
     }
 
@@ -310,7 +335,12 @@ export class ScannerService {
       asOf,
     });
 
-    return { result, lifecycle, transitions };
+    return {
+      result,
+      lifecycle,
+      transitions,
+      funnelObservation: buildSignalFunnelObservation(result, pipeline, asOf),
+    };
   }
 
   // -------------------------------------------------------------------------
