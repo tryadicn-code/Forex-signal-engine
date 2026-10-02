@@ -3,6 +3,7 @@ import { routeStrategy } from "@/core/strategies/router";
 import type { EngineResult, RegimeResultData } from "@/types/engine";
 import type { RegimeLabel } from "@/types/market";
 import type { StrategyId } from "@/core/strategies/types";
+import { IMPLEMENTED_STRATEGY_IDS } from "@/core/strategies/registry";
 
 function regime(
   label: RegimeLabel,
@@ -99,6 +100,18 @@ describe("Phase 12.3 Market Regime -> Strategy Router", () => {
     expect(decision.selectedStrategyId).toBe("BREAKOUT_RETEST");
     expect(decision.mode).toBe("REGIME_MATCH");
     expect(decision.reasonCode).toBe("BREAKOUT_REGIME");
+  });
+
+  it("routes BREAKOUT directly through the audited strategy registry", () => {
+    const decision = routeStrategy(
+      regime("BREAKOUT"),
+      IMPLEMENTED_STRATEGY_IDS
+    );
+
+    expect(IMPLEMENTED_STRATEGY_IDS).toContain("BREAKOUT_RETEST");
+    expect(decision.preferredStrategyId).toBe("BREAKOUT_RETEST");
+    expect(decision.selectedStrategyId).toBe("BREAKOUT_RETEST");
+    expect(decision.mode).toBe("REGIME_MATCH");
   });
 
   it("returns NO_STRATEGY rather than inventing an implementation", () => {
