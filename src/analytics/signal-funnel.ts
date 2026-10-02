@@ -141,6 +141,17 @@ export function buildSignalFunnelObservation(
   }
 
   if (pipeline.bias.data.direction === "NEUTRAL") {
+    if (result.strategyId === "RANGE_MEAN_REVERSION") {
+      const rangeReason = resolveRangeNeutralReason(pipeline);
+      if (rangeReason !== null) {
+        return reject(
+          "BIAS_DIRECTIONAL",
+          rangeReason.code,
+          rangeReason.detail
+        );
+      }
+    }
+
     const neutralEvidence = findEvidence(
       pipeline.bias.conflicts,
       "NEUTRAL_BIAS"
@@ -182,7 +193,9 @@ export function buildSignalFunnelObservation(
         "TRIGGER_CONFIRMED",
         result.strategyId === "BREAKOUT_RETEST"
           ? "TRIGGER_BREAKOUT_RETEST_INVALIDATED"
-          : "TRIGGER_INVALIDATED",
+          : result.strategyId === "RANGE_MEAN_REVERSION"
+            ? "TRIGGER_RANGE_BOUNDARY_INVALIDATED"
+            : "TRIGGER_INVALIDATED",
         "Price moved beyond the setup invalidation level."
       );
     }
@@ -194,6 +207,17 @@ export function buildSignalFunnelObservation(
           "TRIGGER_CONFIRMED",
           breakoutReason.code,
           breakoutReason.detail
+        );
+      }
+    }
+
+    if (result.strategyId === "RANGE_MEAN_REVERSION") {
+      const rangeReason = resolveRangeTriggerRejection(pipeline);
+      if (rangeReason !== null) {
+        return reject(
+          "TRIGGER_CONFIRMED",
+          rangeReason.code,
+          rangeReason.detail
         );
       }
     }
@@ -452,6 +476,8 @@ function resolveSetupRejection(
   const state = pipeline.setup.data.state;
 
   for (const [evidenceCode, rejectionCode] of [
+    ["RANGE_SETUP_SCORE_TOO_LOW", "SETUP_RANGE_SCORE_TOO_LOW"],
+    ["RANGE_MIDPOINT_WAIT", "SETUP_RANGE_MIDPOINT_WAIT"],
     ["BREAKOUT_REGIME_REQUIRED", "SETUP_BREAKOUT_REGIME_REQUIRED"],
     ["BREAKOUT_DIRECTION_UNRESOLVED", "SETUP_BREAKOUT_DIRECTION_UNRESOLVED"],
     ["BREAKOUT_LEVEL_NOT_CONFIRMED", "SETUP_BREAKOUT_LEVEL_NOT_CONFIRMED"],
@@ -463,6 +489,17 @@ function resolveSetupRejection(
     if (evidence) {
       return { code: rejectionCode, detail: evidence.description };
     }
+  }
+
+  const rangeInvalidated = findEvidence(
+    pipeline.setup.conflicts,
+    "RANGE_BREAKOUT_DETECTED"
+  );
+  if (rangeInvalidated) {
+    return {
+      code: "SETUP_RANGE_BREAKOUT_DETECTED",
+      detail: rangeInvalidated.description,
+    };
   }
 
   const breakoutInvalidated = findEvidence(
@@ -521,6 +558,51 @@ function resolveSetupRejection(
     code: "SETUP_NONE",
     detail: "Setup Engine found no actionable setup zone.",
   };
+}
+
+function resolveRangeNeutralReason(
+  pipeline: PipelineResult
+): { code: string; detail: string } | null {
+  for (const [evidenceCode, rejectionCode] of [
+    ["RANGE_REGIME_REQUIRED", "RANGE_REGIME_REQUIRED"],
+    ["RANGE_VOLATILITY_UNAVAILABLE", "RANGE_VOLATILITY_UNAVAILABLE"],
+    ["RANGE_BOUNDARIES_UNCONFIRMED", "RANGE_BOUNDARIES_UNCONFIRMED"],
+    ["RANGE_TOO_NARROW", "RANGE_TOO_NARROW"],
+    ["RANGE_TOO_WIDE", "RANGE_TOO_WIDE"],
+    ["RANGE_MIDPOINT_WAIT", "RANGE_MIDPOINT_WAIT"],
+  ] as const) {
+    const evidence = findEvidence(pipeline.setup.evidence, evidenceCode);
+    if (evidence) {
+      return { code: rejectionCode, detail: evidence.description };
+    }
+  }
+  const breakout = findEvidence(
+    pipeline.setup.conflicts,
+    "RANGE_BREAKOUT_DETECTED"
+  );
+  return breakout
+    ? {
+        code: "RANGE_BREAKOUT_DETECTED",
+        detail: breakout.description,
+      }
+    : null;
+}
+
+function resolveRangeTriggerRejection(
+  pipeline: PipelineResult
+): { code: string; detail: string } | null {
+  const conflicts = pipeline.trigger?.conflicts ?? [];
+  for (const [conflictCode, rejectionCode] of [
+    ["RANGE_BOUNDARY_REJECTION_MISSING", "TRIGGER_RANGE_BOUNDARY_REJECTION_MISSING"],
+    ["RANGE_REJECTION_QUALITY_LOW", "TRIGGER_RANGE_REJECTION_QUALITY_LOW"],
+    ["RANGE_STRUCTURE_TURN_MISSING", "TRIGGER_RANGE_STRUCTURE_TURN_MISSING"],
+  ] as const) {
+    const conflict = findEvidence(conflicts, conflictCode);
+    if (conflict) {
+      return { code: rejectionCode, detail: conflict.description };
+    }
+  }
+  return null;
 }
 
 function resolveBreakoutTriggerRejection(
