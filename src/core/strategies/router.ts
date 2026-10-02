@@ -47,7 +47,9 @@ export type StrategyRoutingReasonCode =
  *
  * The registry grows one audited strategy at a time. When a regime prefers a
  * strategy that has not been implemented yet, the decision records that
- * preference explicitly and selects TREND_PULLBACK as a compatibility fallback.
+ * preference explicitly and may select TREND_PULLBACK as a compatibility
+ * fallback. A deliberate WAIT preference (no preferred strategy) is fail-closed
+ * as NO_STRATEGY and never falls through to TREND_PULLBACK.
  * Implemented strategies are selected directly as REGIME_MATCH.
  */
 export function routeStrategy(
@@ -70,6 +72,19 @@ export function routeStrategy(
       preferredStrategyId: preferred.strategyId,
       selectedStrategyId: preferred.strategyId,
       mode: "REGIME_MATCH",
+      reasonCode: preferred.reasonCode,
+      reason: preferred.reason,
+    };
+  }
+
+  if (preferred.strategyId === null) {
+    return {
+      regime: regimeResult.data.regime,
+      regimeStrength: regimeResult.data.strength,
+      regimeConfidence: confidence,
+      preferredStrategyId: null,
+      selectedStrategyId: null,
+      mode: "NO_STRATEGY",
       reasonCode: preferred.reasonCode,
       reason: preferred.reason,
     };
