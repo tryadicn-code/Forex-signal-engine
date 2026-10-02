@@ -180,9 +180,22 @@ export function buildSignalFunnelObservation(
     if (trigger.state === "INVALIDATED") {
       return reject(
         "TRIGGER_CONFIRMED",
-        "TRIGGER_INVALIDATED",
+        result.strategyId === "BREAKOUT_RETEST"
+          ? "TRIGGER_BREAKOUT_RETEST_INVALIDATED"
+          : "TRIGGER_INVALIDATED",
         "Price moved beyond the setup invalidation level."
       );
+    }
+
+    if (result.strategyId === "BREAKOUT_RETEST") {
+      const breakoutReason = resolveBreakoutTriggerRejection(pipeline);
+      if (breakoutReason !== null) {
+        return reject(
+          "TRIGGER_CONFIRMED",
+          breakoutReason.code,
+          breakoutReason.detail
+        );
+      }
     }
 
     if (!trigger.breakdown.structural.fired) {
@@ -438,6 +451,31 @@ function resolveSetupRejection(
 ): { code: string; detail: string } {
   const state = pipeline.setup.data.state;
 
+  for (const [evidenceCode, rejectionCode] of [
+    ["BREAKOUT_REGIME_REQUIRED", "SETUP_BREAKOUT_REGIME_REQUIRED"],
+    ["BREAKOUT_DIRECTION_UNRESOLVED", "SETUP_BREAKOUT_DIRECTION_UNRESOLVED"],
+    ["BREAKOUT_LEVEL_NOT_CONFIRMED", "SETUP_BREAKOUT_LEVEL_NOT_CONFIRMED"],
+    ["BREAKOUT_SETUP_SCORE_TOO_LOW", "SETUP_BREAKOUT_SCORE_TOO_LOW"],
+    ["BREAKOUT_NO_CHASE", "SETUP_BREAKOUT_NO_CHASE"],
+    ["BREAKOUT_WAITING_FOR_RETEST", "SETUP_BREAKOUT_WAITING_FOR_RETEST"],
+  ] as const) {
+    const evidence = findEvidence(pipeline.setup.evidence, evidenceCode);
+    if (evidence) {
+      return { code: rejectionCode, detail: evidence.description };
+    }
+  }
+
+  const breakoutInvalidated = findEvidence(
+    pipeline.setup.conflicts,
+    "BREAKOUT_RETEST_INVALIDATED"
+  );
+  if (breakoutInvalidated) {
+    return {
+      code: "SETUP_BREAKOUT_RETEST_INVALIDATED",
+      detail: breakoutInvalidated.description,
+    };
+  }
+
   if (state === "INVALIDATED") {
     const evidence = findEvidence(pipeline.setup.conflicts, "ZONE_INVALIDATED");
     return {
@@ -483,6 +521,23 @@ function resolveSetupRejection(
     code: "SETUP_NONE",
     detail: "Setup Engine found no actionable setup zone.",
   };
+}
+
+function resolveBreakoutTriggerRejection(
+  pipeline: PipelineResult
+): { code: string; detail: string } | null {
+  const conflicts = pipeline.trigger?.conflicts ?? [];
+  for (const [conflictCode, rejectionCode] of [
+    ["BREAKOUT_RETEST_NOT_HELD", "TRIGGER_BREAKOUT_RETEST_NOT_HELD"],
+    ["BREAKOUT_RESUMPTION_MISSING", "TRIGGER_BREAKOUT_RESUMPTION_MISSING"],
+    ["BREAKOUT_CONFIRMATION_INCOMPLETE", "TRIGGER_BREAKOUT_CONFIRMATION_INCOMPLETE"],
+  ] as const) {
+    const conflict = findEvidence(conflicts, conflictCode);
+    if (conflict) {
+      return { code: rejectionCode, detail: conflict.description };
+    }
+  }
+  return null;
 }
 
 function findEvidence(
