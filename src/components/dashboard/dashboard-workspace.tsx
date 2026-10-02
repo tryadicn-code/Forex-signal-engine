@@ -421,7 +421,10 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         </div>
       </div>
 
-      <SignalFunnelPanel analytics={data.signalFunnel} />
+      <SignalFunnelPanel
+        analytics={data.signalFunnel}
+        persistenceError={data.signalFunnelError}
+      />
 
       <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
 
