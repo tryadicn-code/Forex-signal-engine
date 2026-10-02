@@ -52,10 +52,32 @@ describe("ScannerService scan cycle", () => {
     expect(result.status).toBe("ANALYSED");
     expect(result.symbol).toBe("EURUSD");
     expect(result.biasDirection).not.toBeNull();
+    expect(result.strategyId).toBe("TREND_PULLBACK");
+    expect(result.strategyRouting).not.toBeNull();
+    expect(result.strategyRouting?.selectedStrategyId).toBe("TREND_PULLBACK");
+    expect(result.strategyRouting?.regime).toBe(result.regime);
     expect(result.freshness).not.toBeNull();
     expect(result.updatedAt).toBe(T0);
     expect(Array.isArray(result.evidence)).toBe(true);
     expect(Array.isArray(result.errors)).toBe(true);
+  });
+
+  it("surfaces preferred strategy and compatibility fallback for non-trend regimes", async () => {
+    const s = service({ EURUSD: { direction: "RANGE" } });
+    const snapshot = await s.scanOnce(T0);
+    const result = snapshot.results[0];
+
+    expect(result.status).toBe("ANALYSED");
+    expect(result.strategyId).toBe("TREND_PULLBACK");
+    expect(result.strategyRouting?.selectedStrategyId).toBe("TREND_PULLBACK");
+    expect(result.strategyRouting?.regime).toBe(result.regime);
+
+    if (result.regime === "RANGE") {
+      expect(result.strategyRouting?.preferredStrategyId).toBe(
+        "RANGE_MEAN_REVERSION"
+      );
+      expect(result.strategyRouting?.mode).toBe("COMPATIBILITY_FALLBACK");
+    }
   });
 
   it("threads the injected asOf everywhere instead of the wall clock", async () => {
@@ -161,6 +183,12 @@ describe("scanner snapshot and health", () => {
       "EURUSD",
       "GBPUSD",
     ]);
+    expect(observations.every((item) => item.strategyId === "TREND_PULLBACK")).toBe(
+      true
+    );
+    expect(
+      observations.every((item) => item.routingMode !== null)
+    ).toBe(true);
   });
 
   it("summarizes freshness across the universe", async () => {
