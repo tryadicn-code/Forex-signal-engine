@@ -125,28 +125,27 @@ export function buildSignalFunnelObservation(
   }
 
   if (pipeline.bias.data.direction === "NEUTRAL") {
+    const neutralEvidence = findEvidence(
+      pipeline.bias.conflicts,
+      "NEUTRAL_BIAS"
+    );
     return reject(
       "BIAS_DIRECTIONAL",
-      "BIAS_NEUTRAL",
-      `Bias score ${pipeline.bias.data.score} resolved to NEUTRAL.`
+      "BIAS_THRESHOLD_NOT_MET",
+      neutralEvidence?.description ??
+        `Bias score ${pipeline.bias.data.score} resolved to NEUTRAL.`
     );
   }
 
   passedStages.push("BIAS_DIRECTIONAL");
 
-  if (pipeline.setup.data.state === "NONE") {
+  const setupState = pipeline.setup.data.state;
+  if (setupState !== "SETUP" && setupState !== "ARMED") {
+    const setupReason = resolveSetupRejection(pipeline);
     return reject(
       "SETUP_ACTIONABLE",
-      "SETUP_NONE",
-      "Setup Engine found no actionable setup zone."
-    );
-  }
-
-  if (pipeline.setup.data.state === "INVALIDATED") {
-    return reject(
-      "SETUP_ACTIONABLE",
-      "SETUP_INVALIDATED",
-      "The current setup was invalidated before trigger evaluation."
+      setupReason.code,
+      setupReason.detail
     );
   }
 
@@ -247,10 +246,25 @@ export function buildSignalFunnelObservation(
   passedStages.push("NO_HARD_VETO");
 
   if (execution.decision !== "EXECUTE") {
+    const failedCondition = execution.conditions.find(
+      (condition) =>
+        !condition.passed &&
+        ![
+          "bias_valid",
+          "setup_valid",
+          "trigger_confirmed",
+          "risk_approved",
+          "no_hard_veto",
+        ].includes(condition.name)
+    );
     return reject(
       "EXECUTE",
-      `EXECUTION_${execution.decision}`,
-      execution.reasons.join(" ") || `Execution decision was ${execution.decision}.`
+      failedCondition
+        ? `EXECUTION_${normalizeCode(failedCondition.name)}_FAILED`
+        : `EXECUTION_${execution.decision}`,
+      failedCondition?.detail ??
+        execution.reasons.join(" ") ??
+        `Execution decision was ${execution.decision}.`
     );
   }
 
@@ -359,6 +373,65 @@ function summarizeWindow(
     rejectionReasons,
     regimeStats,
   };
+}
+
+function resolveSetupRejection(
+  pipeline: PipelineResult
+): { code: string; detail: string } {
+  const state = pipeline.setup.data.state;
+
+  if (state === "INVALIDATED") {
+    const evidence = findEvidence(pipeline.setup.conflicts, "ZONE_INVALIDATED");
+    return {
+      code: "SETUP_ZONE_INVALIDATED",
+      detail:
+        evidence?.description ??
+        "The selected setup zone was invalidated before it became actionable.",
+    };
+  }
+
+  if (state === "WATCH") {
+    const lowScore = findEvidence(pipeline.setup.evidence, "SCORE_TOO_LOW");
+    if (lowScore) {
+      return {
+        code: "SETUP_SCORE_TOO_LOW",
+        detail: lowScore.description,
+      };
+    }
+    const approaching = findEvidence(
+      pipeline.setup.evidence,
+      "APPROACHING_ZONE"
+    );
+    return {
+      code: approaching ? "SETUP_APPROACHING_ZONE" : "SETUP_WATCH",
+      detail:
+        approaching?.description ??
+        "Setup remains on watch and has not reached SETUP/ARMED state.",
+    };
+  }
+
+  for (const [evidenceCode, rejectionCode] of [
+    ["NO_ZONE", "SETUP_NO_ZONE"],
+    ["NO_ZONE_ON_SIDE", "SETUP_NO_ZONE_ON_SIDE"],
+    ["ZONE_TOO_FAR", "SETUP_ZONE_TOO_FAR"],
+  ] as const) {
+    const evidence = findEvidence(pipeline.setup.evidence, evidenceCode);
+    if (evidence) {
+      return { code: rejectionCode, detail: evidence.description };
+    }
+  }
+
+  return {
+    code: "SETUP_NONE",
+    detail: "Setup Engine found no actionable setup zone.",
+  };
+}
+
+function findEvidence(
+  evidence: Array<{ code: string; description: string }>,
+  code: string
+): { code: string; description: string } | undefined {
+  return evidence.find((item) => item.code === code);
 }
 
 function normalizeCode(value: string): string {
