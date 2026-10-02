@@ -124,6 +124,10 @@ export function calculateHistoricalAnalytics(
     equityCurve: curve,
     rDistribution: buildRDistribution(rValues),
     segments: {
+      byStrategy: segmentTrades(trades, (trade) => ({
+        key: trade.engine.strategyId ?? "LEGACY_UNKNOWN",
+        label: trade.engine.strategyId ?? "Legacy / unknown strategy",
+      })),
       bySymbol: segmentTrades(trades, (trade) => ({
         key: trade.symbol,
         label: trade.symbol,
