@@ -288,7 +288,7 @@ export function analyzeRangeMeanReversionSetup(
     direction === "LONG"
       ? lowerBoundary - invalidationBuffer
       : upperBoundary + invalidationBuffer;
-  let state: SetupResultData["state"] =
+  const state: SetupResultData["state"] =
     score >= strategy.minSetupScore ? "SETUP" : "WATCH";
 
   if (score < strategy.minSetupScore) {
