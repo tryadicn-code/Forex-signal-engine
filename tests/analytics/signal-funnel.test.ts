@@ -37,6 +37,7 @@ function pipeline(input: {
   candle?: boolean;
   momentum?: boolean;
   triggerScore?: number;
+  triggerConflictCode?: string;
   riskApproved?: boolean | null;
   riskReason?: string | null;
   decision?: "WAIT" | "EXECUTE" | "BLOCKED" | "INVALIDATED";
@@ -108,6 +109,13 @@ function pipeline(input: {
                 score: triggerScore,
               },
             },
+            evidence: [],
+            conflicts: input.triggerConflictCode
+              ? [{
+                  code: input.triggerConflictCode,
+                  description: `Trigger diagnostic: ${input.triggerConflictCode}.`,
+                }]
+              : [],
           },
     risk:
       riskApproved === null
@@ -168,6 +176,40 @@ describe("Signal Funnel observation classification", () => {
     expect(lowScore.rejectionStage).toBe("SETUP_ACTIONABLE");
     expect(lowScore.rejectionCode).toBe("SETUP_SCORE_TOO_LOW");
     expect(tooFar.rejectionCode).toBe("SETUP_ZONE_TOO_FAR");
+  });
+
+  it("classifies breakout no-chase and retest failures separately", () => {
+    const noChase = buildSignalFunnelObservation(
+      analysedResult({
+        strategyId: "BREAKOUT_RETEST",
+        regime: "BREAKOUT",
+        setupState: "WATCH",
+      }),
+      pipeline({
+        setupState: "WATCH",
+        setupEvidenceCode: "BREAKOUT_NO_CHASE",
+      }),
+      T0
+    );
+
+    const noRetest = buildSignalFunnelObservation(
+      analysedResult({
+        strategyId: "BREAKOUT_RETEST",
+        regime: "BREAKOUT",
+        setupState: "SETUP",
+      }),
+      pipeline({
+        setupState: "SETUP",
+        triggerState: "WAITING",
+        structural: false,
+        location: false,
+        triggerConflictCode: "BREAKOUT_RETEST_NOT_HELD",
+      }),
+      T0
+    );
+
+    expect(noChase.rejectionCode).toBe("SETUP_BREAKOUT_NO_CHASE");
+    expect(noRetest.rejectionCode).toBe("TRIGGER_BREAKOUT_RETEST_NOT_HELD");
   });
 
   it("identifies structure+location with no optional confirmation", () => {
