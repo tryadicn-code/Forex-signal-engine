@@ -320,6 +320,7 @@ export class ScannerService {
     const { lifecycle, transitions } = this.advanceLifecycle({
       symbol,
       identity,
+      strategyId: routedAnalysis.routing.selectedStrategyId,
       pipeline,
       context,
       stale,
@@ -413,6 +414,7 @@ export class ScannerService {
   private advanceLifecycle(input: {
     symbol: string;
     identity: ReturnType<typeof computeSignalIdentity> | null;
+    strategyId: StrategyRoutingDecision["selectedStrategyId"];
     pipeline: PipelineResult;
     context: BuildContextOutcome["context"];
     stale: boolean;
@@ -421,8 +423,17 @@ export class ScannerService {
     asOf: number;
   }): { lifecycle: SignalLifecycleState | null; transitions: SignalStateTransition[] } {
     const { identity, pipeline, context, asOf } = input;
+    const supersededTransitions = this.closeSupersededLifecycles({
+      symbol: input.symbol,
+      keepSignalId: identity?.signalId ?? null,
+      activeStrategyId: input.strategyId,
+      closeSameStrategy:
+        identity !== null,
+      asOf,
+    });
+
     if (identity === null) {
-      return { lifecycle: null, transitions: [] };
+      return { lifecycle: null, transitions: supersededTransitions };
     }
 
     const store = this.deps.repositories.signals;
@@ -501,7 +512,7 @@ export class ScannerService {
     });
 
     let updated = lifecycle;
-    const transitions: SignalStateTransition[] = [];
+    const transitions: SignalStateTransition[] = [...supersededTransitions];
     const path = findLegalTransitionPath(lifecycle.state, target);
 
     if (path !== null) {
@@ -534,6 +545,68 @@ export class ScannerService {
 
     store.upsert(updated);
     return { lifecycle: updated, transitions };
+  }
+
+  private closeSupersededLifecycles(input: {
+    symbol: string;
+    keepSignalId: string | null;
+    activeStrategyId: StrategyRoutingDecision["selectedStrategyId"];
+    closeSameStrategy: boolean;
+    asOf: number;
+  }): SignalStateTransition[] {
+    const store = this.deps.repositories.signals;
+    const transitions: SignalStateTransition[] = [];
+
+    for (const lifecycle of store.getBySymbol(input.symbol)) {
+      if (
+        lifecycle.state === "CLOSED" ||
+        lifecycle.state === "INVALIDATED" ||
+        lifecycle.signalId === input.keepSignalId
+      ) {
+        continue;
+      }
+
+      const lifecycleStrategy = lifecycle.identity.strategyId ?? null;
+      const strategyChanged =
+        lifecycleStrategy !== input.activeStrategyId;
+      const shouldClose =
+        input.activeStrategyId === null ||
+        strategyChanged ||
+        input.closeSameStrategy;
+
+      if (!shouldClose) continue;
+
+      const path = findLegalTransitionPath(lifecycle.state, "CLOSED");
+      if (path === null) continue;
+
+      let updated = lifecycle;
+      for (const step of path) {
+        const reason =
+          input.activeStrategyId === null
+            ? "Strategy Router selected WAIT; prior active signal is superseded."
+            : strategyChanged
+              ? `Active strategy changed to ${input.activeStrategyId}; prior ${lifecycleStrategy ?? "legacy"} signal is superseded.`
+              : "A newer setup identity superseded this active signal.";
+
+        const applied = transitionSignal(
+          updated.state,
+          step,
+          reason,
+          input.asOf
+        );
+        const withIdentity = attachIdentity(
+          applied.transition,
+          updated.identity
+        );
+        if (withIdentity !== null) {
+          updated = recordTransition(updated, withIdentity, input.asOf);
+          transitions.push(withIdentity);
+        }
+      }
+      store.upsert(updated);
+    }
+
+    return transitions;
   }
 
   // -------------------------------------------------------------------------
