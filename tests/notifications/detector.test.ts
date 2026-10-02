@@ -42,6 +42,7 @@ function result(
     latestPrice: 1.1,
     spreadPips: 1,
     regime: "TREND_UP",
+    strategyId: "TREND_PULLBACK",
     bias: "LONG",
     biasScore: 82,
     biasDirection: "LONG",
@@ -84,6 +85,7 @@ describe("Phase 11 alert detector", () => {
     expect(classifyAlertState(result(), config)).toBe("NEAR_EXECUTE");
     const alert = detectAlertCandidate(result(), release(), config, 3000);
     expect(alert?.state).toBe("NEAR_EXECUTE");
+    expect(alert?.strategyId).toBe("TREND_PULLBACK");
     expect(alert?.waitingFor).toContain("TRIGGER_CONFIRMATION");
     expect(alert?.waitingFor).toContain("RISK_EVALUATION");
     expect(alert?.key).toContain("1.2.3");
