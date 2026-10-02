@@ -168,7 +168,7 @@ function buildNoStrategyPipeline(
       invalidationLevel: 0,
       zoneSource: "strategy-router",
     },
-    timestamp: regime.timestamp,
+    timestamp: setupStructure.timestamp,
   };
 
   return {
