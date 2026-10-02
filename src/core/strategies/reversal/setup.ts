@@ -72,7 +72,8 @@ export function analyzeReversalSetup(
         0,
         evidence,
         conflicts,
-        timestamp
+        timestamp,
+        q.transition?.confirmedAtTimestamp ?? null
       ),
       bias: reversalBias("NEUTRAL", 0, [], [], input.marketAsOf),
       retestTimestamp: null,
@@ -298,7 +299,8 @@ export function analyzeReversalSetup(
       distancePips,
       evidence,
       conflicts,
-      timestamp
+      timestamp,
+      q.transition.confirmedAtTimestamp
     ),
     bias: reversalBias(
       direction,
@@ -410,7 +412,8 @@ function setupResult(
   distanceToZone: number,
   evidence: Evidence[],
   conflicts: Evidence[],
-  timestamp: string
+  timestamp: string,
+  setupOriginTimestamp: number | null = null
 ): EngineResult<SetupResultData> {
   return {
     status: `SETUP_${state}`,
@@ -426,6 +429,7 @@ function setupResult(
       setupScore: score,
       invalidationLevel,
       zoneSource: "h4-choch-transition",
+      setupOriginTimestamp,
     },
     timestamp,
   };
