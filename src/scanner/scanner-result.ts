@@ -89,10 +89,16 @@ export interface SymbolScanResult {
   spreadPips: number | null;
 
   regime: RegimeLabel | null;
-  /** Actual audited strategy used to produce this result. */
-  strategyId: StrategyId | null;
-  /** Regime router decision, including preferred vs compatibility fallback. */
-  strategyRouting: StrategyRoutingDecision | null;
+  /**
+   * Actual audited strategy used to produce this result.
+   * Optional for persisted/pre-Phase-12.3 snapshots and legacy test fixtures.
+   */
+  strategyId?: StrategyId | null;
+  /**
+   * Regime router decision, including preferred vs compatibility fallback.
+   * Optional for persisted/pre-Phase-12.3 snapshots and legacy test fixtures.
+   */
+  strategyRouting?: StrategyRoutingDecision | null;
   bias: BiasLabel | null;
   biasScore: number | null;
   biasDirection: Direction | null;
