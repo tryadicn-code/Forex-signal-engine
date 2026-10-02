@@ -55,6 +55,7 @@ export function analyzeMarketWithRouting(
     regime: routingRegime.data,
     pipSize,
     coreConfigOverrides: context.configOverrides,
+    strategyConfig: context.strategyConfigOverrides?.reversal,
   });
 
   const routing = routeStrategy(
