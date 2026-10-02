@@ -136,6 +136,7 @@ async function dashboardView(
     paper: await readPaperDashboard(),
     broker: await readBrokerExecutionDashboard(),
     notifications: await readNotificationDashboard(),
+    signalFunnel: inst?.getSignalFunnelAnalytics() ?? null,
     releaseRuntime: release.state,
     automation: {
       enabled:
