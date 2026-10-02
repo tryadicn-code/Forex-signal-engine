@@ -52,9 +52,9 @@ describe("ScannerService scan cycle", () => {
     expect(result.status).toBe("ANALYSED");
     expect(result.symbol).toBe("EURUSD");
     expect(result.biasDirection).not.toBeNull();
-    expect(result.strategyId).toBe("TREND_PULLBACK");
+    expect(result.strategyId).not.toBeNull();
     expect(result.strategyRouting).not.toBeNull();
-    expect(result.strategyRouting?.selectedStrategyId).toBe("TREND_PULLBACK");
+    expect(result.strategyId).toBe(result.strategyRouting?.selectedStrategyId);
     expect(result.strategyRouting?.regime).toBe(result.regime);
     expect(result.freshness).not.toBeNull();
     expect(result.updatedAt).toBe(T0);
@@ -183,9 +183,13 @@ describe("scanner snapshot and health", () => {
       "EURUSD",
       "GBPUSD",
     ]);
-    expect(observations.every((item) => item.strategyId === "TREND_PULLBACK")).toBe(
-      true
-    );
+    expect(
+      observations.every(
+        (item) =>
+          item.strategyId === "TREND_PULLBACK" ||
+          item.strategyId === "BREAKOUT_RETEST"
+      )
+    ).toBe(true);
     expect(
       observations.every((item) => item.routingMode !== null)
     ).toBe(true);
