@@ -12,6 +12,7 @@ import {
   routeStrategy,
   type StrategyRoutingDecision,
 } from "@/core/strategies/router";
+import { qualifyReversal } from "@/core/strategies/reversal";
 
 export interface RoutedAnalysisResult {
   routing: StrategyRoutingDecision;
@@ -24,8 +25,8 @@ export interface RoutedAnalysisResult {
  * Phase 12.3 introduces strategy routing without changing the audited trading
  * behaviour. The router classifies the bias-timeframe regime, chooses the
  * preferred strategy, then resolves it against the audited strategy registry.
- * Until future strategies are implemented, non-trend regimes explicitly use
- * the TREND_PULLBACK compatibility fallback.
+ * Reversal routing is deliberately conditional: HIGH_VOLATILITY alone does
+ * not select REVERSAL. A qualified exhaustion sweep + fresh CHOCH is required.
  */
 export function analyzeMarketWithRouting(
   context: AnalysisContext
@@ -48,9 +49,18 @@ export function analyzeMarketWithRouting(
     biasAsOf
   );
 
+  const reversalQualification = qualifyReversal({
+    candles: context.biasTimeframe.snapshot.candles,
+    structure: routingStructure.data,
+    regime: routingRegime.data,
+    pipSize,
+    coreConfigOverrides: context.configOverrides,
+  });
+
   const routing = routeStrategy(
     routingRegime,
-    IMPLEMENTED_STRATEGY_IDS
+    IMPLEMENTED_STRATEGY_IDS,
+    { reversalQualification }
   );
 
   if (routing.selectedStrategyId === null) {
