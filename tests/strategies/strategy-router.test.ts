@@ -97,8 +97,8 @@ describe("Phase 12.3 Market Regime -> Strategy Router", () => {
     const decision = routeStrategy(regime(label), ["TREND_PULLBACK"]);
 
     expect(decision.preferredStrategyId).toBeNull();
-    expect(decision.selectedStrategyId).toBe("TREND_PULLBACK");
-    expect(decision.mode).toBe("COMPATIBILITY_FALLBACK");
+    expect(decision.selectedStrategyId).toBeNull();
+    expect(decision.mode).toBe("NO_STRATEGY");
     expect(decision.reasonCode).toBe(code);
   });
 
@@ -158,8 +158,8 @@ describe("Phase 12.3 Market Regime -> Strategy Router", () => {
     );
 
     expect(decision.preferredStrategyId).toBeNull();
-    expect(decision.selectedStrategyId).toBe("TREND_PULLBACK");
-    expect(decision.mode).toBe("COMPATIBILITY_FALLBACK");
+    expect(decision.selectedStrategyId).toBeNull();
+    expect(decision.mode).toBe("NO_STRATEGY");
     expect(decision.reasonCode).toBe("HIGH_VOLATILITY_WAIT");
   });
 
