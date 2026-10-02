@@ -7,6 +7,7 @@ import {
   computeSignalIdentity,
   freshTriggerOccurrenceIdentity,
   resolveLifecycleIdentity,
+  shouldCloseSupersededLifecycle,
 } from "@/scanner/signal-lifecycle";
 import { intervalMs } from "@/market-data/timeframe";
 
@@ -53,6 +54,78 @@ describe("multi-strategy lifecycle identity", () => {
 
     expect(identity.signalId).not.toContain("|strategy:");
     expect(identity.strategyId).toBeNull();
+  });
+});
+
+describe("multi-strategy lifecycle supersession", () => {
+  const trendIdentity = computeSignalIdentity({
+    symbol: "EURUSD",
+    strategyId: "TREND_PULLBACK",
+    direction: "LONG",
+    originTimeframe: "H1",
+    originTimestamp: T0,
+    zoneLow: 1.1,
+    zoneHigh: 1.101,
+    pipSize: 0.0001,
+  });
+  const activeTrend = {
+    ...createLifecycle(trendIdentity, T0),
+    state: "ARMED" as const,
+  };
+
+  it("closes an active signal when the router changes strategy", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: null,
+        activeStrategyId: "RANGE_MEAN_REVERSION",
+        closeSameStrategy: false,
+      })
+    ).toBe(true);
+  });
+
+  it("closes an active signal when the router deliberately selects WAIT", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: null,
+        activeStrategyId: null,
+        closeSameStrategy: false,
+      })
+    ).toBe(true);
+  });
+
+  it("preserves a same-strategy lifecycle when no replacement setup exists", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: null,
+        activeStrategyId: "TREND_PULLBACK",
+        closeSameStrategy: false,
+      })
+    ).toBe(false);
+  });
+
+  it("closes an old same-strategy setup when a newer setup identity replaces it", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: "different-new-signal",
+        activeStrategyId: "TREND_PULLBACK",
+        closeSameStrategy: true,
+      })
+    ).toBe(true);
+  });
+
+  it("never closes the lifecycle that owns the current signal id", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: trendIdentity.signalId,
+        activeStrategyId: "TREND_PULLBACK",
+        closeSameStrategy: true,
+      })
+    ).toBe(false);
   });
 });
 
