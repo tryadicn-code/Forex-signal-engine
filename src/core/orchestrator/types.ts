@@ -15,6 +15,7 @@ import type {
 } from "@/types/engine";
 import type { ExecutionContext, Veto } from "@/core/execution";
 import type { DeepPartial, EngineConfig } from "@/core/config/engine-config";
+import type { StrategyConfigBundle } from "@/core/strategies/config";
 
 /** Input snapshot for a single timeframe. */
 export interface TimeframeInput {
@@ -45,6 +46,8 @@ export interface AnalysisContext {
   quoteToAccountConversionRate?: number;
   execution?: Partial<ExecutionContext>;
   configOverrides?: DeepPartial<EngineConfig>;
+  /** Strategy-specific thresholds; pinned by release governance when ACTIVE. */
+  strategyConfigOverrides?: DeepPartial<StrategyConfigBundle>;
   vetoes?: Veto[];
 }
 
