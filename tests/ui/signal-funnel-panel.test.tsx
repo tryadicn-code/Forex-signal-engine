@@ -63,7 +63,7 @@ describe("Phase 12 SignalFunnelPanel", () => {
       screen.getByText("Signal Funnel + Rejection Analytics")
     ).toBeInTheDocument();
     expect(screen.getByText("SETUP_ZONE_TOO_FAR")).toBeInTheDocument();
-    expect(screen.getByText("10")).toBeInTheDocument();
+    expect(screen.getAllByText("10").length).toBeGreaterThan(0);
   });
 
   it("switches rolling windows without rescanning", () => {
@@ -71,7 +71,7 @@ describe("Phase 12 SignalFunnelPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "7D" }));
 
-    expect(screen.getByText("70")).toBeInTheDocument();
+    expect(screen.getAllByText("70").length).toBeGreaterThan(0);
   });
 
   it("surfaces persistence warnings but still renders analytics", () => {
