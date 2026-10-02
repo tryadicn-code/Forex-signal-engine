@@ -15,6 +15,7 @@ import type {
   ScannerSnapshot,
   SymbolScanResult,
 } from "@/scanner/scanner-result";
+import type { StrategyId } from "@/core/strategies/types";
 
 class RecordingAdapter implements NotificationAdapter {
   readonly channel = "telegram" as const;
@@ -64,7 +65,7 @@ function release(): ReleaseRuntimeState {
 
 function row(
   signalId = "sig-1",
-  strategyId = "TREND_PULLBACK"
+  strategyId: StrategyId = "TREND_PULLBACK"
 ): SymbolScanResult {
   return {
     symbol: "EURUSD",
@@ -107,7 +108,7 @@ function row(
 function snapshot(
   signalId = "sig-1",
   completedAt = Date.now(),
-  strategyId = "TREND_PULLBACK"
+  strategyId: StrategyId = "TREND_PULLBACK"
 ): ScannerSnapshot {
   return {
     startedAt: completedAt - 100,
