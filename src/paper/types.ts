@@ -25,6 +25,8 @@ export interface PaperReleaseIdentity {
 }
 
 export interface PaperEngineSnapshot {
+  /** Strategy that produced this execution. Optional on legacy persisted records. */
+  strategyId?: string | null;
   bias: BiasLabel | null;
   setupScore: number | null;
   executionDecision: "EXECUTE";
