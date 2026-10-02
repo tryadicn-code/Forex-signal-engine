@@ -147,6 +147,22 @@ describe("scanner snapshot and health", () => {
     expect(s.repositories.snapshots.getLatest()?.startedAt).toBe(snapshot.startedAt);
   });
 
+  it("records one funnel observation per scanned symbol without altering scanner results", async () => {
+    const s = service(
+      { EURUSD: { direction: "UP" }, GBPUSD: { direction: "DOWN" } },
+      ["EURUSD", "GBPUSD"]
+    );
+    const snapshot = await s.scanOnce(T0);
+    const observations = s.repositories.funnelAnalytics?.getSince(T0, T0) ?? [];
+
+    expect(snapshot.results).toHaveLength(2);
+    expect(observations).toHaveLength(2);
+    expect(observations.map((item) => item.symbol).sort()).toEqual([
+      "EURUSD",
+      "GBPUSD",
+    ]);
+  });
+
   it("summarizes freshness across the universe", async () => {
     const s = service();
     const snapshot = await s.scanOnce(T0);
