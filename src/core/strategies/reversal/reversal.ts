@@ -52,6 +52,7 @@ export function analyzeReversal(
     regime: regime.data,
     pipSize,
     coreConfigOverrides: context.configOverrides,
+    strategyConfig: context.strategyConfigOverrides?.reversal,
   });
 
   const setupStructure = analyzeStructure(
@@ -67,6 +68,7 @@ export function analyzeReversal(
     qualification,
     pipSize,
     coreConfigOverrides: context.configOverrides,
+    strategyConfig: context.strategyConfigOverrides?.reversal,
     marketAsOf: setupAsOf,
   });
   const setup = setupAnalysis.setup;
@@ -106,6 +108,7 @@ export function analyzeReversal(
     direction,
     qualification,
     coreConfigOverrides: context.configOverrides,
+    strategyConfig: context.strategyConfigOverrides?.reversal,
     marketAsOf: triggerAsOf,
   });
 
