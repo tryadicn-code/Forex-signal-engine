@@ -23,8 +23,10 @@ const WINDOWS: SignalFunnelWindow[] = ["24H", "7D", "30D"];
 
 export function SignalFunnelPanel({
   analytics,
+  persistenceError,
 }: {
   analytics: SignalFunnelDashboard | null | undefined;
+  persistenceError?: string | null;
 }) {
   const [windowKey, setWindowKey] = useState<SignalFunnelWindow>("24H");
   const summary = analytics?.windows[windowKey] ?? null;
@@ -70,6 +72,15 @@ export function SignalFunnelPanel({
           ))}
         </div>
       </header>
+
+      {persistenceError && (
+        <div
+          role="alert"
+          className="border-b border-amber-900/50 bg-amber-950/15 px-3 py-2 text-xs text-amber-200 sm:px-4"
+        >
+          Analytics persistence warning: {persistenceError}
+        </div>
+      )}
 
       <div className="grid gap-4 p-3 sm:p-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)]">
         <div className="min-w-0 space-y-3">
