@@ -26,8 +26,12 @@ export const SIGNAL_FUNNEL_MAX_RETENTION_MS = SIGNAL_FUNNEL_WINDOW_MS["30D"];
 export interface SignalFunnelObservation {
   symbol: string;
   observedAt: number;
-  /** Reserved for the strategy-router phases. Null means the current legacy strategy path. */
+  /** Actual audited strategy used for this observation. */
   strategyId: string | null;
+  /** Strategy preferred by regime routing, even when not implemented yet. */
+  preferredStrategyId?: string | null;
+  /** Whether the selected strategy was a direct regime match or compatibility fallback. */
+  routingMode?: string | null;
   regime: SymbolScanResult["regime"];
   biasDirection: SymbolScanResult["biasDirection"];
   setupState: SymbolScanResult["setupState"];
@@ -89,7 +93,9 @@ export function buildSignalFunnelObservation(
   const base = {
     symbol: result.symbol,
     observedAt,
-    strategyId: null,
+    strategyId: result.strategyId,
+    preferredStrategyId: result.strategyRouting?.preferredStrategyId ?? null,
+    routingMode: result.strategyRouting?.mode ?? null,
     regime: result.regime,
     biasDirection: result.biasDirection,
     setupState: result.setupState,
