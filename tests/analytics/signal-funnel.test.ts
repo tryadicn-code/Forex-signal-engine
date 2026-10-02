@@ -251,6 +251,40 @@ describe("Signal Funnel observation classification", () => {
     );
   });
 
+  it("classifies reversal no-chase and missing retest separately", () => {
+    const noChase = buildSignalFunnelObservation(
+      analysedResult({
+        strategyId: "REVERSAL",
+        regime: "HIGH_VOLATILITY",
+        setupState: "WATCH",
+      }),
+      pipeline({
+        setupState: "WATCH",
+        setupEvidenceCode: "REVERSAL_NO_CHASE",
+      }),
+      T0
+    );
+
+    const noRetest = buildSignalFunnelObservation(
+      analysedResult({
+        strategyId: "REVERSAL",
+        regime: "HIGH_VOLATILITY",
+        setupState: "SETUP",
+      }),
+      pipeline({
+        setupState: "SETUP",
+        triggerState: "WAITING",
+        structural: false,
+        location: false,
+        triggerConflictCode: "REVERSAL_RETEST_MISSING",
+      }),
+      T0
+    );
+
+    expect(noChase.rejectionCode).toBe("SETUP_REVERSAL_NO_CHASE");
+    expect(noRetest.rejectionCode).toBe("TRIGGER_REVERSAL_RETEST_MISSING");
+  });
+
   it("identifies structure+location with no optional confirmation", () => {
     const result = analysedResult();
     const observation = buildSignalFunnelObservation(
