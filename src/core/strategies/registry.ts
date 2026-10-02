@@ -1,6 +1,9 @@
 import {
   TREND_PULLBACK_STRATEGY,
 } from "@/core/strategies/trend-pullback";
+import {
+  BREAKOUT_RETEST_STRATEGY,
+} from "@/core/strategies/breakout-retest";
 import type {
   ImplementedStrategyId,
   StrategyDefinition,
@@ -9,6 +12,7 @@ import type {
 
 const REGISTRY: Readonly<Record<ImplementedStrategyId, StrategyDefinition>> = {
   TREND_PULLBACK: TREND_PULLBACK_STRATEGY,
+  BREAKOUT_RETEST: BREAKOUT_RETEST_STRATEGY,
 };
 
 export const IMPLEMENTED_STRATEGY_IDS =
