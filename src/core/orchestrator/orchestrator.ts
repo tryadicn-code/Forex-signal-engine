@@ -64,9 +64,15 @@ export function analyzeMarketWithRouting(
   );
 
   if (routing.selectedStrategyId === null) {
-    throw new Error(
-      `Strategy Router produced no executable strategy for regime ${routing.regime}.`
-    );
+    return {
+      routing,
+      pipeline: buildNoStrategyPipeline(
+        context,
+        routingStructure,
+        routingRegime,
+        routing
+      ),
+    };
   }
 
   const strategy = getImplementedStrategy(routing.selectedStrategyId);
@@ -97,3 +103,81 @@ export type {
   PipelineResult,
   TimeframeInput,
 } from "@/core/orchestrator/types";
+
+
+function buildNoStrategyPipeline(
+  context: AnalysisContext,
+  structure: PipelineResult["structure"],
+  regime: PipelineResult["regime"],
+  routing: StrategyRoutingDecision
+): PipelineResult {
+  const setupTimeframe = context.setupTimeframe ?? context.biasTimeframe;
+  const setupStructure = analyzeStructure(
+    setupTimeframe.snapshot.candles,
+    context.configOverrides,
+    context.instrument.pipSize,
+    setupTimeframe.snapshot.asOf
+  );
+
+  const evidence = [{
+    code: routing.reasonCode,
+    label: "Strategy router wait",
+    description: routing.reason,
+    value: routing.regime,
+  }];
+
+  const bias: PipelineResult["bias"] = {
+    status: "BIAS_NEUTRAL",
+    score: 0,
+    confidence: 0,
+    evidence,
+    conflicts: [],
+    data: {
+      label: "NEUTRAL",
+      direction: "NEUTRAL",
+      score: 0,
+      components: {
+        structure: 0,
+        trend: 0,
+        regime: 0,
+        momentum: 0,
+      },
+      weights: {
+        structure: 0,
+        trend: 0,
+        regime: 0,
+        momentum: 0,
+      },
+    },
+    timestamp: regime.timestamp,
+  };
+
+  const setup: PipelineResult["setup"] = {
+    status: "SETUP_NONE",
+    score: 0,
+    evidence,
+    conflicts: [],
+    data: {
+      state: "NONE",
+      zoneLow: 0,
+      zoneHigh: 0,
+      distanceToZone: 0,
+      setupType: "router-wait",
+      setupScore: 0,
+      invalidationLevel: 0,
+      zoneSource: "strategy-router",
+    },
+    timestamp: regime.timestamp,
+  };
+
+  return {
+    structure,
+    regime,
+    bias,
+    setup,
+    setupStructure,
+    trigger: null,
+    risk: null,
+    execution: null,
+  };
+}
