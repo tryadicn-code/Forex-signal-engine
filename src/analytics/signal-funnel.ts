@@ -195,7 +195,9 @@ export function buildSignalFunnelObservation(
           ? "TRIGGER_BREAKOUT_RETEST_INVALIDATED"
           : result.strategyId === "RANGE_MEAN_REVERSION"
             ? "TRIGGER_RANGE_BOUNDARY_INVALIDATED"
-            : "TRIGGER_INVALIDATED",
+            : result.strategyId === "REVERSAL"
+              ? "TRIGGER_REVERSAL_TRANSITION_INVALIDATED"
+              : "TRIGGER_INVALIDATED",
         "Price moved beyond the setup invalidation level."
       );
     }
@@ -218,6 +220,17 @@ export function buildSignalFunnelObservation(
           "TRIGGER_CONFIRMED",
           rangeReason.code,
           rangeReason.detail
+        );
+      }
+    }
+
+    if (result.strategyId === "REVERSAL") {
+      const reversalReason = resolveReversalTriggerRejection(pipeline);
+      if (reversalReason !== null) {
+        return reject(
+          "TRIGGER_CONFIRMED",
+          reversalReason.code,
+          reversalReason.detail
         );
       }
     }
@@ -476,6 +489,15 @@ function resolveSetupRejection(
   const state = pipeline.setup.data.state;
 
   for (const [evidenceCode, rejectionCode] of [
+    ["REVERSAL_VOLATILITY_UNAVAILABLE", "SETUP_REVERSAL_VOLATILITY_UNAVAILABLE"],
+    ["REVERSAL_NO_CHASE", "SETUP_REVERSAL_NO_CHASE"],
+    ["REVERSAL_WAITING_FOR_RETEST", "SETUP_REVERSAL_WAITING_FOR_RETEST"],
+    ["REVERSAL_SETUP_SCORE_TOO_LOW", "SETUP_REVERSAL_SCORE_TOO_LOW"],
+    ["REVERSAL_REGIME_REQUIRED", "SETUP_REVERSAL_REGIME_REQUIRED"],
+    ["REVERSAL_CHOCH_MISSING", "SETUP_REVERSAL_CHOCH_MISSING"],
+    ["REVERSAL_CHOCH_STALE", "SETUP_REVERSAL_CHOCH_STALE"],
+    ["REVERSAL_EXHAUSTION_LEVEL_MISSING", "SETUP_REVERSAL_EXHAUSTION_LEVEL_MISSING"],
+    ["REVERSAL_SWEEP_MISSING", "SETUP_REVERSAL_SWEEP_MISSING"],
     ["RANGE_SETUP_SCORE_TOO_LOW", "SETUP_RANGE_SCORE_TOO_LOW"],
     ["RANGE_MIDPOINT_WAIT", "SETUP_RANGE_MIDPOINT_WAIT"],
     ["BREAKOUT_REGIME_REQUIRED", "SETUP_BREAKOUT_REGIME_REQUIRED"],
@@ -489,6 +511,17 @@ function resolveSetupRejection(
     if (evidence) {
       return { code: rejectionCode, detail: evidence.description };
     }
+  }
+
+  const reversalInvalidated = findEvidence(
+    pipeline.setup.conflicts,
+    "REVERSAL_EXHAUSTION_INVALIDATED"
+  );
+  if (reversalInvalidated) {
+    return {
+      code: "SETUP_REVERSAL_EXHAUSTION_INVALIDATED",
+      detail: reversalInvalidated.description,
+    };
   }
 
   const rangeInvalidated = findEvidence(
@@ -596,6 +629,23 @@ function resolveRangeTriggerRejection(
     ["RANGE_BOUNDARY_REJECTION_MISSING", "TRIGGER_RANGE_BOUNDARY_REJECTION_MISSING"],
     ["RANGE_REJECTION_QUALITY_LOW", "TRIGGER_RANGE_REJECTION_QUALITY_LOW"],
     ["RANGE_STRUCTURE_TURN_MISSING", "TRIGGER_RANGE_STRUCTURE_TURN_MISSING"],
+  ] as const) {
+    const conflict = findEvidence(conflicts, conflictCode);
+    if (conflict) {
+      return { code: rejectionCode, detail: conflict.description };
+    }
+  }
+  return null;
+}
+
+function resolveReversalTriggerRejection(
+  pipeline: PipelineResult
+): { code: string; detail: string } | null {
+  const conflicts = pipeline.trigger?.conflicts ?? [];
+  for (const [conflictCode, rejectionCode] of [
+    ["REVERSAL_RETEST_MISSING", "TRIGGER_REVERSAL_RETEST_MISSING"],
+    ["REVERSAL_REJECTION_QUALITY_LOW", "TRIGGER_REVERSAL_REJECTION_QUALITY_LOW"],
+    ["REVERSAL_STRUCTURE_TURN_MISSING", "TRIGGER_REVERSAL_STRUCTURE_TURN_MISSING"],
   ] as const) {
     const conflict = findEvidence(conflicts, conflictCode);
     if (conflict) {
