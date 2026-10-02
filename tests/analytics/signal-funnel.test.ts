@@ -212,6 +212,45 @@ describe("Signal Funnel observation classification", () => {
     expect(noRetest.rejectionCode).toBe("TRIGGER_BREAKOUT_RETEST_NOT_HELD");
   });
 
+  it("classifies range midpoint wait and missing boundary rejection separately", () => {
+    const midpoint = buildSignalFunnelObservation(
+      analysedResult({
+        strategyId: "RANGE_MEAN_REVERSION",
+        regime: "RANGE",
+        bias: "NEUTRAL",
+        biasDirection: "NEUTRAL",
+        setupState: "WATCH",
+      }),
+      pipeline({
+        biasDirection: "NEUTRAL",
+        setupState: "WATCH",
+        setupEvidenceCode: "RANGE_MIDPOINT_WAIT",
+      }),
+      T0
+    );
+
+    const noRejection = buildSignalFunnelObservation(
+      analysedResult({
+        strategyId: "RANGE_MEAN_REVERSION",
+        regime: "RANGE",
+        setupState: "SETUP",
+      }),
+      pipeline({
+        setupState: "SETUP",
+        triggerState: "WAITING",
+        structural: false,
+        location: false,
+        triggerConflictCode: "RANGE_BOUNDARY_REJECTION_MISSING",
+      }),
+      T0
+    );
+
+    expect(midpoint.rejectionCode).toBe("RANGE_MIDPOINT_WAIT");
+    expect(noRejection.rejectionCode).toBe(
+      "TRIGGER_RANGE_BOUNDARY_REJECTION_MISSING"
+    );
+  });
+
   it("identifies structure+location with no optional confirmation", () => {
     const result = analysedResult();
     const observation = buildSignalFunnelObservation(
