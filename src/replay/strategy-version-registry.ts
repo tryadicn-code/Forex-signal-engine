@@ -10,6 +10,7 @@ import {
 } from "@/config/scanner";
 import type { BacktestRunArtifact } from "@/replay/backtest-run-types";
 import { DEFAULT_STRATEGY_CONFIG } from "@/core/strategies/config";
+import { STRATEGY_SYSTEM_POLICY } from "@/core/strategies/system-policy";
 import {
   buildReleaseGateAuditRecord,
   isReleaseReviewCurrent,
@@ -133,6 +134,7 @@ function buildStrategyBaselineSnapshot(): StrategyBaselineSnapshot {
   return {
     engineConfig: structuredClone(defaultEngineConfig) as EngineConfig,
     strategyConfig: structuredClone(DEFAULT_STRATEGY_CONFIG),
+    strategySystem: structuredClone(STRATEGY_SYSTEM_POLICY),
     scanner: {
       timeframeRoles: structuredClone(DEFAULT_TIMEFRAME_ROLES),
       signalTtl: structuredClone(DEFAULT_SIGNAL_TTL),
