@@ -170,7 +170,8 @@ export function analyzeBreakoutRetestSetup(
         0,
         evidence,
         conflicts,
-        input.marketAsOf
+        input.marketAsOf,
+        breakout.eventTimestamp
       ),
       breakout,
       retestTimestamp: null,
@@ -285,7 +286,8 @@ export function analyzeBreakoutRetestSetup(
       distancePips,
       evidence,
       conflicts,
-      input.marketAsOf
+      input.marketAsOf,
+      breakout.eventTimestamp
     ),
     breakout,
     retestTimestamp: recentRetest?.timestamp ?? null,
@@ -408,6 +410,7 @@ function emptySetup(): SetupResultData {
     setupScore: 0,
     invalidationLevel: 0,
     zoneSource: "broken-structure-level",
+    setupOriginTimestamp: null,
   };
 }
 
@@ -420,7 +423,8 @@ function makeResult(
   distanceToZone: number,
   evidence: Evidence[],
   conflicts: Evidence[],
-  marketAsOf?: number
+  marketAsOf?: number,
+  setupOriginTimestamp: number | null = null
 ): EngineResult<SetupResultData> {
   return {
     status: `SETUP_${state}`,
@@ -436,6 +440,7 @@ function makeResult(
       setupScore: score,
       invalidationLevel,
       zoneSource: "broken-structure-level",
+      setupOriginTimestamp,
     },
     timestamp: engineTimestamp(marketAsOf),
   };
