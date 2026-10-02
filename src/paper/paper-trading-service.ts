@@ -606,6 +606,7 @@ export class PaperTradingService {
     release: PaperReleaseIdentity | null
   ) {
     return {
+      strategyId: result.strategyId ?? null,
       bias: result.bias,
       setupScore: result.setupScore,
       executionDecision: "EXECUTE" as const,
