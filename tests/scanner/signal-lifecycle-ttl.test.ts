@@ -14,6 +14,48 @@ const T0 = Date.UTC(2024, 5, 3, 12, 0, 0);
 const M15 = intervalMs("M15");
 const H1 = intervalMs("H1");
 
+describe("multi-strategy lifecycle identity", () => {
+  it("separates otherwise-identical setups owned by different strategies", () => {
+    const base = {
+      symbol: "EURUSD",
+      direction: "LONG" as const,
+      originTimeframe: "H1" as const,
+      originTimestamp: T0,
+      zoneLow: 1.1,
+      zoneHigh: 1.101,
+      pipSize: 0.0001,
+    };
+
+    const trend = computeSignalIdentity({
+      ...base,
+      strategyId: "TREND_PULLBACK",
+    });
+    const breakout = computeSignalIdentity({
+      ...base,
+      strategyId: "BREAKOUT_RETEST",
+    });
+
+    expect(trend.signalId).not.toBe(breakout.signalId);
+    expect(trend.strategyId).toBe("TREND_PULLBACK");
+    expect(breakout.strategyId).toBe("BREAKOUT_RETEST");
+  });
+
+  it("preserves legacy deterministic ids when strategy id is absent", () => {
+    const identity = computeSignalIdentity({
+      symbol: "EURUSD",
+      direction: "LONG",
+      originTimeframe: "H1",
+      originTimestamp: T0,
+      zoneLow: 1.1,
+      zoneHigh: 1.101,
+      pipSize: 0.0001,
+    });
+
+    expect(identity.signalId).not.toContain("|strategy:");
+    expect(identity.strategyId).toBeNull();
+  });
+});
+
 describe("bar-aware TTL", () => {
   it("is not expired while within the allowed number of bars", () => {
     const origin = T0 - M15;
