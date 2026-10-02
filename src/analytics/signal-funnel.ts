@@ -103,7 +103,7 @@ export function buildSignalFunnelObservation(
   const base = {
     symbol: result.symbol,
     observedAt,
-    strategyId: result.strategyId,
+    strategyId: result.strategyId ?? null,
     preferredStrategyId: result.strategyRouting?.preferredStrategyId ?? null,
     routingMode: result.strategyRouting?.mode ?? null,
     regime: result.regime,
