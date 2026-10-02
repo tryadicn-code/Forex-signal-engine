@@ -80,6 +80,16 @@ describe("Phase 12.3 Market Regime -> Strategy Router", () => {
     expect(decision.mode).toBe("COMPATIBILITY_FALLBACK");
   });
 
+  it("routes RANGE directly through the audited strategy registry", () => {
+    const decision = routeStrategy(regime("RANGE"), IMPLEMENTED_STRATEGY_IDS);
+
+    expect(IMPLEMENTED_STRATEGY_IDS).toContain("RANGE_MEAN_REVERSION");
+    expect(decision.preferredStrategyId).toBe("RANGE_MEAN_REVERSION");
+    expect(decision.selectedStrategyId).toBe("RANGE_MEAN_REVERSION");
+    expect(decision.mode).toBe("REGIME_MATCH");
+    expect(decision.reasonCode).toBe("RANGE_REGIME");
+  });
+
   it.each([
     ["LOW_VOLATILITY", "LOW_VOLATILITY_WAIT"],
     ["HIGH_VOLATILITY", "HIGH_VOLATILITY_WAIT"],
