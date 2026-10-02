@@ -380,6 +380,7 @@ export class ScannerService {
       riskPercent: this.config.account.riskPercent,
       quoteToAccountConversionRate: context!.quoteToAccountConversionRate,
       configOverrides: this.config.engineConfig,
+      strategyConfigOverrides: this.config.strategyConfig,
       execution: {
         now: asOf,
         mode: this.config.executionMode,
