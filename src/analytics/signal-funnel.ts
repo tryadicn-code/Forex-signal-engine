@@ -262,8 +262,8 @@ export function buildSignalFunnelObservation(
       failedCondition
         ? `EXECUTION_${normalizeCode(failedCondition.name)}_FAILED`
         : `EXECUTION_${execution.decision}`,
-      failedCondition?.detail ??
-        execution.reasons.join(" ") ??
+      failedCondition?.detail ||
+        execution.reasons.join(" ") ||
         `Execution decision was ${execution.decision}.`
     );
   }
