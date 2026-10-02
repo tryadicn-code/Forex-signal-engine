@@ -51,6 +51,7 @@ import {
   isTriggerExpired,
   recordTransition,
   resolveLifecycleIdentity,
+  shouldCloseSupersededLifecycle,
 } from "@/scanner/signal-lifecycle";
 import type { SignalLifecycleState } from "@/scanner/signal-lifecycle";
 import {
@@ -559,9 +560,12 @@ export class ScannerService {
 
     for (const lifecycle of store.getBySymbol(input.symbol)) {
       if (
-        lifecycle.state === "CLOSED" ||
-        lifecycle.state === "INVALIDATED" ||
-        lifecycle.signalId === input.keepSignalId
+        !shouldCloseSupersededLifecycle({
+          lifecycle,
+          keepSignalId: input.keepSignalId,
+          activeStrategyId: input.activeStrategyId,
+          closeSameStrategy: input.closeSameStrategy,
+        })
       ) {
         continue;
       }
@@ -569,12 +573,6 @@ export class ScannerService {
       const lifecycleStrategy = lifecycle.identity.strategyId ?? null;
       const strategyChanged =
         lifecycleStrategy !== input.activeStrategyId;
-      const shouldClose =
-        input.activeStrategyId === null ||
-        strategyChanged ||
-        input.closeSameStrategy;
-
-      if (!shouldClose) continue;
 
       const path = findLegalTransitionPath(lifecycle.state, "CLOSED");
       if (path === null) continue;
