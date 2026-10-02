@@ -5,6 +5,7 @@ import type { PaperDashboardData } from "@/paper/types";
 import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
 import type { BrokerExecutionDashboard } from "@/broker/types";
 import type { NotificationDashboard } from "@/notifications/types";
+import type { SignalFunnelDashboard } from "@/analytics/signal-funnel";
 
 /**
  * Serializable application-facing payload for the dashboard.
@@ -29,6 +30,8 @@ export interface DashboardData {
   broker?: BrokerExecutionDashboard;
   /** Phase 11 realtime alerting state. */
   notifications?: NotificationDashboard;
+  /** Rolling Signal Funnel + Rejection Analytics. */
+  signalFunnel?: SignalFunnelDashboard | null;
   /** Runtime automation status. Optional for older fixtures/backward compatibility. */
   automation?: {
     enabled: boolean;
