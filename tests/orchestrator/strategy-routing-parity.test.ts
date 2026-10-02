@@ -4,7 +4,7 @@ import {
   analyzeMarket,
   analyzeMarketWithRouting,
 } from "@/core/orchestrator";
-import { analyzeTrendPullback } from "@/core/strategies";
+import { analyzeBreakoutRetest, analyzeTrendPullback } from "@/core/strategies";
 import {
   bearishTrend,
   bullishTrend,
@@ -80,6 +80,30 @@ describe("Phase 12.3 routed orchestrator parity", () => {
     expect(analyzeMarket(input)).toEqual(legacyNamedStrategy);
     expect(routed.routing.selectedStrategyId).toBe("TREND_PULLBACK");
     expect(routed.routing.regime).toBe(routed.pipeline.regime.data.regime);
+  });
+
+  it("activates BREAKOUT_RETEST when the audited router sees BREAKOUT regime", () => {
+    const input = context(
+      bullishTrend(160),
+      bullishTrendWithPullback(140, 1.0, "H1"),
+      bullishTrendWithPullback(80, 1.0, "M15")
+    );
+    input.configOverrides = {
+      regime: {
+        adxTrendThreshold: 0,
+        breakoutBandWidthRatio: 0,
+      },
+    };
+
+    const routed = analyzeMarketWithRouting(input);
+    const direct = analyzeBreakoutRetest(input);
+
+    expect(routed.routing.regime).toBe("BREAKOUT");
+    expect(routed.routing.preferredStrategyId).toBe("BREAKOUT_RETEST");
+    expect(routed.routing.selectedStrategyId).toBe("BREAKOUT_RETEST");
+    expect(routed.routing.mode).toBe("REGIME_MATCH");
+    expect(routed.pipeline).toEqual(direct);
+    expect(routed.pipeline.setup.data.setupType).toBe("breakout-retest");
   });
 
   it("is deterministic for both routing metadata and pipeline output", () => {
