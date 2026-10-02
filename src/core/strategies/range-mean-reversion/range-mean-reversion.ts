@@ -59,6 +59,7 @@ export function analyzeRangeMeanReversion(
     regime: regime.data,
     pipSize,
     coreConfigOverrides: context.configOverrides,
+    strategyConfig: context.strategyConfigOverrides?.rangeMeanReversion,
     marketAsOf: setupAsOf,
   });
   const setup = setupAnalysis.setup;
@@ -98,6 +99,7 @@ export function analyzeRangeMeanReversion(
     structure: triggerStructure.data,
     direction: range.direction,
     coreConfigOverrides: context.configOverrides,
+    strategyConfig: context.strategyConfigOverrides?.rangeMeanReversion,
     marketAsOf: triggerAsOf,
   });
 
