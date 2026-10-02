@@ -246,6 +246,10 @@ describe("signal lifecycle integration", () => {
     const idB = b.results[0].signalId;
     if (idA !== null) {
       expect(idB).toBe(idA);
+      expect(a.results[0].strategyId).not.toBeNull();
+      expect(idA).toContain(
+        `|strategy:${a.results[0].strategyId}|`
+      );
       expect(s.repositories.signals.getById(idA)).not.toBeNull();
     }
   });
