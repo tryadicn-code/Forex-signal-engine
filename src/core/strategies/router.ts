@@ -4,6 +4,10 @@ import type {
 } from "@/types/engine";
 import type { RegimeLabel } from "@/types/market";
 import type { StrategyId } from "@/core/strategies/types";
+import {
+  STRATEGY_SYSTEM_POLICY,
+  type StrategyRoutingPolicyTarget,
+} from "@/core/strategies/system-policy";
 
 export type StrategyRoutingMode =
   | "REGIME_MATCH"
@@ -134,39 +138,42 @@ function preferredStrategyForRegime(
   >;
   reason: string;
 } {
-  switch (regime) {
-    case "STRONG_TREND_UP":
-    case "TREND_UP":
-    case "STRONG_TREND_DOWN":
-    case "TREND_DOWN":
+  const target: StrategyRoutingPolicyTarget =
+    STRATEGY_SYSTEM_POLICY.regimeRouting[regime];
+
+  switch (target) {
+    case "TREND_PULLBACK":
       return {
         strategyId: "TREND_PULLBACK",
         reasonCode: "TREND_REGIME",
         reason: `${regime} is a directional trend regime; prefer pullback continuation.`,
       };
 
-    case "BREAKOUT":
+    case "BREAKOUT_RETEST":
       return {
         strategyId: "BREAKOUT_RETEST",
         reasonCode: "BREAKOUT_REGIME",
-        reason: "BREAKOUT regime prefers breakout/retest continuation instead of chasing the expansion candle.",
+        reason:
+          "BREAKOUT regime prefers breakout/retest continuation instead of chasing the expansion candle.",
       };
 
-    case "RANGE":
+    case "RANGE_MEAN_REVERSION":
       return {
         strategyId: "RANGE_MEAN_REVERSION",
         reasonCode: "RANGE_REGIME",
-        reason: "RANGE regime prefers mean reversion at validated range boundaries.",
+        reason:
+          "RANGE regime prefers mean reversion at validated range boundaries.",
       };
 
-    case "LOW_VOLATILITY":
+    case "WAIT":
       return {
         strategyId: null,
         reasonCode: "LOW_VOLATILITY_WAIT",
-        reason: "LOW_VOLATILITY is treated as compression; wait for expansion or a clearer range before selecting a strategy.",
+        reason:
+          "LOW_VOLATILITY is treated as compression; wait for expansion or a clearer range before selecting a strategy.",
       };
 
-    case "HIGH_VOLATILITY":
+    case "CONDITIONAL_REVERSAL":
       if (context.reversalQualification?.qualified) {
         return {
           strategyId: "REVERSAL",
@@ -180,6 +187,17 @@ function preferredStrategyForRegime(
         reason:
           context.reversalQualification?.reason ??
           "HIGH_VOLATILITY alone is not sufficient evidence for reversal; wait for a qualified transition/exhaustion setup.",
+      };
+
+    case "REVERSAL":
+      // The current policy intentionally uses CONDITIONAL_REVERSAL rather than
+      // unconditional REVERSAL. Keep this branch fail-closed if a future policy
+      // is malformed.
+      return {
+        strategyId: null,
+        reasonCode: "HIGH_VOLATILITY_WAIT",
+        reason:
+          "Unconditional REVERSAL routing is not permitted by the Phase 12 policy.",
       };
   }
 }
