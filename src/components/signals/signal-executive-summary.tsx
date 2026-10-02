@@ -92,6 +92,33 @@ export function SignalExecutiveSummary({
         <span>Setup {result.setupState ?? "—"}</span>
         <span>Trigger {result.triggerState ?? "—"}</span>
       </div>
+
+      {result.strategyRouting && (
+        <div
+          aria-label="Strategy routing"
+          className="mt-3 rounded-md border border-zinc-800 bg-zinc-950/35 px-3 py-2.5"
+        >
+          <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px]">
+            <span className="text-zinc-500">
+              Regime <strong className="font-medium text-zinc-300">{result.strategyRouting.regime}</strong>
+            </span>
+            <span className="text-zinc-500">
+              Preferred <strong className="font-medium text-zinc-300">{result.strategyRouting.preferredStrategyId ?? "WAIT"}</strong>
+            </span>
+            <span className="text-zinc-500">
+              Active <strong className="font-medium text-zinc-300">{result.strategyId ?? "—"}</strong>
+            </span>
+            <span className="text-zinc-500">
+              Route <strong className="font-medium text-zinc-300">{result.strategyRouting.mode}</strong>
+            </span>
+          </div>
+          {result.strategyRouting.mode === "COMPATIBILITY_FALLBACK" && (
+            <p className="mt-1.5 text-[10px] leading-relaxed text-amber-300/80">
+              {result.strategyRouting.reason}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }
