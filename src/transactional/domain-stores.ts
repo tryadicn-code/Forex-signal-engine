@@ -39,6 +39,16 @@ import {
 } from "@/replay/release-gate";
 import { TransactionalDocumentRepository } from "@/transactional/document-repository";
 import type { TransactionalStateStore } from "@/transactional/types";
+import type {
+  SignalFunnelObservation,
+} from "@/analytics/signal-funnel";
+import {
+  emptySignalFunnelStoreState,
+  mergeSignalFunnelObservations,
+  validateSignalFunnelStoreState,
+  type SignalFunnelStore,
+  type SignalFunnelStoreState,
+} from "@/analytics/store";
 
 export class TransactionalPaperStore implements PaperStore {
   private revision: number | null | undefined;
@@ -114,6 +124,36 @@ export class TransactionalForwardValidationStore {
           .sort((a, b) => a.observedAt - b.observedAt)
           .slice(-this.maxObservations),
       };
+      return { next, result: next };
+    });
+  }
+}
+
+export class TransactionalSignalFunnelStore implements SignalFunnelStore {
+  private readonly repo: TransactionalDocumentRepository<SignalFunnelStoreState>;
+
+  constructor(store: TransactionalStateStore) {
+    this.repo = new TransactionalDocumentRepository(
+      store,
+      "state/signal-funnel",
+      validateSignalFunnelStoreState
+    );
+  }
+
+  async read(): Promise<SignalFunnelStoreState> {
+    return (await this.repo.readValue()) ?? emptySignalFunnelStoreState();
+  }
+
+  async appendMany(
+    observations: SignalFunnelObservation[],
+    referenceAt: number
+  ): Promise<SignalFunnelStoreState> {
+    return this.repo.update((current) => {
+      const next = mergeSignalFunnelObservations(
+        current ?? emptySignalFunnelStoreState(),
+        observations,
+        referenceAt
+      );
       return { next, result: next };
     });
   }
