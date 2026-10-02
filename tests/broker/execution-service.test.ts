@@ -136,8 +136,9 @@ function candidate(
     reason: "ok",
     latestPrice: 1.1,
     spreadPips: 1,
-    regime: null,
-    bias: null,
+    regime: "TREND_UP",
+    strategyId: "TREND_PULLBACK",
+    bias: "LONG",
     biasScore: 80,
     biasDirection: "LONG",
     setupState: null,
@@ -232,6 +233,46 @@ async function arm(service: BrokerExecutionService) {
 }
 
 describe("Phase 10 broker execution safety coordinator", () => {
+  it("records the strategy identity on broker execution records", async () => {
+    const backend = new MemoryTransactionalStateStore();
+    const store = new TransactionalBrokerExecutionStore(backend);
+    const service = new BrokerExecutionService({
+      store,
+      provider: new ShadowBrokerProvider(),
+      config: resolveBrokerExecutionConfig({
+        FSE_BROKER_MODE: "shadow",
+      }),
+      sharedTransactional: false,
+    });
+
+    await service.processSnapshot(
+      snapshot(candidate(0.2, "strategy-attribution")),
+      release()
+    );
+
+    const state = await store.read();
+    expect(state.records[0].strategyId).toBe("TREND_PULLBACK");
+  });
+
+  it("fails closed for broker execution when strategy identity is missing", async () => {
+    const backend = new MemoryTransactionalStateStore();
+    const store = new TransactionalBrokerExecutionStore(backend);
+    const service = new BrokerExecutionService({
+      store,
+      provider: new ShadowBrokerProvider(),
+      config: resolveBrokerExecutionConfig({
+        FSE_BROKER_MODE: "shadow",
+      }),
+      sharedTransactional: false,
+    });
+    const unattributed = candidate();
+    unattributed.strategyId = null;
+
+    await service.processSnapshot(snapshot(unattributed), release());
+
+    expect((await store.read()).records).toHaveLength(0);
+  });
+
   it("records shadow execution without external order transmission", async () => {
     const backend = new MemoryTransactionalStateStore();
     const store = new TransactionalBrokerExecutionStore(backend);
