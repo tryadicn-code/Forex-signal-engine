@@ -67,6 +67,15 @@ export interface RegimeFunnelStat {
   executionRate: number;
 }
 
+export interface StrategyRoutingFunnelStat {
+  preferredStrategyId: string;
+  selectedStrategyId: string;
+  routingMode: string;
+  observations: number;
+  executions: number;
+  executionRate: number;
+}
+
 export interface SignalFunnelSummary {
   window: SignalFunnelWindow;
   from: number;
@@ -76,6 +85,7 @@ export interface SignalFunnelSummary {
   stageStats: SignalFunnelStageStat[];
   rejectionReasons: RejectionReasonStat[];
   regimeStats: RegimeFunnelStat[];
+  strategyRoutingStats: StrategyRoutingFunnelStat[];
 }
 
 export interface SignalFunnelDashboard {
@@ -369,6 +379,47 @@ function summarizeWindow(
     }))
     .sort((a, b) => b.observations - a.observations || a.regime.localeCompare(b.regime));
 
+  const strategyRoutingMap = new Map<
+    string,
+    {
+      preferredStrategyId: string;
+      selectedStrategyId: string;
+      routingMode: string;
+      observations: number;
+      executions: number;
+    }
+  >();
+  for (const item of filtered) {
+    const preferredStrategyId = item.preferredStrategyId ?? "LEGACY";
+    const selectedStrategyId = item.strategyId ?? "NONE";
+    const routingMode = item.routingMode ?? "LEGACY";
+    const key = [preferredStrategyId, selectedStrategyId, routingMode].join("|");
+    const current = strategyRoutingMap.get(key) ?? {
+      preferredStrategyId,
+      selectedStrategyId,
+      routingMode,
+      observations: 0,
+      executions: 0,
+    };
+    current.observations += 1;
+    if (item.passedStages.includes("EXECUTE")) current.executions += 1;
+    strategyRoutingMap.set(key, current);
+  }
+
+  const strategyRoutingStats = [...strategyRoutingMap.values()]
+    .map((value) => ({
+      ...value,
+      executionRate:
+        value.observations === 0
+          ? 0
+          : round2((value.executions / value.observations) * 100),
+    }))
+    .sort(
+      (a, b) =>
+        b.observations - a.observations ||
+        a.preferredStrategyId.localeCompare(b.preferredStrategyId)
+    );
+
   return {
     window,
     from,
@@ -378,6 +429,7 @@ function summarizeWindow(
     stageStats,
     rejectionReasons,
     regimeStats,
+    strategyRoutingStats,
   };
 }
 
