@@ -580,6 +580,7 @@ function rejectedOrder(
 
 function engineSnapshot(result: SymbolScanResult) {
   return {
+    strategyId: result.strategyId ?? null,
     bias: result.bias,
     setupScore: result.setupScore,
     executionDecision: "EXECUTE" as const,
