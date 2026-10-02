@@ -55,6 +55,10 @@ import {
   processNotificationSnapshot,
   readNotificationDashboard,
 } from "@/server/notification-access";
+import {
+  readSignalFunnelDashboard,
+  recordSignalFunnelObservations,
+} from "@/server/signal-funnel-access";
 
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
@@ -114,6 +118,7 @@ async function dashboardView(
 ): Promise<DashboardData> {
   const allSignals = inst?.getAllSignals() ?? [];
   const signalHistory: DashboardData["signalHistory"] = {};
+  const signalFunnel = await readSignalFunnelDashboard();
 
   if (inst) {
     for (const signal of allSignals) {
@@ -136,7 +141,8 @@ async function dashboardView(
     paper: await readPaperDashboard(),
     broker: await readBrokerExecutionDashboard(),
     notifications: await readNotificationDashboard(),
-    signalFunnel: inst?.getSignalFunnelAnalytics() ?? null,
+    signalFunnel: signalFunnel.analytics,
+    signalFunnelError: signalFunnel.persistenceError,
     releaseRuntime: release.state,
     automation: {
       enabled:
@@ -182,6 +188,26 @@ async function runScanner(
       inst.setRuntimeAccountBalance(await paperBalance());
       await primeRuntimeConversionRates(asOf, inst.config.account.currency);
       const snapshot = await inst.runScan(asOf);
+
+      // Funnel analytics is non-authoritative observability. Persistence
+      // failures are reported and telemetered, but must never block Paper,
+      // broker, or strategy decision paths.
+      try {
+        await recordSignalFunnelObservations(inst, snapshot);
+      } catch (analyticsError) {
+        await emitRuntimeTelemetry({
+          category: "scanner",
+          name: "signal-funnel-persistence-failure",
+          level: "WARN",
+          durationMs: null,
+          attributes: {
+            error:
+              analyticsError instanceof Error
+                ? analyticsError.message.slice(0, 500)
+                : String(analyticsError).slice(0, 500),
+          },
+        });
+      }
 
       // Re-resolve governance before creating Paper orders. A registry change
       // during analysis invalidates this scan for execution purposes.
