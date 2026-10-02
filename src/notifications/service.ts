@@ -149,6 +149,7 @@ export class NotificationService {
           (event) =>
             event.symbol === candidate.symbol &&
             event.state === candidate.state &&
+            (event.strategyId ?? null) === candidate.strategyId &&
             event.status !== "SUPPRESSED"
         );
       const suppressed =
