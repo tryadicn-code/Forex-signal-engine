@@ -285,6 +285,46 @@ describe("Signal Funnel observation classification", () => {
     expect(noRetest.rejectionCode).toBe("TRIGGER_REVERSAL_RETEST_MISSING");
   });
 
+  it("records deliberate router WAIT distinctly from legacy observations", () => {
+    const result = analysedResult({
+      regime: "LOW_VOLATILITY",
+      strategyId: null,
+      strategyRouting: {
+        regime: "LOW_VOLATILITY",
+        regimeStrength: 10,
+        regimeConfidence: 80,
+        preferredStrategyId: null,
+        selectedStrategyId: null,
+        mode: "NO_STRATEGY",
+        reasonCode: "LOW_VOLATILITY_WAIT",
+        reason: "Compression: wait for a clearer regime.",
+      },
+      bias: "NEUTRAL",
+      biasDirection: "NEUTRAL",
+      setupState: "NONE",
+    });
+    const observation = buildSignalFunnelObservation(
+      result,
+      pipeline({
+        biasDirection: "NEUTRAL",
+        setupState: "NONE",
+      }),
+      T0
+    );
+
+    expect(observation.rejectionCode).toBe("LOW_VOLATILITY_WAIT");
+    expect(observation.preferredStrategyId).toBeNull();
+    expect(observation.routingMode).toBe("NO_STRATEGY");
+
+    const summary = buildSignalFunnelDashboard([observation], T0).windows["24H"];
+    expect(summary.strategyRoutingStats[0]).toMatchObject({
+      preferredStrategyId: "WAIT",
+      selectedStrategyId: "NONE",
+      routingMode: "NO_STRATEGY",
+      observations: 1,
+    });
+  });
+
   it("identifies structure+location with no optional confirmation", () => {
     const result = analysedResult();
     const observation = buildSignalFunnelObservation(
