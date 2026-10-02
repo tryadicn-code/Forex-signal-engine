@@ -74,6 +74,9 @@ export function resolveReleaseRuntimeFromRegistry(
       .find((event) => event.status === "ACTIVE")?.changedAt ??
     manifest.registeredAt;
   const driftAreas = detectDefaultDrift(manifest);
+  const multiStrategyPinned =
+    manifest.strategySnapshot.strategyConfig !== undefined &&
+    manifest.strategySnapshot.strategySystem !== undefined;
   const state: ReleaseRuntimeState = {
     status: "ACTIVE",
     reason: "ACTIVE_RELEASE",
@@ -85,15 +88,17 @@ export function resolveReleaseRuntimeFromRegistry(
     activationAt,
     registryUpdatedAt: registry.updatedAt,
     resolvedAt,
-    pinned: true,
+    pinned: multiStrategyPinned,
     defaultDrift: driftAreas.length > 0,
     driftAreas,
     message:
-      driftAreas.length > 0
-        ? "ACTIVE release is pinned from its immutable manifest; current code defaults differ in: " +
-          driftAreas.join(", ") +
-          "."
-        : "ACTIVE release is pinned from its immutable validated strategy manifest.",
+      !multiStrategyPinned
+        ? "ACTIVE release predates complete multi-strategy governance. Scanning is observational until a new validated release pins strategy config and routing policy."
+        : driftAreas.length > 0
+          ? "ACTIVE release is pinned from its immutable manifest; current code defaults differ in: " +
+            driftAreas.join(", ") +
+            "."
+          : "ACTIVE release is pinned from its immutable validated strategy manifest.",
   };
 
   return {
