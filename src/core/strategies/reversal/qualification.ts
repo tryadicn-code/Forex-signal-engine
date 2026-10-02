@@ -89,6 +89,14 @@ export function qualifyReversal(
     );
   }
 
+  if (transition.direction === "NEUTRAL") {
+    return fail(
+      "REVERSAL_CHOCH_MISSING",
+      "Latest CHOCH does not carry a directional transition."
+    );
+  }
+  const reversalDirection = transition.direction;
+
   const transitionAgeBars = lastIndex - transition.index;
   if (transitionAgeBars > strategy.maxTransitionAgeBars) {
     return {
@@ -97,14 +105,14 @@ export function qualifyReversal(
         `Latest H4 CHOCH is ${transitionAgeBars} bars old; maximum is ${strategy.maxTransitionAgeBars}.`
       ),
       transition,
-      direction: transition.direction,
+      direction: reversalDirection,
       transitionAgeBars,
     };
   }
 
   const exhaustionSwing = referenceExtreme(
     input.structure,
-    transition.direction,
+    reversalDirection,
     transition.index
   );
   if (!exhaustionSwing) {
@@ -114,7 +122,7 @@ export function qualifyReversal(
         "No previously confirmed H4 swing extreme is available to validate exhaustion before CHOCH."
       ),
       transition,
-      direction: transition.direction,
+      direction: reversalDirection,
       transitionAgeBars,
     };
   }
@@ -138,7 +146,7 @@ export function qualifyReversal(
     );
 
     const swept =
-      transition.direction === "SHORT"
+      reversalDirection === "SHORT"
         ? candle.high >= exhaustionSwing.price + minimumSweep &&
           candle.close < exhaustionSwing.price
         : candle.low <= exhaustionSwing.price - minimumSweep &&
@@ -147,29 +155,29 @@ export function qualifyReversal(
     if (!swept) continue;
 
     const sweepDistance =
-      transition.direction === "SHORT"
+      reversalDirection === "SHORT"
         ? candle.high - exhaustionSwing.price
         : exhaustionSwing.price - candle.low;
 
     return {
       qualified: true,
-      direction: transition.direction,
+      direction: reversalDirection,
       transition,
       exhaustionSwing,
       exhaustionLevel:
-        transition.direction === "SHORT" ? candle.high : candle.low,
+        reversalDirection === "SHORT" ? candle.high : candle.low,
       sweepIndex: i,
       sweepTimestamp: candle.timestamp,
       sweepDistanceAtr: sweepDistance / atrValue,
       transitionAgeBars,
       reasonCode: "REVERSAL_QUALIFIED",
-      reason: `Fresh ${transition.direction} H4 CHOCH followed an exhaustion sweep of confirmed ${exhaustionSwing.kind} ${exhaustionSwing.price}; reversal routing is qualified.`,
+      reason: `Fresh ${reversalDirection} H4 CHOCH followed an exhaustion sweep of confirmed ${exhaustionSwing.kind} ${exhaustionSwing.price}; reversal routing is qualified.`,
     };
   }
 
   return {
     qualified: false,
-    direction: transition.direction,
+    direction: reversalDirection,
     transition,
     exhaustionSwing,
     exhaustionLevel: null,
