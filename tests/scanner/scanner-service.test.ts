@@ -68,15 +68,23 @@ describe("ScannerService scan cycle", () => {
     const result = snapshot.results[0];
 
     expect(result.status).toBe("ANALYSED");
-    expect(result.strategyId).toBe("TREND_PULLBACK");
-    expect(result.strategyRouting?.selectedStrategyId).toBe("TREND_PULLBACK");
+    expect(result.strategyId).toBe(result.strategyRouting?.selectedStrategyId);
     expect(result.strategyRouting?.regime).toBe(result.regime);
 
     if (result.regime === "RANGE") {
       expect(result.strategyRouting?.preferredStrategyId).toBe(
         "RANGE_MEAN_REVERSION"
       );
+      expect(result.strategyRouting?.selectedStrategyId).toBe("TREND_PULLBACK");
       expect(result.strategyRouting?.mode).toBe("COMPATIBILITY_FALLBACK");
+    } else if (result.regime === "BREAKOUT") {
+      expect(result.strategyRouting?.preferredStrategyId).toBe(
+        "BREAKOUT_RETEST"
+      );
+      expect(result.strategyRouting?.selectedStrategyId).toBe(
+        "BREAKOUT_RETEST"
+      );
+      expect(result.strategyRouting?.mode).toBe("REGIME_MATCH");
     }
   });
 
