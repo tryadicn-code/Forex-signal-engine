@@ -141,6 +141,14 @@ export function buildSignalFunnelObservation(
   }
 
   if (pipeline.bias.data.direction === "NEUTRAL") {
+    if (result.strategyRouting?.mode === "NO_STRATEGY") {
+      return reject(
+        "BIAS_DIRECTIONAL",
+        result.strategyRouting.reasonCode,
+        result.strategyRouting.reason
+      );
+    }
+
     if (result.strategyId === "RANGE_MEAN_REVERSION") {
       const rangeReason = resolveRangeNeutralReason(pipeline);
       if (rangeReason !== null) {
@@ -440,9 +448,13 @@ function summarizeWindow(
     }
   >();
   for (const item of filtered) {
-    const preferredStrategyId = item.preferredStrategyId ?? "LEGACY";
+    const preferredStrategyId =
+      item.preferredStrategyId === undefined
+        ? "LEGACY"
+        : item.preferredStrategyId ?? "WAIT";
     const selectedStrategyId = item.strategyId ?? "NONE";
-    const routingMode = item.routingMode ?? "LEGACY";
+    const routingMode =
+      item.routingMode === undefined ? "LEGACY" : item.routingMode ?? "LEGACY";
     const key = [preferredStrategyId, selectedStrategyId, routingMode].join("|");
     const current = strategyRoutingMap.get(key) ?? {
       preferredStrategyId,
