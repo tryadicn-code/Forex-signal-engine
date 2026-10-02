@@ -75,8 +75,10 @@ describe("ScannerService scan cycle", () => {
       expect(result.strategyRouting?.preferredStrategyId).toBe(
         "RANGE_MEAN_REVERSION"
       );
-      expect(result.strategyRouting?.selectedStrategyId).toBe("TREND_PULLBACK");
-      expect(result.strategyRouting?.mode).toBe("COMPATIBILITY_FALLBACK");
+      expect(result.strategyRouting?.selectedStrategyId).toBe(
+        "RANGE_MEAN_REVERSION"
+      );
+      expect(result.strategyRouting?.mode).toBe("REGIME_MATCH");
     } else if (result.regime === "BREAKOUT") {
       expect(result.strategyRouting?.preferredStrategyId).toBe(
         "BREAKOUT_RETEST"
@@ -195,7 +197,8 @@ describe("scanner snapshot and health", () => {
       observations.every(
         (item) =>
           item.strategyId === "TREND_PULLBACK" ||
-          item.strategyId === "BREAKOUT_RETEST"
+          item.strategyId === "BREAKOUT_RETEST" ||
+          item.strategyId === "RANGE_MEAN_REVERSION"
       )
     ).toBe(true);
     expect(
