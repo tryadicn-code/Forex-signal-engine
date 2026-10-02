@@ -772,8 +772,13 @@ function lastOpen(candles: CanonicalCandle[]): number {
  * expose an explicit origin, so identity always carries a real market time.
  */
 function firstSetupOrigin(pipeline: PipelineResult): number | null {
-  // The origin is the market time the current setup zone became observable: the
-  // most recent CONFIRMED structure point on the setup timeframe. That is a real
+  const explicit = pipeline.setup.data.setupOriginTimestamp;
+  if (typeof explicit === "number" && Number.isFinite(explicit)) {
+    return explicit;
+  }
+
+  // Legacy TREND_PULLBACK fallback: the origin is the market time the current
+  // setup zone became observable from setup-timeframe structure. That is a real
   // market timestamp (never a price), so two occurrences of the same zone at
   // different times get different identities.
   const structure = pipeline.setupStructure.data;
