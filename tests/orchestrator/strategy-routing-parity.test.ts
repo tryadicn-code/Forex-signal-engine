@@ -35,6 +35,11 @@ function context(
     },
     accountBalance: 10_000,
     accountCurrency: "USD",
+    configOverrides: {
+      regime: {
+        breakoutBandWidthRatio: 999,
+      },
+    },
     execution: {
       now: trigger[trigger.length - 1].timestamp,
       mode: "PAPER",
