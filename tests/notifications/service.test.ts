@@ -62,7 +62,10 @@ function release(): ReleaseRuntimeState {
   };
 }
 
-function row(signalId = "sig-1"): SymbolScanResult {
+function row(
+  signalId = "sig-1",
+  strategyId = "TREND_PULLBACK"
+): SymbolScanResult {
   return {
     symbol: "EURUSD",
     status: "ANALYSED",
@@ -70,6 +73,7 @@ function row(signalId = "sig-1"): SymbolScanResult {
     latestPrice: 1.1,
     spreadPips: 1,
     regime: "TREND_UP",
+    strategyId,
     bias: "LONG",
     biasScore: 82,
     biasDirection: "LONG",
@@ -102,7 +106,8 @@ function row(signalId = "sig-1"): SymbolScanResult {
 
 function snapshot(
   signalId = "sig-1",
-  completedAt = Date.now()
+  completedAt = Date.now(),
+  strategyId = "TREND_PULLBACK"
 ): ScannerSnapshot {
   return {
     startedAt: completedAt - 100,
@@ -111,7 +116,7 @@ function snapshot(
     symbolsRequested: 1,
     symbolsSuccessful: 1,
     symbolsFailed: 0,
-    results: [row(signalId)],
+    results: [row(signalId, strategyId)],
     providerStatus: null,
     freshnessSummary: {
       FRESH: 1,
@@ -182,6 +187,27 @@ describe("Phase 11 notification service", () => {
     expect(state.events).toHaveLength(2);
     expect(state.events[1].status).toBe("SUPPRESSED");
     expect(state.deliveries).toHaveLength(1);
+  });
+
+  it("does not suppress a different strategy on the same symbol during cooldown", async () => {
+    const { service, store } = harness(300);
+    const now = Date.now();
+
+    await service.processSnapshot(
+      snapshot("trend-sig", now, "TREND_PULLBACK"),
+      release()
+    );
+    await service.processSnapshot(
+      snapshot("breakout-sig", now + 1000, "BREAKOUT_RETEST"),
+      release()
+    );
+
+    const state = await store.read();
+    expect(state.events).toHaveLength(2);
+    expect(state.events[0].strategyId).toBe("TREND_PULLBACK");
+    expect(state.events[1].strategyId).toBe("BREAKOUT_RETEST");
+    expect(state.events[1].status).toBe("QUEUED");
+    expect(state.deliveries).toHaveLength(2);
   });
 
   it("delivers queued Telegram alert and persists provider id", async () => {
