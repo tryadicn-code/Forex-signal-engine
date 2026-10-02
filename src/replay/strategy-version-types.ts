@@ -1,4 +1,5 @@
 import type { EngineConfig } from "@/core/config/engine-config";
+import type { StrategyConfigBundle } from "@/core/strategies/config";
 import type {
   FreshnessThresholds,
   SignalTtlConfig,
@@ -14,6 +15,11 @@ export type StrategyVersionStatus =
 
 export interface StrategyBaselineSnapshot {
   engineConfig: EngineConfig;
+  /**
+   * Multi-strategy thresholds. Optional only for pre-Phase-12 legacy manifests.
+   * New manifests always persist this bundle.
+   */
+  strategyConfig?: StrategyConfigBundle;
   scanner: {
     timeframeRoles: TimeframeRoles;
     signalTtl: SignalTtlConfig;
