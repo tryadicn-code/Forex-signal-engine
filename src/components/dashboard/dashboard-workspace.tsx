@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
+import { SignalFunnelPanel } from "@/components/analytics/signal-funnel-panel";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
@@ -419,6 +420,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           />
         </div>
       </div>
+
+      <SignalFunnelPanel analytics={data.signalFunnel} />
 
       <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
 
