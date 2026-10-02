@@ -306,6 +306,7 @@ export class ScannerService {
       setup.state !== "NONE"
         ? computeSignalIdentity({
             symbol,
+            strategyId: routedAnalysis.routing.selectedStrategyId,
             direction: pipeline.bias.data.direction,
             originTimeframe,
             originTimestamp,
