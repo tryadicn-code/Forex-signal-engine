@@ -45,6 +45,7 @@ function trade(id: string, day: number, pnl: number, r: number): HistoricalTrade
     holdingDurationMs: DAY,
     closeReason: pnl >= 0 ? "TAKE_PROFIT" : "STOP_LOSS",
     engine: {
+      strategyId: "TREND_PULLBACK",
       bias: r >= 0 ? "STRONG_LONG" : "STRONG_SHORT",
       setupScore: 85,
       executionDecision: "EXECUTE",
@@ -165,6 +166,7 @@ function artifact(): BacktestRunArtifact {
       equityCurve: [],
       rDistribution: [],
       segments: {
+        byStrategy: [],
         bySymbol: [],
         byDirection: [],
         byBias: [],
@@ -238,6 +240,15 @@ describe("Phase 5.9 strategy manifest", () => {
     expect(manifest.registeredAt).toBe(999);
     expect(manifest.reviewedFingerprint).toBe(source.releaseReview?.reviewedFingerprint);
     expect(manifest.strategySnapshot.engineConfig.trigger.minTriggerScore).toBe(80);
+    expect(
+      manifest.strategySnapshot.strategyConfig?.breakoutRetest.minTriggerScore
+    ).toBe(90);
+    expect(
+      manifest.strategySnapshot.strategyConfig?.rangeMeanReversion.minTriggerScore
+    ).toBe(90);
+    expect(
+      manifest.strategySnapshot.strategyConfig?.reversal.minTriggerScore
+    ).toBe(90);
     expect(manifest.strategySnapshot.scanner.timeframeRoles.trigger).toBe("M15");
     expect(manifest.validationSummary.protocol).toBe("phase-5.7-v1");
     expect(manifest.releaseGateAudit.protocol).toBe("phase-5.8-v1");
@@ -308,6 +319,15 @@ describe("Phase 6 release runtime resolution", () => {
     expect(
       resolution.scannerOverrides?.timeframeRoles?.trigger
     ).toBe("M15");
+    expect(
+      resolution.scannerOverrides?.strategyConfig?.breakoutRetest?.minTriggerScore
+    ).toBe(90);
+    expect(
+      resolution.scannerOverrides?.strategyConfig?.rangeMeanReversion?.minTriggerScore
+    ).toBe(90);
+    expect(
+      resolution.scannerOverrides?.strategyConfig?.reversal?.minTriggerScore
+    ).toBe(90);
     expect(resolution.scannerOverrides?.account?.riskPercent).toBe(0.5);
   });
 
