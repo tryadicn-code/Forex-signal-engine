@@ -12,7 +12,8 @@ export type StrategyId =
 /** Strategies with audited implementations available in this phase. */
 export type ImplementedStrategyId =
   | "TREND_PULLBACK"
-  | "BREAKOUT_RETEST";
+  | "BREAKOUT_RETEST"
+  | "RANGE_MEAN_REVERSION";
 
 export interface StrategyDefinition {
   id: StrategyId;
