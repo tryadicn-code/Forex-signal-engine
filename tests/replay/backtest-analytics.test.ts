@@ -22,6 +22,7 @@ function trade(input: {
   setupScore?: number | null;
   openedAt?: number;
   closeReason?: "TAKE_PROFIT" | "STOP_LOSS" | "AMBIGUOUS_BAR";
+  strategyId?: string;
 }): HistoricalTrade {
   const openedAt = input.openedAt ?? input.closedAt - 60 * 60_000;
   return {
@@ -49,6 +50,7 @@ function trade(input: {
       input.closeReason ??
       (input.pnl > 0 ? "TAKE_PROFIT" : "STOP_LOSS"),
     engine: {
+      strategyId: input.strategyId ?? "TREND_PULLBACK",
       bias: input.side === "SHORT" ? "STRONG_SHORT" : "STRONG_LONG",
       setupScore: input.setupScore ?? 85,
       executionDecision: "EXECUTE",
@@ -68,6 +70,7 @@ function executionSummary(): HistoricalExecutionSummary {
       symbol: "EURUSD",
       side: "LONG",
       setupScore: 85,
+      strategyId: "TREND_PULLBACK",
     }),
     trade({
       id: "t2",
@@ -89,6 +92,7 @@ function executionSummary(): HistoricalExecutionSummary {
       symbol: "GBPUSD",
       side: "SHORT",
       setupScore: 92,
+      strategyId: "BREAKOUT_RETEST",
     }),
   ];
 
@@ -219,6 +223,16 @@ describe("calculateHistoricalAnalytics", () => {
   it("segments results by symbol, direction, setup score, session, bias and exit reason", () => {
     const analytics = calculateHistoricalAnalytics(executionSummary());
 
+    expect(
+      analytics.segments.byStrategy.find(
+        (row) => row.key === "TREND_PULLBACK"
+      )?.sampleSize
+    ).toBe(2);
+    expect(
+      analytics.segments.byStrategy.find(
+        (row) => row.key === "BREAKOUT_RETEST"
+      )?.sampleSize
+    ).toBe(1);
     expect(analytics.segments.bySymbol.find((row) => row.key === "EURUSD")?.sampleSize).toBe(2);
     expect(analytics.segments.bySymbol.find((row) => row.key === "GBPUSD")?.sampleSize).toBe(1);
     expect(analytics.segments.byDirection.find((row) => row.key === "LONG")?.sampleSize).toBe(2);
