@@ -14,6 +14,7 @@
 import type { ProviderStatus, SignalStateTransition } from "@/types/market-data";
 import type { SignalLifecycleState } from "@/scanner/signal-lifecycle";
 import type { ScannerSnapshot, ScannerHealth } from "@/scanner/scanner-result";
+import type { SignalFunnelObservation } from "@/analytics/signal-funnel";
 
 /**
  * Read/write store for signal lifecycles.
@@ -78,5 +79,21 @@ export interface HealthRepository {
   /** Last known provider status, or null when the provider never reported. */
   getProviderStatus(): ProviderStatus | null;
   saveProviderStatus(status: ProviderStatus): ProviderStatus;
+  clear(): void;
+}
+
+
+/**
+ * Append-only observation store for Signal Funnel + Rejection Analytics.
+ *
+ * The analytics layer is observational only: it never feeds decisions back
+ * into the strategy pipeline.
+ */
+export interface SignalFunnelAnalyticsRepository {
+  append(observation: SignalFunnelObservation): SignalFunnelObservation;
+  appendMany(observations: SignalFunnelObservation[]): number;
+  getSince(since: number, until?: number): SignalFunnelObservation[];
+  count(): number;
+  pruneBefore(cutoff: number): number;
   clear(): void;
 }
