@@ -192,6 +192,12 @@ export interface SetupResultData {
   invalidationLevel: number;
   /** Which support/resistance family this zone came from. */
   zoneSource: string;
+  /**
+   * Stable market timestamp when this strategy-specific setup became valid.
+   * Optional for the legacy TREND_PULLBACK path, which retains the historical
+   * structure-derived fallback.
+   */
+  setupOriginTimestamp?: number | null;
 }
 
 /** State of one component of the composite trigger model. */
