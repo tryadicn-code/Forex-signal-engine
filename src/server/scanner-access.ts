@@ -206,6 +206,13 @@ async function runScanner(
         return "Strategy release changed during scan; Paper execution was not applied. Refresh to run under the current release.";
       }
 
+      if (
+        currentRelease.state.status === "ACTIVE" &&
+        !currentRelease.state.pinned
+      ) {
+        return "ACTIVE release predates complete multi-strategy governance; Paper, forward-validation, alerts, and broker execution were not applied. Register a newly validated release first.";
+      }
+
       // A long analysis cycle must prove it still owns the shared lease before
       // mutating Paper or forward evidence. The fencing token prevents an
       // expired owner from releasing or completing work owned by a successor.
