@@ -74,14 +74,6 @@ describe("Phase 12.2 TREND_PULLBACK refactor parity", () => {
       ),
     },
     {
-      name: "range market",
-      input: context(
-        rangeSeries(140, 1.1, 0.003, "H4"),
-        rangeSeries(120, 1.1, 0.003, "H1"),
-        rangeSeries(60, 1.1, 0.003, "M15")
-      ),
-    },
-    {
       name: "explicit targets and config overrides",
       input: context(
         bullishTrend(140),
@@ -97,11 +89,22 @@ describe("Phase 12.2 TREND_PULLBACK refactor parity", () => {
         }
       ),
     },
-  ])("preserves exact pipeline output for $name", ({ input }) => {
+  ])("preserves exact TREND_PULLBACK pipeline output for $name", ({ input }) => {
     const compatibility = analyzeMarket(input);
     const namedStrategy = analyzeTrendPullback(input);
 
     expect(compatibility).toEqual(namedStrategy);
+  });
+
+  it("does not claim range routing is TREND_PULLBACK compatibility", () => {
+    const input = context(
+      rangeSeries(140, 1.1, 0.003, "H4"),
+      rangeSeries(120, 1.1, 0.003, "H1"),
+      rangeSeries(60, 1.1, 0.003, "M15")
+    );
+    const compatibility = analyzeMarket(input);
+    expect(compatibility.setup.data.setupType).not.toBe("trend-pullback");
+    expect(compatibility.setup.data.setupType).toBe("router-wait");
   });
 
   it("preserves the pre-refactor public PipelineResult shape", () => {
