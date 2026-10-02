@@ -9,6 +9,7 @@
 import "server-only";
 
 import { ScannerApi } from "@/scanner/scanner-api";
+import type { ScannerSnapshot } from "@/scanner/scanner-result";
 import { isTerminalState } from "@/lib/signal-meta";
 import type { DashboardData } from "@/types/dashboard";
 import { resolveRuntimeSymbols } from "@/providers/market-data/runtime-provider";
@@ -184,30 +185,16 @@ async function runScanner(
 
   const startedAt = Date.now();
   const work = (async (): Promise<string | null> => {
+    let analyticsPersistence: Promise<void> = Promise.resolve();
+
     try {
       inst.setRuntimeAccountBalance(await paperBalance());
       await primeRuntimeConversionRates(asOf, inst.config.account.currency);
       const snapshot = await inst.runScan(asOf);
 
-      // Funnel analytics is non-authoritative observability. Persistence
-      // failures are reported and telemetered, but must never block Paper,
-      // broker, or strategy decision paths.
-      try {
-        await recordSignalFunnelObservations(inst, snapshot);
-      } catch (analyticsError) {
-        await emitRuntimeTelemetry({
-          category: "scanner",
-          name: "signal-funnel-persistence-failure",
-          level: "WARN",
-          durationMs: null,
-          attributes: {
-            error:
-              analyticsError instanceof Error
-                ? analyticsError.message.slice(0, 500)
-                : String(analyticsError).slice(0, 500),
-          },
-        });
-      }
+      // Start observability persistence immediately, but do not put its I/O on
+      // the Paper/Broker critical path. The promise is joined in finally.
+      analyticsPersistence = persistSignalFunnelSafely(inst, snapshot);
 
       // Re-resolve governance before creating Paper orders. A registry change
       // during analysis invalidates this scan for execution purposes.
@@ -291,6 +278,8 @@ async function runScanner(
         },
       });
       return message;
+    } finally {
+      await analyticsPersistence;
     }
   })();
 
@@ -307,6 +296,28 @@ async function runScanner(
       runtime.__fseScanInFlightIdentity = undefined;
       runtime.__fseScanStartedAt = undefined;
     }
+  }
+}
+
+async function persistSignalFunnelSafely(
+  inst: ScannerApi,
+  snapshot: ScannerSnapshot
+): Promise<void> {
+  try {
+    await recordSignalFunnelObservations(inst, snapshot);
+  } catch (analyticsError) {
+    await emitRuntimeTelemetry({
+      category: "scanner",
+      name: "signal-funnel-persistence-failure",
+      level: "WARN",
+      durationMs: null,
+      attributes: {
+        error:
+          analyticsError instanceof Error
+            ? analyticsError.message.slice(0, 500)
+            : String(analyticsError).slice(0, 500),
+      },
+    });
   }
 }
 
