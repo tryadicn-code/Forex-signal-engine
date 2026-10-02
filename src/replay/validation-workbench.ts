@@ -29,6 +29,8 @@ export function getHistoricalSegmentRows(
   dimension: HistoricalSegmentDimension
 ): HistoricalSegmentPerformance[] {
   switch (dimension) {
+    case "strategy":
+      return analytics.segments.byStrategy;
     case "symbol":
       return analytics.segments.bySymbol;
     case "direction":
@@ -52,6 +54,8 @@ export function segmentDimensionLabel(
   dimension: HistoricalSegmentDimension
 ): string {
   switch (dimension) {
+    case "strategy":
+      return "Strategy";
     case "symbol":
       return "Pair";
     case "direction":
