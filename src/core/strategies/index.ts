@@ -4,6 +4,12 @@ export {
   TREND_PULLBACK_STRATEGY_ID,
 } from "./trend-pullback";
 export {
+  analyzeBreakoutRetest,
+  BREAKOUT_RETEST_STRATEGY,
+  BREAKOUT_RETEST_STRATEGY_ID,
+  DEFAULT_BREAKOUT_RETEST_CONFIG,
+} from "./breakout-retest";
+export {
   getImplementedStrategy,
   IMPLEMENTED_STRATEGY_IDS,
   isStrategyImplemented,
