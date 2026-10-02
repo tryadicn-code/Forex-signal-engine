@@ -10,7 +10,9 @@ export type StrategyId =
   | "REVERSAL";
 
 /** Strategies with audited implementations available in this phase. */
-export type ImplementedStrategyId = "TREND_PULLBACK";
+export type ImplementedStrategyId =
+  | "TREND_PULLBACK"
+  | "BREAKOUT_RETEST";
 
 export interface StrategyDefinition {
   id: StrategyId;
