@@ -10,8 +10,10 @@
 import type { ProviderStatus, SignalStateTransition } from "@/types/market-data";
 import type { SignalLifecycleState } from "@/scanner/signal-lifecycle";
 import type { ScannerHealth, ScannerSnapshot } from "@/scanner/scanner-result";
+import type { SignalFunnelObservation } from "@/analytics/signal-funnel";
 import type {
   HealthRepository,
+  SignalFunnelAnalyticsRepository,
   SignalRepository,
   SnapshotRepository,
   TransitionHistoryRepository,
@@ -94,6 +96,44 @@ export class InMemorySnapshotRepository implements SnapshotRepository {
   }
 }
 
+export class InMemorySignalFunnelAnalyticsRepository
+  implements SignalFunnelAnalyticsRepository
+{
+  private readonly observations: SignalFunnelObservation[] = [];
+
+  append(observation: SignalFunnelObservation): SignalFunnelObservation {
+    this.observations.push(observation);
+    return observation;
+  }
+
+  appendMany(observations: SignalFunnelObservation[]): number {
+    this.observations.push(...observations);
+    return observations.length;
+  }
+
+  getSince(since: number, until = Number.POSITIVE_INFINITY): SignalFunnelObservation[] {
+    return this.observations.filter(
+      (item) => item.observedAt >= since && item.observedAt <= until
+    );
+  }
+
+  count(): number {
+    return this.observations.length;
+  }
+
+  pruneBefore(cutoff: number): number {
+    const retained = this.observations.filter((item) => item.observedAt >= cutoff);
+    const removed = this.observations.length - retained.length;
+    this.observations.length = 0;
+    this.observations.push(...retained);
+    return removed;
+  }
+
+  clear(): void {
+    this.observations.length = 0;
+  }
+}
+
 export class InMemoryHealthRepository implements HealthRepository {
   private health: ScannerHealth | null = null;
   private providerStatus: ProviderStatus | null = null;
@@ -131,6 +171,8 @@ export interface RepositoryBundle {
   transitions: TransitionHistoryRepository;
   snapshots: SnapshotRepository;
   health: HealthRepository;
+  /** Optional for backward-compatible injected repository bundles. */
+  funnelAnalytics?: SignalFunnelAnalyticsRepository;
 }
 
 export function createInMemoryRepositories(): RepositoryBundle {
@@ -139,5 +181,6 @@ export function createInMemoryRepositories(): RepositoryBundle {
     transitions: new InMemoryTransitionHistoryRepository(),
     snapshots: new InMemorySnapshotRepository(),
     health: new InMemoryHealthRepository(),
+    funnelAnalytics: new InMemorySignalFunnelAnalyticsRepository(),
   };
 }
