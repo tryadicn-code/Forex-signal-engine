@@ -30,6 +30,7 @@ function analysedResult(overrides: Partial<SymbolScanResult> = {}): SymbolScanRe
 function pipeline(input: {
   biasDirection?: "LONG" | "SHORT" | "NEUTRAL";
   setupState?: "NONE" | "WATCH" | "SETUP" | "ARMED" | "INVALIDATED";
+  setupEvidenceCode?: string;
   triggerState?: "WAITING" | "CONFIRMED" | "INVALIDATED";
   structural?: boolean;
   location?: boolean;
@@ -53,11 +54,45 @@ function pipeline(input: {
   const decision = input.decision ?? "WAIT";
   const vetoes = input.vetoes ?? [];
 
+  const setupEvidenceCode =
+    input.setupEvidenceCode ??
+    (setupState === "WATCH"
+      ? "SCORE_TOO_LOW"
+      : setupState === "NONE"
+        ? "ZONE_TOO_FAR"
+        : null);
+
   return {
     structure: {},
     regime: { data: { regime: "TREND_UP" } },
-    bias: { data: { direction: biasDirection, score: biasDirection === "NEUTRAL" ? 0 : 50 } },
-    setup: { data: { state: setupState } },
+    bias: {
+      data: { direction: biasDirection, score: biasDirection === "NEUTRAL" ? 0 : 50 },
+      evidence: [],
+      conflicts:
+        biasDirection === "NEUTRAL"
+          ? [{
+              code: "NEUTRAL_BIAS",
+              description: "Bias score does not clear the directional threshold.",
+            }]
+          : [],
+    },
+    setup: {
+      data: { state: setupState },
+      evidence:
+        setupEvidenceCode && setupState !== "INVALIDATED"
+          ? [{
+              code: setupEvidenceCode,
+              description: `Setup diagnostic: ${setupEvidenceCode}.`,
+            }]
+          : [],
+      conflicts:
+        setupState === "INVALIDATED"
+          ? [{
+              code: "ZONE_INVALIDATED",
+              description: "Setup zone invalidated.",
+            }]
+          : [],
+    },
     setupStructure: {},
     trigger:
       setupState === "NONE" || setupState === "INVALIDATED" || biasDirection === "NEUTRAL"
@@ -115,7 +150,24 @@ describe("Signal Funnel observation classification", () => {
     );
 
     expect(observation.passedStages).toEqual(["SCANNED", "DATA_VALID"]);
-    expect(observation.rejectionCode).toBe("BIAS_NEUTRAL");
+    expect(observation.rejectionCode).toBe("BIAS_THRESHOLD_NOT_MET");
+  });
+
+  it("separates setup score and location failures into stable reason codes", () => {
+    const lowScore = buildSignalFunnelObservation(
+      analysedResult({ setupState: "WATCH" }),
+      pipeline({ setupState: "WATCH", setupEvidenceCode: "SCORE_TOO_LOW" }),
+      T0
+    );
+    const tooFar = buildSignalFunnelObservation(
+      analysedResult({ setupState: "NONE" }),
+      pipeline({ setupState: "NONE", setupEvidenceCode: "ZONE_TOO_FAR" }),
+      T0
+    );
+
+    expect(lowScore.rejectionStage).toBe("SETUP_ACTIONABLE");
+    expect(lowScore.rejectionCode).toBe("SETUP_SCORE_TOO_LOW");
+    expect(tooFar.rejectionCode).toBe("SETUP_ZONE_TOO_FAR");
   });
 
   it("identifies structure+location with no optional confirmation", () => {
