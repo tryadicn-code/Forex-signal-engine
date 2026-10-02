@@ -36,11 +36,10 @@ export type StrategyRoutingReasonCode =
  * The router decides suitability only. It never changes strategy thresholds,
  * generates entries, sizes risk, or executes orders.
  *
- * Phase 12.3 runs in compatibility mode because TREND_PULLBACK is the only
- * implemented strategy. If a regime prefers a strategy that has not been
- * implemented yet, the decision records that preference explicitly and selects
- * TREND_PULLBACK as a temporary compatibility fallback. This preserves Phase
- * 12.2 trading behaviour until each strategy is introduced and audited.
+ * The registry grows one audited strategy at a time. When a regime prefers a
+ * strategy that has not been implemented yet, the decision records that
+ * preference explicitly and selects TREND_PULLBACK as a compatibility fallback.
+ * Implemented strategies are selected directly as REGIME_MATCH.
  */
 export function routeStrategy(
   regimeResult: EngineResult<RegimeResultData>,
