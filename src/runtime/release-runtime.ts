@@ -7,6 +7,7 @@ import {
 } from "@/config/scanner";
 import { defaultEngineConfig } from "@/core/config/engine-config";
 import { DEFAULT_STRATEGY_CONFIG } from "@/core/strategies/config";
+import { STRATEGY_SYSTEM_POLICY } from "@/core/strategies/system-policy";
 import {
   findActiveStrategyVersion,
   verifyStrategyVersionManifest,
@@ -176,6 +177,14 @@ function detectDefaultDrift(
     stableStringify(DEFAULT_STRATEGY_CONFIG)
   ) {
     drift.push("strategyConfig");
+  }
+  if (manifest.strategySnapshot.strategySystem === undefined) {
+    drift.push("strategySystemLegacyUnpinned");
+  } else if (
+    stableStringify(manifest.strategySnapshot.strategySystem) !==
+    stableStringify(STRATEGY_SYSTEM_POLICY)
+  ) {
+    drift.push("strategySystem");
   }
   if (
     stableStringify(manifest.strategySnapshot.scanner.timeframeRoles) !==
