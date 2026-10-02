@@ -32,6 +32,8 @@ export interface DashboardData {
   notifications?: NotificationDashboard;
   /** Rolling Signal Funnel + Rejection Analytics. */
   signalFunnel?: SignalFunnelDashboard | null;
+  /** Non-authoritative persistence warning for funnel analytics. */
+  signalFunnelError?: string | null;
   /** Runtime automation status. Optional for older fixtures/backward compatibility. */
   automation?: {
     enabled: boolean;
