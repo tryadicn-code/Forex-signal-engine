@@ -165,6 +165,36 @@ export function SignalFunnelPanel({
 
           <div className="rounded-md border border-zinc-800/80 p-3">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Strategy routing
+            </h3>
+            {summary.strategyRoutingStats.length === 0 ? (
+              <p className="py-2 text-xs text-zinc-600">No strategy routing observations yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {summary.strategyRoutingStats.slice(0, 8).map((item) => (
+                  <div
+                    key={`${item.preferredStrategyId}|${item.selectedStrategyId}|${item.routingMode}`}
+                    className="grid grid-cols-[minmax(0,1fr)_60px] gap-2 text-[11px]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-zinc-300">
+                        {item.preferredStrategyId} → {item.selectedStrategyId}
+                      </p>
+                      <p className="truncate text-[10px] text-zinc-600">
+                        {item.routingMode} · {item.executionRate}% exec
+                      </p>
+                    </div>
+                    <span className="text-right font-mono tabular-nums text-zinc-300">
+                      {item.observations}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-md border border-zinc-800/80 p-3">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
               Regime distribution
             </h3>
             {summary.regimeStats.length === 0 ? (
