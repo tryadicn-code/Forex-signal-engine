@@ -4,7 +4,11 @@ import {
   analyzeMarket,
   analyzeMarketWithRouting,
 } from "@/core/orchestrator";
-import { analyzeBreakoutRetest, analyzeTrendPullback } from "@/core/strategies";
+import {
+  analyzeBreakoutRetest,
+  analyzeRangeMeanReversion,
+  analyzeTrendPullback,
+} from "@/core/strategies";
 import {
   bearishTrend,
   bullishTrend,
@@ -69,14 +73,6 @@ describe("Phase 12.3 routed orchestrator parity", () => {
         bearishTrend(60)
       ),
     },
-    {
-      name: "range market",
-      input: context(
-        rangeSeries(140, 1.1, 0.003, "H4"),
-        rangeSeries(120, 1.1, 0.003, "H1"),
-        rangeSeries(60, 1.1, 0.003, "M15")
-      ),
-    },
   ])("keeps the Phase 12.2 pipeline exact for $name", ({ input }) => {
     const routed = analyzeMarketWithRouting(input);
     const legacyNamedStrategy = analyzeTrendPullback(input);
@@ -85,6 +81,33 @@ describe("Phase 12.3 routed orchestrator parity", () => {
     expect(analyzeMarket(input)).toEqual(legacyNamedStrategy);
     expect(routed.routing.selectedStrategyId).toBe("TREND_PULLBACK");
     expect(routed.routing.regime).toBe(routed.pipeline.regime.data.regime);
+  });
+
+  it("activates RANGE_MEAN_REVERSION when the audited router sees RANGE regime", () => {
+    const input = context(
+      rangeSeries(140, 1.105, 0.01, "H4"),
+      rangeSeries(120, 1.105, 0.01, "H1"),
+      rangeSeries(80, 1.105, 0.01, "M15")
+    );
+    input.configOverrides = {
+      regime: {
+        adxTrendThreshold: 999,
+        adxStrongTrend: 999,
+        highVolatilityAtrPct: 999,
+        lowVolatilityAtrPct: -1,
+        breakoutBandWidthRatio: 999,
+      },
+    };
+
+    const routed = analyzeMarketWithRouting(input);
+    const direct = analyzeRangeMeanReversion(input);
+
+    expect(routed.routing.regime).toBe("RANGE");
+    expect(routed.routing.preferredStrategyId).toBe("RANGE_MEAN_REVERSION");
+    expect(routed.routing.selectedStrategyId).toBe("RANGE_MEAN_REVERSION");
+    expect(routed.routing.mode).toBe("REGIME_MATCH");
+    expect(routed.pipeline).toEqual(direct);
+    expect(routed.pipeline.setup.data.setupType).toBe("range-mean-reversion");
   });
 
   it("activates BREAKOUT_RETEST when the audited router sees BREAKOUT regime", () => {
