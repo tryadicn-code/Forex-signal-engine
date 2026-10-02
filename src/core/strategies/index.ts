@@ -16,6 +16,13 @@ export {
   DEFAULT_RANGE_MEAN_REVERSION_CONFIG,
 } from "./range-mean-reversion";
 export {
+  analyzeReversal,
+  qualifyReversal,
+  REVERSAL_STRATEGY,
+  REVERSAL_STRATEGY_ID,
+  DEFAULT_REVERSAL_CONFIG,
+} from "./reversal";
+export {
   getImplementedStrategy,
   IMPLEMENTED_STRATEGY_IDS,
   isStrategyImplemented,
@@ -24,6 +31,7 @@ export {
   routeStrategy,
 } from "./router";
 export type {
+  StrategyRoutingContext,
   StrategyRoutingDecision,
   StrategyRoutingMode,
   StrategyRoutingReasonCode,
