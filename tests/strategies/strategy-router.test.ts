@@ -124,6 +124,45 @@ describe("Phase 12.3 Market Regime -> Strategy Router", () => {
     expect(decision.mode).toBe("REGIME_MATCH");
   });
 
+  it("routes qualified HIGH_VOLATILITY transition to REVERSAL", () => {
+    const decision = routeStrategy(
+      regime("HIGH_VOLATILITY"),
+      IMPLEMENTED_STRATEGY_IDS,
+      {
+        reversalQualification: {
+          qualified: true,
+          reasonCode: "REVERSAL_QUALIFIED",
+          reason: "Fresh CHOCH followed exhaustion sweep.",
+        },
+      }
+    );
+
+    expect(IMPLEMENTED_STRATEGY_IDS).toContain("REVERSAL");
+    expect(decision.preferredStrategyId).toBe("REVERSAL");
+    expect(decision.selectedStrategyId).toBe("REVERSAL");
+    expect(decision.mode).toBe("REGIME_MATCH");
+    expect(decision.reasonCode).toBe("REVERSAL_TRANSITION");
+  });
+
+  it("keeps HIGH_VOLATILITY out of REVERSAL when transition qualification fails", () => {
+    const decision = routeStrategy(
+      regime("HIGH_VOLATILITY"),
+      IMPLEMENTED_STRATEGY_IDS,
+      {
+        reversalQualification: {
+          qualified: false,
+          reasonCode: "REVERSAL_SWEEP_MISSING",
+          reason: "No exhaustion sweep.",
+        },
+      }
+    );
+
+    expect(decision.preferredStrategyId).toBeNull();
+    expect(decision.selectedStrategyId).toBe("TREND_PULLBACK");
+    expect(decision.mode).toBe("COMPATIBILITY_FALLBACK");
+    expect(decision.reasonCode).toBe("HIGH_VOLATILITY_WAIT");
+  });
+
   it("returns NO_STRATEGY rather than inventing an implementation", () => {
     const decision = routeStrategy(regime("RANGE"), []);
 
