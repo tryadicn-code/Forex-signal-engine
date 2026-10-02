@@ -198,7 +198,8 @@ describe("scanner snapshot and health", () => {
         (item) =>
           item.strategyId === "TREND_PULLBACK" ||
           item.strategyId === "BREAKOUT_RETEST" ||
-          item.strategyId === "RANGE_MEAN_REVERSION"
+          item.strategyId === "RANGE_MEAN_REVERSION" ||
+          item.strategyId === "REVERSAL"
       )
     ).toBe(true);
     expect(
