@@ -22,6 +22,8 @@ import type { Timeframe } from "@/types/market";
 
 export interface ComputeSignalIdentityParams {
   symbol: string;
+  /** Strategy owning this setup lifecycle. Optional for legacy callers. */
+  strategyId?: string | null;
   direction: import("@/types/market").Direction;
   originTimeframe: Timeframe;
   /**
@@ -39,8 +41,10 @@ export interface ComputeSignalIdentityParams {
 /**
  * Deterministic identity from the setup's stable attributes.
  *
- * Zone levels are quantized to whole pips so float noise never forks an id, and
- * the setup-origin timestamp is part of the key so a zone that repeats later in
+ * Zone levels are quantized to whole pips so float noise never forks an id.
+ * Strategy is part of new multi-strategy identities so otherwise-identical
+ * setups owned by different strategies cannot share a lifecycle. The
+ * setup-origin timestamp is part of the key so a zone that repeats later in
  * time is a NEW lifecycle rather than a collision with the old one. No wall-clock
  * value is used: the id is a pure function of market data, so a replay reproduces
  * it exactly.
@@ -50,9 +54,13 @@ export function computeSignalIdentity(
 ): SignalIdentity {
   const lowPips = Math.round(params.zoneLow / params.pipSize);
   const highPips = Math.round(params.zoneHigh / params.pipSize);
+  const strategySegment = params.strategyId
+    ? `|strategy:${params.strategyId}`
+    : "";
   return {
-    signalId: `${params.symbol}|${params.direction}|${params.originTimeframe}|${params.originTimestamp}|${lowPips}|${highPips}`,
+    signalId: `${params.symbol}${strategySegment}|${params.direction}|${params.originTimeframe}|${params.originTimestamp}|${lowPips}|${highPips}`,
     symbol: params.symbol,
+    strategyId: params.strategyId ?? null,
     direction: params.direction,
     originTimeframe: params.originTimeframe,
     originTimestamp: params.originTimestamp,
