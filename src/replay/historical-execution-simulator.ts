@@ -486,6 +486,9 @@ export class HistoricalExecutionSimulator {
 }
 
 function validateHistoricalCandidate(result: SymbolScanResult): string | null {
+  if (!result.strategyId) {
+    return "HISTORICAL_STRATEGY_UNATTRIBUTED";
+  }
   if (result.biasDirection !== "LONG" && result.biasDirection !== "SHORT") {
     return "HISTORICAL_DIRECTION_INVALID";
   }
