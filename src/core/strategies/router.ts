@@ -10,6 +10,14 @@ export type StrategyRoutingMode =
   | "COMPATIBILITY_FALLBACK"
   | "NO_STRATEGY";
 
+export interface StrategyRoutingContext {
+  reversalQualification?: {
+    qualified: boolean;
+    reasonCode: string;
+    reason: string;
+  } | null;
+}
+
 export interface StrategyRoutingDecision {
   regime: RegimeLabel;
   regimeStrength: number;
@@ -27,6 +35,7 @@ export type StrategyRoutingReasonCode =
   | "RANGE_REGIME"
   | "LOW_VOLATILITY_WAIT"
   | "HIGH_VOLATILITY_WAIT"
+  | "REVERSAL_TRANSITION"
   | "PREFERRED_STRATEGY_UNAVAILABLE"
   | "NO_AVAILABLE_STRATEGY";
 
@@ -43,9 +52,13 @@ export type StrategyRoutingReasonCode =
  */
 export function routeStrategy(
   regimeResult: EngineResult<RegimeResultData>,
-  availableStrategyIds: readonly StrategyId[]
+  availableStrategyIds: readonly StrategyId[],
+  context: StrategyRoutingContext = {}
 ): StrategyRoutingDecision {
-  const preferred = preferredStrategyForRegime(regimeResult.data.regime);
+  const preferred = preferredStrategyForRegime(
+    regimeResult.data.regime,
+    context
+  );
   const availability = new Set(availableStrategyIds);
   const confidence = regimeResult.confidence ?? null;
 
@@ -95,7 +108,10 @@ export function routeStrategy(
   };
 }
 
-function preferredStrategyForRegime(regime: RegimeLabel): {
+function preferredStrategyForRegime(
+  regime: RegimeLabel,
+  context: StrategyRoutingContext
+): {
   strategyId: StrategyId | null;
   reasonCode: Exclude<
     StrategyRoutingReasonCode,
@@ -136,10 +152,19 @@ function preferredStrategyForRegime(regime: RegimeLabel): {
       };
 
     case "HIGH_VOLATILITY":
+      if (context.reversalQualification?.qualified) {
+        return {
+          strategyId: "REVERSAL",
+          reasonCode: "REVERSAL_TRANSITION",
+          reason: context.reversalQualification.reason,
+        };
+      }
       return {
         strategyId: null,
         reasonCode: "HIGH_VOLATILITY_WAIT",
-        reason: "HIGH_VOLATILITY alone is not sufficient evidence for reversal; wait for a qualified transition/exhaustion setup.",
+        reason:
+          context.reversalQualification?.reason ??
+          "HIGH_VOLATILITY alone is not sufficient evidence for reversal; wait for a qualified transition/exhaustion setup.",
       };
   }
 }
