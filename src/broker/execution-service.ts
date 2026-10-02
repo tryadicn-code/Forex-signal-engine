@@ -552,6 +552,7 @@ export class BrokerExecutionService {
           id: "broker-" + shortHash(intent.idempotencyKey),
           idempotencyKey: intent.idempotencyKey,
           signalId: intent.signalId,
+          strategyId: intent.strategyId,
           clientTag: intent.clientTag,
           symbol: intent.symbol,
           side: intent.side,
