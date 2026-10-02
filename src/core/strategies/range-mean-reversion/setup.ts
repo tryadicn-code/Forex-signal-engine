@@ -82,7 +82,8 @@ export function analyzeRangeMeanReversionSetup(
         0,
         evidence,
         conflicts,
-        timestamp
+        timestamp,
+        null
       ),
       bias: neutralBias,
       range: null,
@@ -189,7 +190,12 @@ export function analyzeRangeMeanReversionSetup(
         0,
         evidence,
         conflicts,
-        timestamp
+        timestamp,
+        Math.max(lower.latestIndex, upper.latestIndex) >= 0
+          ? input.setupCandles[
+              Math.max(lower.latestIndex, upper.latestIndex)
+            ]?.timestamp ?? null
+          : null
       ),
       bias: neutralBias,
       range: {
@@ -271,7 +277,12 @@ export function analyzeRangeMeanReversionSetup(
         Math.min(distanceLowerPips, distanceUpperPips),
         evidence,
         conflicts,
-        timestamp
+        timestamp,
+        Math.max(lower.latestIndex, upper.latestIndex) >= 0
+          ? input.setupCandles[
+              Math.max(lower.latestIndex, upper.latestIndex)
+            ]?.timestamp ?? null
+          : null
       ),
       bias: neutralBias,
       range,
@@ -350,7 +361,12 @@ export function analyzeRangeMeanReversionSetup(
       direction === "LONG" ? distanceLowerPips : distanceUpperPips,
       evidence,
       conflicts,
-      timestamp
+      timestamp,
+      Math.max(lower.latestIndex, upper.latestIndex) >= 0
+          ? input.setupCandles[
+              Math.max(lower.latestIndex, upper.latestIndex)
+            ]?.timestamp ?? null
+          : null
     ),
     bias: rangeBias(
       direction,
@@ -469,7 +485,8 @@ function setupResult(
   distanceToZone: number,
   evidence: Evidence[],
   conflicts: Evidence[],
-  timestamp: string
+  timestamp: string,
+  setupOriginTimestamp: number | null = null
 ): EngineResult<SetupResultData> {
   return {
     status: `SETUP_${state}`,
@@ -485,6 +502,7 @@ function setupResult(
       setupScore: score,
       invalidationLevel,
       zoneSource: "validated-range-boundary",
+      setupOriginTimestamp,
     },
     timestamp,
   };
