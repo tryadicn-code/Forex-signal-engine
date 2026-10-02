@@ -1,5 +1,7 @@
 import type { BacktestRunArtifact } from "@/replay/backtest-run-types";
 import { defaultEngineConfig } from "@/core/config/engine-config";
+import { DEFAULT_STRATEGY_CONFIG } from "@/core/strategies/config";
+import { STRATEGY_SYSTEM_POLICY } from "@/core/strategies/system-policy";
 import {
   DEFAULT_FRESHNESS_THRESHOLDS,
   DEFAULT_SCANNER_CONFIG,
@@ -148,6 +150,8 @@ export function buildBacktestReproducibilityFingerprint(
     config: artifact.config,
     strategyBaseline: {
       engineConfig: defaultEngineConfig,
+      strategyConfig: DEFAULT_STRATEGY_CONFIG,
+      strategySystem: STRATEGY_SYSTEM_POLICY,
       scanner: {
         timeframeRoles: DEFAULT_TIMEFRAME_ROLES,
         signalTtl: DEFAULT_SIGNAL_TTL,
@@ -199,6 +203,7 @@ export function buildBacktestReproducibilityFingerprint(
       realizedPnL: trade.realizedPnL,
       realizedR: trade.realizedR,
       closeReason: trade.closeReason,
+      strategyId: trade.engine.strategyId ?? null,
     })),
     analytics: {
       sampleSize: artifact.analytics.sampleSize,

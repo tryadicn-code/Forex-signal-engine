@@ -162,6 +162,7 @@ function artifact(): BacktestRunArtifact {
       equityCurve: [],
       rDistribution: [],
       segments: {
+        byStrategy: [],
         bySymbol: [],
         byDirection: [],
         byBias: [],

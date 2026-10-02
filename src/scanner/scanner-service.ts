@@ -25,8 +25,9 @@
 
 import type { MarketSnapshot, Timeframe } from "@/types/market";
 import type { CanonicalCandle, NewsRiskContext } from "@/types/market-data";
-import type { PipelineResult } from "@/core/orchestrator";
-import { analyzeMarket } from "@/core/orchestrator";
+import type { PipelineResult, RoutedAnalysisResult } from "@/core/orchestrator";
+import { analyzeMarketWithRouting } from "@/core/orchestrator";
+import type { StrategyRoutingDecision } from "@/core/strategies/router";
 import type { Evidence, Conflict } from "@/types/engine";
 import { resolveScannerConfig } from "@/config/scanner";
 import type { DeepPartial } from "@/core/config/engine-config";
@@ -50,6 +51,7 @@ import {
   isTriggerExpired,
   recordTransition,
   resolveLifecycleIdentity,
+  shouldCloseSupersededLifecycle,
 } from "@/scanner/signal-lifecycle";
 import type { SignalLifecycleState } from "@/scanner/signal-lifecycle";
 import {
@@ -72,6 +74,11 @@ import type { FreshnessStatus } from "@/types/market-data";
 import type { ProviderStatus } from "@/types/market-data";
 import type { RepositoryBundle } from "@/repositories/in-memory";
 import { createInMemoryRepositories } from "@/repositories/in-memory";
+import {
+  buildSignalFunnelObservation,
+  SIGNAL_FUNNEL_MAX_RETENTION_MS,
+  type SignalFunnelObservation,
+} from "@/analytics/signal-funnel";
 
 /** Constructed dependencies for the scanner, all injectable for testing. */
 export interface ScannerDeps {
@@ -91,6 +98,8 @@ interface SymbolAnalysis {
   lifecycle: SignalLifecycleState | null;
   /** Transitions recorded this cycle, to append to history. */
   transitions: SignalStateTransition[];
+  /** Observability-only record; never fed back into trading decisions. */
+  funnelObservation: SignalFunnelObservation;
 }
 
 export class ScannerService {
@@ -167,21 +176,35 @@ export class ScannerService {
     const startedAt = asOf;
     const results: SymbolScanResult[] = [];
     const transitionsToAppend: SignalStateTransition[] = [];
+    const funnelObservations: SignalFunnelObservation[] = [];
 
     for (const symbol of this.symbols) {
       try {
         const analysis = await this.scanSymbol(symbol, asOf);
         results.push(analysis.result);
         transitionsToAppend.push(...analysis.transitions);
+        funnelObservations.push(analysis.funnelObservation);
       } catch (error) {
         // Last-resort guard: a symbol must never take the cycle down with it.
-        results.push(this.unexpectedFailure(symbol, asOf, error));
+        const failure = this.unexpectedFailure(symbol, asOf, error);
+        results.push(failure);
+        funnelObservations.push(
+          buildSignalFunnelObservation(failure, null, asOf)
+        );
       }
     }
 
     for (const transition of transitionsToAppend) {
       this.deps.repositories.transitions.append(transition);
     }
+
+    // Analytics is intentionally append-only and observational. Retention is
+    // bounded to the longest dashboard window so repeated scans cannot grow
+    // process memory without limit.
+    this.deps.repositories.funnelAnalytics?.appendMany(funnelObservations);
+    this.deps.repositories.funnelAnalytics?.pruneBefore(
+      asOf - SIGNAL_FUNNEL_MAX_RETENTION_MS
+    );
 
     const successful = results.filter((r) => r.status === "ANALYSED").length;
     const snapshot: ScannerSnapshot = {
@@ -211,15 +234,17 @@ export class ScannerService {
    */
   async scanSymbol(symbol: string, asOf: number): Promise<SymbolAnalysis> {
     if (!(symbol in SYMBOL_METADATA)) {
+      const result = failureResult(
+        symbol,
+        "PROVIDER_FAILURE",
+        `Symbol ${symbol} is not in the configured universe.`,
+        asOf
+      );
       return {
-        result: failureResult(
-          symbol,
-          "PROVIDER_FAILURE",
-          `Symbol ${symbol} is not in the configured universe.`,
-          asOf
-        ),
+        result,
         lifecycle: null,
         transitions: [],
+        funnelObservation: buildSignalFunnelObservation(result, null, asOf),
       };
     }
 
@@ -244,28 +269,31 @@ export class ScannerService {
             ? "INVALID_DATA"
             : "PROVIDER_FAILURE";
       const timeframeDetail = outcome.rejection?.timeframes.join(", ") ?? "";
+      const result = failureResult(
+        symbol,
+        status,
+        outcome.rejection === null
+          ? outcome.providerError ?? "Market context could not be built."
+          : `${outcome.rejection.reason} for ${timeframeDetail}.`,
+        asOf,
+        outcome.providerError ? [outcome.providerError] : []
+      );
       return {
-        result: failureResult(
-          symbol,
-          status,
-          outcome.rejection === null
-            ? outcome.providerError ?? "Market context could not be built."
-            : `${outcome.rejection.reason} for ${timeframeDetail}.`,
-          asOf,
-          outcome.providerError ? [outcome.providerError] : []
-        ),
+        result,
         lifecycle: null,
         transitions: [],
+        funnelObservation: buildSignalFunnelObservation(result, null, asOf),
       };
     }
 
     const context = outcome.context;
     const news = await this.fetchNewsRisk(symbol, asOf);
-    const pipeline = this.runPipeline(
+    const routedAnalysis = this.runPipeline(
       context,
       asOf,
       news?.evaluationStatus === "EVALUATED" ? news.newsPending : undefined
     );
+    const pipeline = routedAnalysis.pipeline;
     const stale = context.freshness.status === "STALE";
     const conversionUnresolved =
       context.metadata.quoteCurrency !== context.accountCurrency &&
@@ -279,6 +307,7 @@ export class ScannerService {
       setup.state !== "NONE"
         ? computeSignalIdentity({
             symbol,
+            strategyId: routedAnalysis.routing.selectedStrategyId,
             direction: pipeline.bias.data.direction,
             originTimeframe,
             originTimestamp,
@@ -292,6 +321,7 @@ export class ScannerService {
     const { lifecycle, transitions } = this.advanceLifecycle({
       symbol,
       identity,
+      strategyId: routedAnalysis.routing.selectedStrategyId,
       pipeline,
       context,
       stale,
@@ -307,10 +337,16 @@ export class ScannerService {
       lifecycle,
       news,
       stale,
+      routing: routedAnalysis.routing,
       asOf,
     });
 
-    return { result, lifecycle, transitions };
+    return {
+      result,
+      lifecycle,
+      transitions,
+      funnelObservation: buildSignalFunnelObservation(result, pipeline, asOf),
+    };
   }
 
   // -------------------------------------------------------------------------
@@ -322,14 +358,14 @@ export class ScannerService {
     context: BuildContextOutcome["context"],
     asOf: number,
     newsPending?: boolean
-  ): PipelineResult {
+  ): RoutedAnalysisResult {
     const instrument = toCurrencyPair(context!.metadata);
     const macroTimeframe = context!.d1.timeframe;
     const biasTimeframe = context!.h4.timeframe;
     const setupTimeframe = context!.h1.timeframe;
     const triggerTimeframe = context!.m15.timeframe;
 
-    return analyzeMarket({
+    return analyzeMarketWithRouting({
       instrument,
       macroTimeframe: {
         timeframe: macroTimeframe,
@@ -352,6 +388,7 @@ export class ScannerService {
       riskPercent: this.config.account.riskPercent,
       quoteToAccountConversionRate: context!.quoteToAccountConversionRate,
       configOverrides: this.config.engineConfig,
+      strategyConfigOverrides: this.config.strategyConfig,
       execution: {
         now: asOf,
         mode: this.config.executionMode,
@@ -383,6 +420,7 @@ export class ScannerService {
   private advanceLifecycle(input: {
     symbol: string;
     identity: ReturnType<typeof computeSignalIdentity> | null;
+    strategyId: StrategyRoutingDecision["selectedStrategyId"];
     pipeline: PipelineResult;
     context: BuildContextOutcome["context"];
     stale: boolean;
@@ -391,8 +429,17 @@ export class ScannerService {
     asOf: number;
   }): { lifecycle: SignalLifecycleState | null; transitions: SignalStateTransition[] } {
     const { identity, pipeline, context, asOf } = input;
+    const supersededTransitions = this.closeSupersededLifecycles({
+      symbol: input.symbol,
+      keepSignalId: identity?.signalId ?? null,
+      activeStrategyId: input.strategyId,
+      closeSameStrategy:
+        identity !== null,
+      asOf,
+    });
+
     if (identity === null) {
-      return { lifecycle: null, transitions: [] };
+      return { lifecycle: null, transitions: supersededTransitions };
     }
 
     const store = this.deps.repositories.signals;
@@ -471,7 +518,7 @@ export class ScannerService {
     });
 
     let updated = lifecycle;
-    const transitions: SignalStateTransition[] = [];
+    const transitions: SignalStateTransition[] = [...supersededTransitions];
     const path = findLegalTransitionPath(lifecycle.state, target);
 
     if (path !== null) {
@@ -506,6 +553,65 @@ export class ScannerService {
     return { lifecycle: updated, transitions };
   }
 
+  private closeSupersededLifecycles(input: {
+    symbol: string;
+    keepSignalId: string | null;
+    activeStrategyId: StrategyRoutingDecision["selectedStrategyId"];
+    closeSameStrategy: boolean;
+    asOf: number;
+  }): SignalStateTransition[] {
+    const store = this.deps.repositories.signals;
+    const transitions: SignalStateTransition[] = [];
+
+    for (const lifecycle of store.getBySymbol(input.symbol)) {
+      if (
+        !shouldCloseSupersededLifecycle({
+          lifecycle,
+          keepSignalId: input.keepSignalId,
+          activeStrategyId: input.activeStrategyId,
+          closeSameStrategy: input.closeSameStrategy,
+        })
+      ) {
+        continue;
+      }
+
+      const lifecycleStrategy = lifecycle.identity.strategyId ?? null;
+      const strategyChanged =
+        lifecycleStrategy !== input.activeStrategyId;
+
+      const path = findLegalTransitionPath(lifecycle.state, "CLOSED");
+      if (path === null) continue;
+
+      let updated = lifecycle;
+      for (const step of path) {
+        const reason =
+          input.activeStrategyId === null
+            ? "Strategy Router selected WAIT; prior active signal is superseded."
+            : strategyChanged
+              ? `Active strategy changed to ${input.activeStrategyId}; prior ${lifecycleStrategy ?? "legacy"} signal is superseded.`
+              : "A newer setup identity superseded this active signal.";
+
+        const applied = transitionSignal(
+          updated.state,
+          step,
+          reason,
+          input.asOf
+        );
+        const withIdentity = attachIdentity(
+          applied.transition,
+          updated.identity
+        );
+        if (withIdentity !== null) {
+          updated = recordTransition(updated, withIdentity, input.asOf);
+          transitions.push(withIdentity);
+        }
+      }
+      store.upsert(updated);
+    }
+
+    return transitions;
+  }
+
   // -------------------------------------------------------------------------
   // Result assembly
   // -------------------------------------------------------------------------
@@ -517,9 +623,10 @@ export class ScannerService {
     lifecycle: SignalLifecycleState | null;
     news: NewsRiskContext | null;
     stale: boolean;
+    routing: StrategyRoutingDecision;
     asOf: number;
   }): SymbolScanResult {
-    const { symbol, context, pipeline, lifecycle, news, asOf } = input;
+    const { symbol, context, pipeline, lifecycle, news, routing, asOf } = input;
     const trigger = pipeline.trigger?.data ?? null;
     const risk = pipeline.risk?.data ?? null;
     const setup = pipeline.setup.data;
@@ -538,6 +645,8 @@ export class ScannerService {
       latestPrice: context!.latestPrice,
       spreadPips: context!.spreadPips ?? null,
       regime: pipeline.regime.data.regime,
+      strategyId: routing.selectedStrategyId,
+      strategyRouting: routing,
       bias: pipeline.bias.data.label,
       biasScore: pipeline.bias.data.score,
       biasDirection: pipeline.bias.data.direction,
@@ -668,8 +777,13 @@ function lastOpen(candles: CanonicalCandle[]): number {
  * expose an explicit origin, so identity always carries a real market time.
  */
 function firstSetupOrigin(pipeline: PipelineResult): number | null {
-  // The origin is the market time the current setup zone became observable: the
-  // most recent CONFIRMED structure point on the setup timeframe. That is a real
+  const explicit = pipeline.setup.data.setupOriginTimestamp;
+  if (typeof explicit === "number" && Number.isFinite(explicit)) {
+    return explicit;
+  }
+
+  // Legacy TREND_PULLBACK fallback: the origin is the market time the current
+  // setup zone became observable from setup-timeframe structure. That is a real
   // market timestamp (never a price), so two occurrences of the same zone at
   // different times get different identities.
   const structure = pipeline.setupStructure.data;

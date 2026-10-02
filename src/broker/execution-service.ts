@@ -285,6 +285,7 @@ export class BrokerExecutionService {
       id: "broker-" + shortHash(intent.idempotencyKey),
       idempotencyKey: intent.idempotencyKey,
       signalId: intent.signalId,
+      strategyId: intent.strategyId,
       clientTag: intent.clientTag,
       symbol: intent.symbol,
       side: intent.side,
@@ -505,6 +506,7 @@ export class BrokerExecutionService {
         id: "broker-" + shortHash(intent.idempotencyKey),
         idempotencyKey: intent.idempotencyKey,
         signalId: intent.signalId,
+        strategyId: intent.strategyId,
         clientTag: intent.clientTag,
         symbol: intent.symbol,
         side: intent.side,
@@ -550,6 +552,7 @@ export class BrokerExecutionService {
           id: "broker-" + shortHash(intent.idempotencyKey),
           idempotencyKey: intent.idempotencyKey,
           signalId: intent.signalId,
+          strategyId: intent.strategyId,
           clientTag: intent.clientTag,
           symbol: intent.symbol,
           side: intent.side,
@@ -809,6 +812,7 @@ function isExecutableCandidate(result: SymbolScanResult): boolean {
     result.signalState === "EXECUTE" &&
     result.freshness === "FRESH" &&
     typeof result.signalId === "string" &&
+    typeof result.strategyId === "string" &&
     (result.biasDirection === "LONG" ||
       result.biasDirection === "SHORT") &&
     result.riskDetail?.approved === true
@@ -822,6 +826,7 @@ function buildIntent(
 ): BrokerOrderIntent | null {
   if (
     !result.signalId ||
+    !result.strategyId ||
     (result.biasDirection !== "LONG" &&
       result.biasDirection !== "SHORT") ||
     release.status !== "ACTIVE" ||
@@ -864,6 +869,7 @@ function buildIntent(
 
   return {
     id: "intent-" + shortHash(idempotencyKey),
+    strategyId: result.strategyId,
     idempotencyKey,
     clientTag: "FSE-" + shortHash(idempotencyKey).slice(0, 20),
     signalId: result.signalId,

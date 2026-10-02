@@ -30,5 +30,6 @@ export function cloneScannerConfig(config: ScannerConfig): ScannerConfig {
     freshness: { ...config.freshness },
     account: { ...config.account },
     engineConfig: structuredClone(config.engineConfig),
+    strategyConfig: structuredClone(config.strategyConfig),
   };
 }

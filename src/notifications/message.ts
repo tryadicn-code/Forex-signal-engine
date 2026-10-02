@@ -50,7 +50,8 @@ export function formatAlertMessage(
   lines.push(
     "",
     "Freshness: " + (alert.freshness ?? "—"),
-    "Strategy: " + alert.strategyVersion,
+    "Strategy: " + (alert.strategyId ?? "Legacy / unknown"),
+    "Release: " + alert.strategyVersion,
     "Signal: " + alert.signalId,
     "Time: " + formatTime(alert.detectedAt, timeZone)
   );

@@ -242,7 +242,7 @@ export interface MarketContext {
  * instead of a new signal on every tick.
  *
  * Identity is defined by WHAT the setup is and WHEN it formed:
- *   symbol + direction + origin timeframe + origin timestamp + zone bounds.
+ *   symbol + strategy + direction + origin timeframe + origin timestamp + zone bounds.
  * The origin timestamp is the market time of the candle the setup/zone first
  * appeared on. It is what separates two occurrences of the identical zone at
  * different times - without it, a recurring zone would collapse into one signal
@@ -251,6 +251,11 @@ export interface MarketContext {
 export interface SignalIdentity {
   signalId: string;
   symbol: string;
+  /**
+   * Strategy that owns this lifecycle. Optional for pre-multi-strategy
+   * persisted identities.
+   */
+  strategyId?: string | null;
   direction: import("@/types/market").Direction;
   /** Timeframe the setup/zone originated on. */
   originTimeframe: Timeframe;

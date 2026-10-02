@@ -1,318 +1,175 @@
 import type {
-  CurrencyPair,
-  Direction,
-  MarketSnapshot,
-  Timeframe,
-} from "@/types/market";
-import type {
-  BiasResultData,
-  EngineResult,
-  ExecutionResultData,
-  RegimeResultData,
-  RiskResultData,
-  SetupResultData,
-  StructureResultData,
-  TriggerResultData,
-} from "@/types/engine";
+  AnalysisContext,
+  PipelineResult,
+} from "@/core/orchestrator/types";
 import { analyzeStructure } from "@/core/structure";
 import { classifyRegime } from "@/core/regime";
-import { analyzeBias } from "@/core/bias";
-import { analyzeSetup } from "@/core/setup";
-import { evaluateTrigger } from "@/core/trigger";
-import { evaluateRisk } from "@/core/risk";
-import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
-import { decide } from "@/core/execution";
-import type { ExecutionContext, Veto } from "@/core/execution";
-import { resolveConfig } from "@/core/config/engine-config";
-import type { DeepPartial, EngineConfig } from "@/core/config/engine-config";
-import { last } from "@/core/indicators";
+import {
+  getImplementedStrategy,
+  IMPLEMENTED_STRATEGY_IDS,
+} from "@/core/strategies/registry";
+import {
+  routeStrategy,
+  type StrategyRoutingDecision,
+} from "@/core/strategies/router";
+import { qualifyReversal } from "@/core/strategies/reversal";
 
-/** Input snapshot for a single timeframe. */
-export interface TimeframeInput {
-  timeframe: Timeframe;
-  snapshot: MarketSnapshot;
-}
-
-export interface AnalysisContext {
-  instrument: CurrencyPair;
-  /** Optional D1 macro context used as a directional safety filter. */
-  macroTimeframe?: TimeframeInput;
-  /** Snapshot used for structure / regime / bias (the directional view). */
-  biasTimeframe: TimeframeInput;
-  /** Snapshot used for setup / zone detection. Defaults to the bias timeframe. */
-  setupTimeframe?: TimeframeInput;
-  /** Snapshot used for trigger confirmation. Defaults to the setup timeframe. */
-  triggerTimeframe?: TimeframeInput;
-  accountBalance: number;
-  /** Currency the trading account is denominated in, e.g. "USD". Required. */
-  accountCurrency: string;
-  riskPercent?: number;
-  /** Optional pre-selected targets; otherwise derived from the minimum R multiple. */
-  targetLevels?: number[];
-  /**
-   * Conversion rate from the instrument quote currency to the account
-   * currency, forwarded to the Risk Engine for account-correct position sizing.
-   * Required for any instrument whose quote currency differs from
-   * accountCurrency; the Risk Engine rejects rather than defaulting it to 1.
-   */
-  quoteToAccountConversionRate?: number;
-  execution?: Partial<ExecutionContext>;
-  configOverrides?: DeepPartial<EngineConfig>;
-  vetoes?: Veto[];
-}
-
-export interface PipelineResult {
-  structure: EngineResult<StructureResultData>;
-  regime: EngineResult<RegimeResultData>;
-  bias: EngineResult<BiasResultData>;
-  setup: EngineResult<SetupResultData>;
-  /** Setup-timeframe structure already computed for zone construction. */
-  setupStructure: EngineResult<StructureResultData>;
-  trigger: EngineResult<TriggerResultData> | null;
-  risk: EngineResult<RiskResultData> | null;
-  execution: EngineResult<ExecutionResultData> | null;
+export interface RoutedAnalysisResult {
+  routing: StrategyRoutingDecision;
+  pipeline: PipelineResult;
 }
 
 /**
- * Pipeline orchestrator (Section 13 spec).
+ * Regime-adaptive orchestrator.
  *
- * This function contains NO trading logic. It only connects engines in the
- * required order and threads each stage output into the next:
- *
- *   Market Snapshot -> Structure -> Regime -> Bias -> Setup -> Trigger -> Risk
- *                     -> Execution Decision
- *
- * Timeframe isolation (audit finding #1): each stage analyses the candles of
- * its own timeframe. The bias timeframe drives structure / regime / bias; the
- * setup timeframe drives the setup structure and the Setup Engine; the trigger
- * timeframe drives the trigger structure and the Trigger Engine. A higher
- * timeframe reaches the Setup Engine only as price-only confluence - never as
- * an array index into another timeframe candles.
- *
- * Risk timing (audit finding #10): the Risk Engine runs only once the Trigger
- * Engine confirms an entry. Before that there is no entry candidate to size,
- * so risk stays NOT_EVALUATED and no provisional R:R is surfaced as execution
- * risk.
+ * Phase 12.3 introduces strategy routing without changing the audited trading
+ * behaviour. The router classifies the bias-timeframe regime, chooses the
+ * preferred strategy, then resolves it against the audited strategy registry.
+ * Reversal routing is deliberately conditional: HIGH_VOLATILITY alone does
+ * not select REVERSAL. A qualified exhaustion sweep + fresh CHOCH is required.
  */
-export function analyzeMarket(context: AnalysisContext): PipelineResult {
-  const config = resolveConfig(context.configOverrides);
-  const { instrument, biasTimeframe } = context;
-  const macroTimeframe = context.macroTimeframe;
-  const setupTimeframe = context.setupTimeframe ?? biasTimeframe;
-  const triggerTimeframe = context.triggerTimeframe ?? setupTimeframe;
-  const pipSize = instrument.pipSize;
+export function analyzeMarketWithRouting(
+  context: AnalysisContext
+): RoutedAnalysisResult {
+  const pipSize = context.instrument.pipSize;
+  const biasAsOf = context.biasTimeframe.snapshot.asOf;
 
-  const biasAsOf = biasTimeframe.snapshot.asOf;
-  const macroAsOf = macroTimeframe?.snapshot.asOf;
-  const setupAsOf = setupTimeframe.snapshot.asOf;
-  const triggerAsOf = triggerTimeframe.snapshot.asOf;
-
-  // 1. Market Structure on the bias timeframe.
-  const structure = analyzeStructure(
-    biasTimeframe.snapshot.candles,
+  // Routing preflight uses the exact same structure/regime engines and market
+  // inputs as the current strategy. It is decision metadata only.
+  const routingStructure = analyzeStructure(
+    context.biasTimeframe.snapshot.candles,
     context.configOverrides,
     pipSize,
     biasAsOf
   );
-
-  // 2. Market Regime, built on top of structure.
-  const regime = classifyRegime(
-    biasTimeframe.snapshot.candles,
-    structure.data,
+  const routingRegime = classifyRegime(
+    context.biasTimeframe.snapshot.candles,
+    routingStructure.data,
     context.configOverrides,
     biasAsOf
   );
 
-  // 3. Bias from structure + regime + trend + momentum.
-  const bias = analyzeBias(
-    biasTimeframe.snapshot.candles,
-    structure.data,
-    regime.data,
-    context.configOverrides,
-    biasAsOf
-  );
-
-  // D1 is a macro safety filter rather than another scoring component. A
-  // neutral D1 does not block an H4 opportunity, but a directional D1 that
-  // opposes the H4 bias prevents execution through a hard veto later.
-  let macroDirection: Direction | undefined;
-  let macroAlignment: "ALIGNED" | "NEUTRAL" | "OPPOSED" | undefined;
-  if (macroTimeframe && macroAsOf !== undefined) {
-    const macroStructure = analyzeStructure(
-      macroTimeframe.snapshot.candles,
-      context.configOverrides,
-      pipSize,
-      macroAsOf
-    );
-    const macroRegime = classifyRegime(
-      macroTimeframe.snapshot.candles,
-      macroStructure.data,
-      context.configOverrides,
-      macroAsOf
-    );
-    const macroBias = analyzeBias(
-      macroTimeframe.snapshot.candles,
-      macroStructure.data,
-      macroRegime.data,
-      context.configOverrides,
-      macroAsOf
-    );
-    macroDirection = macroBias.data.direction;
-    macroAlignment =
-      macroDirection === "NEUTRAL" || bias.data.direction === "NEUTRAL"
-        ? "NEUTRAL"
-        : macroDirection === bias.data.direction
-          ? "ALIGNED"
-          : "OPPOSED";
-  }
-
-  const regimeCompatible =
-    bias.data.direction !== "NEUTRAL" &&
-    ((regime.data.baseRegime === "TREND_UP" &&
-      bias.data.direction === "LONG") ||
-      (regime.data.baseRegime === "TREND_DOWN" &&
-        bias.data.direction === "SHORT") ||
-      (regime.data.baseRegime === "BREAKOUT" &&
-        regime.data.direction === bias.data.direction));
-
-  // 4. Setup on the setup timeframe. The setup structure is computed from the
-  // setup candles themselves, so swing indexes resolve against the right
-  // array; the bias-timeframe structure is passed only as price confluence and
-  // only when it really is a different timeframe.
-  const setupStructure = analyzeStructure(
-    setupTimeframe.snapshot.candles,
-    context.configOverrides,
+  const reversalQualification = qualifyReversal({
+    candles: context.biasTimeframe.snapshot.candles,
+    structure: routingStructure.data,
+    regime: routingRegime.data,
     pipSize,
-    setupAsOf
-  );
-  const distinctTimeframes =
-    biasTimeframe.timeframe !== setupTimeframe.timeframe;
-  const setup = analyzeSetup(
-    setupTimeframe.snapshot.candles,
-    bias.data,
-    setupStructure.data,
-    pipSize,
-    context.configOverrides,
-    distinctTimeframes ? structure.data : undefined,
-    setupAsOf
+    coreConfigOverrides: context.configOverrides,
+    strategyConfig: context.strategyConfigOverrides?.reversal,
+  });
+
+  const routing = routeStrategy(
+    routingRegime,
+    IMPLEMENTED_STRATEGY_IDS,
+    { reversalQualification }
   );
 
-  // 5-7. Trigger, Risk and Execution only make sense for an actionable zone.
-  if (
-    setup.data.state === "NONE" ||
-    setup.data.state === "WATCH" ||
-    setup.data.state === "INVALIDATED" ||
-    bias.data.direction === "NEUTRAL"
-  ) {
+  if (routing.selectedStrategyId === null) {
     return {
-      structure,
-      regime,
-      bias,
-      setup,
-      setupStructure,
-      trigger: null,
-      risk: null,
-      execution: null,
+      routing,
+      pipeline: buildNoStrategyPipeline(
+        context,
+        routingStructure,
+        routingRegime,
+        routing
+      ),
     };
   }
 
-  // 5. Trigger confirmation on the trigger timeframe, on its own structure.
-  const triggerStructure = analyzeStructure(
-    triggerTimeframe.snapshot.candles,
+  const strategy = getImplementedStrategy(routing.selectedStrategyId);
+  if (strategy === null) {
+    throw new Error(
+      `Strategy Router selected ${routing.selectedStrategyId}, but no audited implementation is registered.`
+    );
+  }
+
+  return {
+    routing,
+    pipeline: strategy.analyze(context),
+  };
+}
+
+/**
+ * Backward-compatible entrypoint used by existing consumers.
+ *
+ * The public return value remains PipelineResult. Call analyzeMarketWithRouting
+ * when routing metadata is also required.
+ */
+export function analyzeMarket(context: AnalysisContext): PipelineResult {
+  return analyzeMarketWithRouting(context).pipeline;
+}
+
+export type {
+  AnalysisContext,
+  PipelineResult,
+  TimeframeInput,
+} from "@/core/orchestrator/types";
+
+
+function buildNoStrategyPipeline(
+  context: AnalysisContext,
+  structure: PipelineResult["structure"],
+  regime: PipelineResult["regime"],
+  routing: StrategyRoutingDecision
+): PipelineResult {
+  const setupTimeframe = context.setupTimeframe ?? context.biasTimeframe;
+  const setupStructure = analyzeStructure(
+    setupTimeframe.snapshot.candles,
     context.configOverrides,
-    pipSize,
-    triggerAsOf
-  );
-  const trigger = evaluateTrigger(
-    triggerTimeframe.snapshot.candles,
-    setup.data,
-    triggerStructure.data,
-    bias.data.direction,
-    context.configOverrides,
-    triggerAsOf
+    context.instrument.pipSize,
+    setupTimeframe.snapshot.asOf
   );
 
-  // 6. Risk on the frozen entry candidate, and only then. While the trigger is
-  // still WAITING there is nothing to size, so no provisional R:R leaks into
-  // the execution decision as if it had been approved.
-  const entry =
-    last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
-    (setup.data.zoneHigh + setup.data.zoneLow) / 2;
-  const explicitTargets =
-    context.targetLevels && context.targetLevels.length > 0
-      ? context.targetLevels
-      : undefined;
-  const structuralTargets = explicitTargets
-    ? []
-    : deriveStructuralTargetLevels({
-        entry,
-        direction: bias.data.direction,
-        pipSize,
-        setupStructure: setupStructure.data,
-        biasStructure: distinctTimeframes ? structure.data : undefined,
-        bufferPips: config.risk.structuralTargetBufferPips,
-      });
+  const evidence = [{
+    code: routing.reasonCode,
+    label: "Strategy router wait",
+    description: routing.reason,
+    value: routing.regime,
+  }];
 
-  // Structure is used as a clearance gate, not as permission to stretch TP
-  // farther than the strategy's baseline target. If the nearest confirmed
-  // obstacle sits inside the minimum-R window, pass that obstacle to the Risk
-  // Engine so RR_TOO_LOW rejects the trade. Otherwise the Risk Engine keeps its
-  // normal 2R baseline. Explicit caller targets retain their existing meaning.
-  const minimumTargetDistance =
-    Math.abs(entry - setup.data.invalidationLevel) * config.risk.minRR;
-  const nearestStructuralTarget = structuralTargets[0];
-  const targetLevelsForRisk = explicitTargets
-    ? explicitTargets
-    : nearestStructuralTarget !== undefined &&
-        Math.abs(nearestStructuralTarget - entry) < minimumTargetDistance
-      ? [nearestStructuralTarget]
-      : undefined;
-
-  const risk =
-    trigger.data.state === "CONFIRMED"
-      ? evaluateRisk(
-          {
-            entry,
-            stop: setup.data.invalidationLevel,
-            accountBalance: context.accountBalance,
-            accountCurrency: context.accountCurrency,
-            riskPercent: context.riskPercent ?? config.risk.defaultRiskPercent,
-            instrument,
-            targetLevels: targetLevelsForRisk,
-            direction: bias.data.direction,
-            quoteToAccountConversionRate: context.quoteToAccountConversionRate,
-            marketAsOf: triggerAsOf,
-          },
-          context.configOverrides
-        )
-      : null;
-
-  // 7. Execution decision (never an order).
-  const now = context.execution?.now ?? triggerAsOf;
-  const execution = decide({
-    bias: bias.data,
-    setup: setup.data,
-    trigger: trigger.data,
-    risk: risk?.data ?? null,
-    context: {
-      now,
-      riskPercent: context.riskPercent ?? config.risk.defaultRiskPercent,
-      ...context.execution,
-      // Feed the canonical trigger market time into the existing
-      // SIGNAL_EXPIRED veto. Without this, the veto is always skipped and the
-      // Execution Engine can continue reporting EXECUTE for an aged trigger.
-      signalTimestamp:
-        trigger.data.triggerTimestamp ??
-        context.execution?.signalTimestamp,
-      macroAlignment,
-      macroDirection,
-      regime: regime.data.regime,
-      regimeCompatible,
+  const bias: PipelineResult["bias"] = {
+    status: "BIAS_NEUTRAL",
+    score: 0,
+    confidence: 0,
+    evidence,
+    conflicts: [],
+    data: {
+      label: "NEUTRAL",
+      direction: "NEUTRAL",
+      score: 0,
+      components: {
+        structure: 0,
+        trend: 0,
+        regime: 0,
+        momentum: 0,
+      },
+      weights: {
+        structure: 0,
+        trend: 0,
+        regime: 0,
+        momentum: 0,
+      },
     },
-    snapshot: triggerTimeframe.snapshot,
-    configOverrides: context.configOverrides,
-    vetoes: context.vetoes,
-  });
+    timestamp: regime.timestamp,
+  };
+
+  const setup: PipelineResult["setup"] = {
+    status: "SETUP_NONE",
+    score: 0,
+    evidence,
+    conflicts: [],
+    data: {
+      state: "NONE",
+      zoneLow: 0,
+      zoneHigh: 0,
+      distanceToZone: 0,
+      setupType: "router-wait",
+      setupScore: 0,
+      invalidationLevel: 0,
+      zoneSource: "strategy-router",
+    },
+    timestamp: setupStructure.timestamp,
+  };
 
   return {
     structure,
@@ -320,8 +177,8 @@ export function analyzeMarket(context: AnalysisContext): PipelineResult {
     bias,
     setup,
     setupStructure,
-    trigger,
-    risk,
-    execution,
+    trigger: null,
+    risk: null,
+    execution: null,
   };
 }

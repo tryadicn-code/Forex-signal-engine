@@ -27,6 +27,7 @@ function dashboard(): NotificationDashboard {
         id: "alert-1",
         key: "key-1",
         signalId: "sig-1",
+        strategyId: "TREND_PULLBACK",
         symbol: "EURUSD",
         direction: "LONG",
         state: "NEAR_EXECUTE",

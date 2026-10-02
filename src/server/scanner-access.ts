@@ -9,6 +9,7 @@
 import "server-only";
 
 import { ScannerApi } from "@/scanner/scanner-api";
+import type { ScannerSnapshot } from "@/scanner/scanner-result";
 import { isTerminalState } from "@/lib/signal-meta";
 import type { DashboardData } from "@/types/dashboard";
 import { resolveRuntimeSymbols } from "@/providers/market-data/runtime-provider";
@@ -56,6 +57,10 @@ import {
   processNotificationSnapshot,
   readNotificationDashboard,
 } from "@/server/notification-access";
+import {
+  readSignalFunnelDashboard,
+  recordSignalFunnelObservations,
+} from "@/server/signal-funnel-access";
 
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
@@ -128,6 +133,7 @@ async function dashboardView(
 ): Promise<DashboardData> {
   const allSignals = inst?.getAllSignals() ?? [];
   const signalHistory: DashboardData["signalHistory"] = {};
+  const signalFunnel = await readSignalFunnelDashboard();
 
   if (inst) {
     for (const signal of allSignals) {
@@ -150,6 +156,8 @@ async function dashboardView(
     paper: await readPaperDashboard(),
     broker: await readBrokerExecutionDashboard(),
     notifications: await readNotificationDashboard(),
+    signalFunnel: signalFunnel.analytics,
+    signalFunnelError: signalFunnel.persistenceError,
     releaseRuntime: release.state,
     automation: {
       enabled:
@@ -191,10 +199,16 @@ async function runScanner(
 
   const startedAt = Date.now();
   const work = (async (): Promise<string | null> => {
+    let analyticsPersistence: Promise<void> = Promise.resolve();
+
     try {
       inst.setRuntimeAccountBalance(await paperBalance());
       await primeRuntimeConversionRates(asOf, inst.config.account.currency);
       const snapshot = await inst.runScan(asOf);
+
+      // Start observability persistence immediately, but do not put its I/O on
+      // the Paper/Broker critical path. The promise is joined in finally.
+      analyticsPersistence = persistSignalFunnelSafely(inst, snapshot);
 
       // Re-resolve governance before creating Paper orders. A registry change
       // during analysis invalidates this scan for execution purposes.
@@ -204,6 +218,13 @@ async function runScanner(
         releaseRuntimeIdentity(currentRelease) !== expectedIdentity
       ) {
         return "Strategy release changed during scan; Paper execution was not applied. Refresh to run under the current release.";
+      }
+
+      if (
+        currentRelease.state.status === "ACTIVE" &&
+        !currentRelease.state.pinned
+      ) {
+        return "ACTIVE release predates complete multi-strategy governance; Paper, forward-validation, alerts, and broker execution were not applied. Register a newly validated release first.";
       }
 
       // A long analysis cycle must prove it still owns the shared lease before
@@ -278,6 +299,8 @@ async function runScanner(
         },
       });
       return message;
+    } finally {
+      await analyticsPersistence;
     }
   })();
 
@@ -294,6 +317,28 @@ async function runScanner(
       runtime.__fseScanInFlightIdentity = undefined;
       runtime.__fseScanStartedAt = undefined;
     }
+  }
+}
+
+async function persistSignalFunnelSafely(
+  inst: ScannerApi,
+  snapshot: ScannerSnapshot
+): Promise<void> {
+  try {
+    await recordSignalFunnelObservations(inst, snapshot);
+  } catch (analyticsError) {
+    await emitRuntimeTelemetry({
+      category: "scanner",
+      name: "signal-funnel-persistence-failure",
+      level: "WARN",
+      durationMs: null,
+      attributes: {
+        error:
+          analyticsError instanceof Error
+            ? analyticsError.message.slice(0, 500)
+            : String(analyticsError).slice(0, 500),
+      },
+    });
   }
 }
 

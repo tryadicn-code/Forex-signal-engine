@@ -35,6 +35,7 @@ export function detectAlertCandidate(
   return {
     key,
     signalId: result.signalId,
+    strategyId: result.strategyId ?? null,
     symbol: result.symbol,
     direction: result.biasDirection,
     state,

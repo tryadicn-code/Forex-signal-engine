@@ -52,10 +52,42 @@ describe("ScannerService scan cycle", () => {
     expect(result.status).toBe("ANALYSED");
     expect(result.symbol).toBe("EURUSD");
     expect(result.biasDirection).not.toBeNull();
+    expect(result.strategyId).not.toBeNull();
+    expect(result.strategyRouting).not.toBeNull();
+    expect(result.strategyId).toBe(result.strategyRouting?.selectedStrategyId);
+    expect(result.strategyRouting?.regime).toBe(result.regime);
     expect(result.freshness).not.toBeNull();
     expect(result.updatedAt).toBe(T0);
     expect(Array.isArray(result.evidence)).toBe(true);
     expect(Array.isArray(result.errors)).toBe(true);
+  });
+
+  it("surfaces preferred strategy and compatibility fallback for non-trend regimes", async () => {
+    const s = service({ EURUSD: { direction: "RANGE" } });
+    const snapshot = await s.scanOnce(T0);
+    const result = snapshot.results[0];
+
+    expect(result.status).toBe("ANALYSED");
+    expect(result.strategyId).toBe(result.strategyRouting?.selectedStrategyId);
+    expect(result.strategyRouting?.regime).toBe(result.regime);
+
+    if (result.regime === "RANGE") {
+      expect(result.strategyRouting?.preferredStrategyId).toBe(
+        "RANGE_MEAN_REVERSION"
+      );
+      expect(result.strategyRouting?.selectedStrategyId).toBe(
+        "RANGE_MEAN_REVERSION"
+      );
+      expect(result.strategyRouting?.mode).toBe("REGIME_MATCH");
+    } else if (result.regime === "BREAKOUT") {
+      expect(result.strategyRouting?.preferredStrategyId).toBe(
+        "BREAKOUT_RETEST"
+      );
+      expect(result.strategyRouting?.selectedStrategyId).toBe(
+        "BREAKOUT_RETEST"
+      );
+      expect(result.strategyRouting?.mode).toBe("REGIME_MATCH");
+    }
   });
 
   it("threads the injected asOf everywhere instead of the wall clock", async () => {
@@ -147,6 +179,34 @@ describe("scanner snapshot and health", () => {
     expect(s.repositories.snapshots.getLatest()?.startedAt).toBe(snapshot.startedAt);
   });
 
+  it("records one funnel observation per scanned symbol without altering scanner results", async () => {
+    const s = service(
+      { EURUSD: { direction: "UP" }, GBPUSD: { direction: "DOWN" } },
+      ["EURUSD", "GBPUSD"]
+    );
+    const snapshot = await s.scanOnce(T0);
+    const observations = s.repositories.funnelAnalytics?.getSince(T0, T0) ?? [];
+
+    expect(snapshot.results).toHaveLength(2);
+    expect(observations).toHaveLength(2);
+    expect(observations.map((item) => item.symbol).sort()).toEqual([
+      "EURUSD",
+      "GBPUSD",
+    ]);
+    expect(
+      observations.every(
+        (item) =>
+          item.strategyId === "TREND_PULLBACK" ||
+          item.strategyId === "BREAKOUT_RETEST" ||
+          item.strategyId === "RANGE_MEAN_REVERSION" ||
+          item.strategyId === "REVERSAL"
+      )
+    ).toBe(true);
+    expect(
+      observations.every((item) => item.routingMode !== null)
+    ).toBe(true);
+  });
+
   it("summarizes freshness across the universe", async () => {
     const s = service();
     const snapshot = await s.scanOnce(T0);
@@ -186,6 +246,10 @@ describe("signal lifecycle integration", () => {
     const idB = b.results[0].signalId;
     if (idA !== null) {
       expect(idB).toBe(idA);
+      expect(a.results[0].strategyId).not.toBeNull();
+      expect(idA).toContain(
+        `|strategy:${a.results[0].strategyId}|`
+      );
       expect(s.repositories.signals.getById(idA)).not.toBeNull();
     }
   });

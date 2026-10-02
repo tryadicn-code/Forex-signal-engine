@@ -21,6 +21,8 @@ import type {
   ValidationIssue,
 } from "@/types/market-data";
 import type { ConditionCheck, Evidence, Conflict } from "@/types/engine";
+import type { StrategyId } from "@/core/strategies/types";
+import type { StrategyRoutingDecision } from "@/core/strategies/router";
 
 /**
  * One timeframe's contribution to the multi-timeframe view.
@@ -87,6 +89,16 @@ export interface SymbolScanResult {
   spreadPips: number | null;
 
   regime: RegimeLabel | null;
+  /**
+   * Actual audited strategy used to produce this result.
+   * Optional for persisted/pre-Phase-12.3 snapshots and legacy test fixtures.
+   */
+  strategyId?: StrategyId | null;
+  /**
+   * Regime router decision, including preferred vs compatibility fallback.
+   * Optional for persisted/pre-Phase-12.3 snapshots and legacy test fixtures.
+   */
+  strategyRouting?: StrategyRoutingDecision | null;
   bias: BiasLabel | null;
   biasScore: number | null;
   biasDirection: Direction | null;
@@ -157,6 +169,8 @@ export function failureResult(
     latestPrice: null,
     spreadPips: null,
     regime: null,
+    strategyId: null,
+    strategyRouting: null,
     bias: null,
     biasScore: null,
     biasDirection: null,

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 0.0.0.0",
+    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-with-mt5.ps1",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "dev:web": "next dev --hostname 0.0.0.0"
   },
   "dependencies": {
     "next": "16.3.6",

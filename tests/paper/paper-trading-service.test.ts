@@ -14,6 +14,7 @@ function result(overrides: Partial<SymbolScanResult> = {}): SymbolScanResult {
     latestPrice: 1.1,
     spreadPips: 1,
     regime: "TREND_UP",
+    strategyId: "TREND_PULLBACK",
     bias: "LONG",
     biasScore: 70,
     biasDirection: "LONG",
@@ -97,6 +98,23 @@ describe("PaperTradingService", () => {
 
     expect(first.openPositions).toHaveLength(1);
     expect(second.recentOrders).toHaveLength(1);
+  });
+
+  it("persists the active strategy on Paper orders and positions", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+
+    const data = await paper.processSnapshot(
+      snapshot(result({ strategyId: "RANGE_MEAN_REVERSION" })),
+      provider
+    );
+
+    expect(data.recentOrders[0].engine.strategyId).toBe(
+      "RANGE_MEAN_REVERSION"
+    );
+    expect(data.openPositions[0].engine.strategyId).toBe(
+      "RANGE_MEAN_REVERSION"
+    );
   });
 
   it("tags Paper orders and positions with the active release epoch", async () => {

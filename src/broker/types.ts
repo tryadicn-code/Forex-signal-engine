@@ -23,6 +23,7 @@ export interface BrokerStatus {
 
 export interface BrokerOrderIntent {
   id: string;
+  strategyId: string;
   idempotencyKey: string;
   clientTag: string;
   signalId: string;
@@ -120,6 +121,8 @@ export interface BrokerExecutionControls {
 
 export interface BrokerExecutionRecord {
   id: string;
+  /** Strategy that produced the execution; optional on legacy persisted records. */
+  strategyId?: string | null;
   idempotencyKey: string;
   signalId: string;
   clientTag: string;

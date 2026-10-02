@@ -7,12 +7,127 @@ import {
   computeSignalIdentity,
   freshTriggerOccurrenceIdentity,
   resolveLifecycleIdentity,
+  shouldCloseSupersededLifecycle,
 } from "@/scanner/signal-lifecycle";
 import { intervalMs } from "@/market-data/timeframe";
 
 const T0 = Date.UTC(2024, 5, 3, 12, 0, 0);
 const M15 = intervalMs("M15");
 const H1 = intervalMs("H1");
+
+describe("multi-strategy lifecycle identity", () => {
+  it("separates otherwise-identical setups owned by different strategies", () => {
+    const base = {
+      symbol: "EURUSD",
+      direction: "LONG" as const,
+      originTimeframe: "H1" as const,
+      originTimestamp: T0,
+      zoneLow: 1.1,
+      zoneHigh: 1.101,
+      pipSize: 0.0001,
+    };
+
+    const trend = computeSignalIdentity({
+      ...base,
+      strategyId: "TREND_PULLBACK",
+    });
+    const breakout = computeSignalIdentity({
+      ...base,
+      strategyId: "BREAKOUT_RETEST",
+    });
+
+    expect(trend.signalId).not.toBe(breakout.signalId);
+    expect(trend.strategyId).toBe("TREND_PULLBACK");
+    expect(breakout.strategyId).toBe("BREAKOUT_RETEST");
+  });
+
+  it("preserves legacy deterministic ids when strategy id is absent", () => {
+    const identity = computeSignalIdentity({
+      symbol: "EURUSD",
+      direction: "LONG",
+      originTimeframe: "H1",
+      originTimestamp: T0,
+      zoneLow: 1.1,
+      zoneHigh: 1.101,
+      pipSize: 0.0001,
+    });
+
+    expect(identity.signalId).not.toContain("|strategy:");
+    expect(identity.strategyId).toBeNull();
+  });
+});
+
+describe("multi-strategy lifecycle supersession", () => {
+  const trendIdentity = computeSignalIdentity({
+    symbol: "EURUSD",
+    strategyId: "TREND_PULLBACK",
+    direction: "LONG",
+    originTimeframe: "H1",
+    originTimestamp: T0,
+    zoneLow: 1.1,
+    zoneHigh: 1.101,
+    pipSize: 0.0001,
+  });
+  const activeTrend = {
+    ...createLifecycle(trendIdentity, T0),
+    state: "ARMED" as const,
+  };
+
+  it("closes an active signal when the router changes strategy", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: null,
+        activeStrategyId: "RANGE_MEAN_REVERSION",
+        closeSameStrategy: false,
+      })
+    ).toBe(true);
+  });
+
+  it("closes an active signal when the router deliberately selects WAIT", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: null,
+        activeStrategyId: null,
+        closeSameStrategy: false,
+      })
+    ).toBe(true);
+  });
+
+  it("preserves a same-strategy lifecycle when no replacement setup exists", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: null,
+        activeStrategyId: "TREND_PULLBACK",
+        closeSameStrategy: false,
+      })
+    ).toBe(false);
+  });
+
+  it("closes an old same-strategy setup when a newer setup identity replaces it", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: "different-new-signal",
+        activeStrategyId: "TREND_PULLBACK",
+        closeSameStrategy: true,
+      })
+    ).toBe(true);
+  });
+
+  it("never closes the lifecycle that owns the current signal id", () => {
+    expect(
+      shouldCloseSupersededLifecycle({
+        lifecycle: activeTrend,
+        keepSignalId: trendIdentity.signalId,
+        activeStrategyId: "TREND_PULLBACK",
+        closeSameStrategy: true,
+      })
+    ).toBe(false);
+  });
+});
 
 describe("bar-aware TTL", () => {
   it("is not expired while within the allowed number of bars", () => {

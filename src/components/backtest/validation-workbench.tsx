@@ -23,6 +23,7 @@ import {
 import type { ForwardValidationSnapshot } from "@/forward-validation/types";
 
 const SEGMENTS: HistoricalSegmentDimension[] = [
+  "strategy",
   "symbol",
   "direction",
   "bias",

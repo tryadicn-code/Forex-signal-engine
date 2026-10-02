@@ -326,6 +326,7 @@ export class PaperTradingService {
   ): string | null {
     const risk = result.riskDetail;
     if (result.status !== "ANALYSED") return "PAPER_UPSTREAM_NOT_ANALYSED";
+    if (!result.strategyId) return "PAPER_STRATEGY_UNATTRIBUTED";
     if (result.freshness !== "FRESH") return "PAPER_MARKET_DATA_NOT_FRESH";
     if (result.signalState !== "EXECUTE") return "PAPER_SIGNAL_STATE_NOT_EXECUTE";
     if (result.biasDirection !== "LONG" && result.biasDirection !== "SHORT") {
@@ -606,6 +607,7 @@ export class PaperTradingService {
     release: PaperReleaseIdentity | null
   ) {
     return {
+      strategyId: result.strategyId ?? null,
       bias: result.bias,
       setupScore: result.setupScore,
       executionDecision: "EXECUTE" as const,

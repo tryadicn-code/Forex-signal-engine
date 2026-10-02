@@ -61,6 +61,7 @@ function result(
     latestPrice: 1.1,
     spreadPips: 1,
     regime: "TREND_UP",
+    strategyId: "TREND_PULLBACK",
     bias: "STRONG_LONG",
     biasScore: 80,
     biasDirection: "LONG",
@@ -123,6 +124,27 @@ function step(
 }
 
 describe("HistoricalExecutionSimulator", () => {
+  it("preserves strategy attribution on historical orders and positions", () => {
+    const simulator = new HistoricalExecutionSimulator({
+      dataset: dataset([]),
+      initialBalance: 10_000,
+    });
+
+    simulator.processStep(
+      step(
+        T0,
+        result({
+          strategyId: "BREAKOUT_RETEST",
+          signalId: "breakout-signal",
+        })
+      )
+    );
+
+    const summary = simulator.getSummary();
+    expect(summary.orders[0].engine.strategyId).toBe("BREAKOUT_RETEST");
+    expect(summary.openPositions[0].engine.strategyId).toBe("BREAKOUT_RETEST");
+  });
+
   it("opens exactly once for one actionable signal id", () => {
     const simulator = new HistoricalExecutionSimulator({
       dataset: dataset([]),

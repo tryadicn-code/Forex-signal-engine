@@ -34,6 +34,8 @@ export interface HistoricalExecutionConfig {
 }
 
 export interface HistoricalEngineSnapshot {
+  /** Strategy that produced the historical execution; optional on legacy artifacts. */
+  strategyId?: string | null;
   bias: BiasLabel | null;
   setupScore: number | null;
   executionDecision: "EXECUTE";

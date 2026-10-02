@@ -19,6 +19,12 @@ import type { SignalStateTransition, ProviderStatus } from "@/types/market-data"
 import type { RepositoryBundle } from "@/repositories/in-memory";
 import { ScannerService } from "@/scanner/scanner-service";
 import type { ScannerDeps } from "@/scanner/scanner-service";
+import {
+  buildSignalFunnelDashboard,
+  SIGNAL_FUNNEL_MAX_RETENTION_MS,
+  type SignalFunnelDashboard,
+  type SignalFunnelObservation,
+} from "@/analytics/signal-funnel";
 
 /** Read-only view of one signal, safe to hand to the UI. */
 export interface SignalView {
@@ -120,6 +126,33 @@ export class ScannerApi {
   /** Recent transitions across all signals, newest first. */
   getRecentTransitions(limit: number): SignalStateTransition[] {
     return this.repositories.transitions.getRecent(limit);
+  }
+
+  /**
+   * Signal Funnel + Rejection Analytics for the rolling 24h/7d/30d windows.
+   * This is derived only from recorded observations and cannot influence the
+   * strategy pipeline.
+   */
+  getSignalFunnelAnalytics(asOf?: number): SignalFunnelDashboard {
+    const referenceTime =
+      asOf ??
+      this.getLatestSnapshot()?.completedAt ??
+      this.getLatestSnapshot()?.startedAt ??
+      Date.now();
+    const observations =
+      this.repositories.funnelAnalytics?.getSince(
+        referenceTime - SIGNAL_FUNNEL_MAX_RETENTION_MS,
+        referenceTime
+      ) ?? [];
+    return buildSignalFunnelDashboard(observations, referenceTime);
+  }
+
+  /** Read recorded observations for persistence/diagnostics. */
+  getSignalFunnelObservations(
+    since: number,
+    until = Number.POSITIVE_INFINITY
+  ): SignalFunnelObservation[] {
+    return this.repositories.funnelAnalytics?.getSince(since, until) ?? [];
   }
 }
 

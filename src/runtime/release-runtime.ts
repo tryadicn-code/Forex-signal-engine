@@ -6,6 +6,8 @@ import {
   DEFAULT_TIMEFRAME_ROLES,
 } from "@/config/scanner";
 import { defaultEngineConfig } from "@/core/config/engine-config";
+import { DEFAULT_STRATEGY_CONFIG } from "@/core/strategies/config";
+import { STRATEGY_SYSTEM_POLICY } from "@/core/strategies/system-policy";
 import {
   findActiveStrategyVersion,
   verifyStrategyVersionManifest,
@@ -72,6 +74,9 @@ export function resolveReleaseRuntimeFromRegistry(
       .find((event) => event.status === "ACTIVE")?.changedAt ??
     manifest.registeredAt;
   const driftAreas = detectDefaultDrift(manifest);
+  const multiStrategyPinned =
+    manifest.strategySnapshot.strategyConfig !== undefined &&
+    manifest.strategySnapshot.strategySystem !== undefined;
   const state: ReleaseRuntimeState = {
     status: "ACTIVE",
     reason: "ACTIVE_RELEASE",
@@ -83,15 +88,17 @@ export function resolveReleaseRuntimeFromRegistry(
     activationAt,
     registryUpdatedAt: registry.updatedAt,
     resolvedAt,
-    pinned: true,
+    pinned: multiStrategyPinned,
     defaultDrift: driftAreas.length > 0,
     driftAreas,
     message:
-      driftAreas.length > 0
-        ? "ACTIVE release is pinned from its immutable manifest; current code defaults differ in: " +
-          driftAreas.join(", ") +
-          "."
-        : "ACTIVE release is pinned from its immutable validated strategy manifest.",
+      !multiStrategyPinned
+        ? "ACTIVE release predates complete multi-strategy governance. Scanning is observational until a new validated release pins strategy config and routing policy."
+        : driftAreas.length > 0
+          ? "ACTIVE release is pinned from its immutable manifest; current code defaults differ in: " +
+            driftAreas.join(", ") +
+            "."
+          : "ACTIVE release is pinned from its immutable validated strategy manifest.",
   };
 
   return {
@@ -114,6 +121,10 @@ export function resolveReleaseRuntimeFromRegistry(
       },
       engineConfig: structuredClone(
         manifest.strategySnapshot.engineConfig
+      ),
+      strategyConfig: structuredClone(
+        manifest.strategySnapshot.strategyConfig ??
+          DEFAULT_STRATEGY_CONFIG
       ),
     },
   };
@@ -163,6 +174,22 @@ function detectDefaultDrift(
     stableStringify(defaultEngineConfig)
   ) {
     drift.push("engineConfig");
+  }
+  if (manifest.strategySnapshot.strategyConfig === undefined) {
+    drift.push("strategyConfigLegacyUnpinned");
+  } else if (
+    stableStringify(manifest.strategySnapshot.strategyConfig) !==
+    stableStringify(DEFAULT_STRATEGY_CONFIG)
+  ) {
+    drift.push("strategyConfig");
+  }
+  if (manifest.strategySnapshot.strategySystem === undefined) {
+    drift.push("strategySystemLegacyUnpinned");
+  } else if (
+    stableStringify(manifest.strategySnapshot.strategySystem) !==
+    stableStringify(STRATEGY_SYSTEM_POLICY)
+  ) {
+    drift.push("strategySystem");
   }
   if (
     stableStringify(manifest.strategySnapshot.scanner.timeframeRoles) !==

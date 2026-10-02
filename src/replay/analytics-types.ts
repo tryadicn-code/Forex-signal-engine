@@ -38,6 +38,7 @@ export interface HistoricalSegmentPerformance {
 }
 
 export interface HistoricalPerformanceSegments {
+  byStrategy: HistoricalSegmentPerformance[];
   bySymbol: HistoricalSegmentPerformance[];
   byDirection: HistoricalSegmentPerformance[];
   byBias: HistoricalSegmentPerformance[];
@@ -134,6 +135,7 @@ export interface HistoricalForwardComparison {
 }
 
 export type HistoricalSegmentDimension =
+  | "strategy"
   | "symbol"
   | "direction"
   | "bias"
@@ -142,6 +144,7 @@ export type HistoricalSegmentDimension =
   | "closeReason";
 
 export interface HistoricalTradeClassification {
+  strategy: string;
   symbol: string;
   direction: HistoricalDirection;
   bias: string;
