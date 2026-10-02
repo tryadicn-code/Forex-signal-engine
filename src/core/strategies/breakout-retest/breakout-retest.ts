@@ -73,6 +73,7 @@ export function analyzeBreakoutRetest(
     bias: bias.data,
     pipSize,
     coreConfigOverrides: context.configOverrides,
+    strategyConfig: context.strategyConfigOverrides?.breakoutRetest,
     marketAsOf: setupAsOf,
   });
   const setup = setupAnalysis.result;
@@ -109,6 +110,7 @@ export function analyzeBreakoutRetest(
     direction: bias.data.direction,
     breakout: setupAnalysis.breakout,
     coreConfigOverrides: context.configOverrides,
+    strategyConfig: context.strategyConfigOverrides?.breakoutRetest,
     marketAsOf: triggerAsOf,
   });
 
