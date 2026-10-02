@@ -10,6 +10,7 @@ export interface StoragePaths {
   snapshots: string;
   brokerExecution: string;
   notifications: string;
+  signalFunnel: string;
 }
 
 export function resolveStoragePaths(
@@ -40,6 +41,9 @@ export function resolveStoragePaths(
     snapshots: path.join(dataDirectory, "snapshots"),
     brokerExecution: path.join(dataDirectory, "broker-execution.json"),
     notifications: path.join(dataDirectory, "notifications.json"),
+    signalFunnel:
+      env.FSE_SIGNAL_FUNNEL_STORE_PATH?.trim() ||
+      path.join(dataDirectory, "signal-funnel.json"),
   };
 }
 
