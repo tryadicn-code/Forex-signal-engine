@@ -10,6 +10,8 @@ export type AlertState =
 export interface AlertCandidate {
   key: string;
   signalId: string;
+  /** Strategy module that produced the signal. Null only on legacy events. */
+  strategyId: string | null;
   symbol: string;
   direction: "LONG" | "SHORT";
   state: AlertState;
