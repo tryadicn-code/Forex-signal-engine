@@ -249,6 +249,15 @@ describe("Phase 5.9 strategy manifest", () => {
     expect(
       manifest.strategySnapshot.strategyConfig?.reversal.minTriggerScore
     ).toBe(90);
+    expect(
+      manifest.strategySnapshot.strategySystem?.regimeRouting.BREAKOUT
+    ).toBe("BREAKOUT_RETEST");
+    expect(
+      manifest.strategySnapshot.strategySystem?.regimeRouting.RANGE
+    ).toBe("RANGE_MEAN_REVERSION");
+    expect(
+      manifest.strategySnapshot.strategySystem?.regimeRouting.HIGH_VOLATILITY
+    ).toBe("CONDITIONAL_REVERSAL");
     expect(manifest.strategySnapshot.scanner.timeframeRoles.trigger).toBe("M15");
     expect(manifest.validationSummary.protocol).toBe("phase-5.7-v1");
     expect(manifest.releaseGateAudit.protocol).toBe("phase-5.8-v1");
