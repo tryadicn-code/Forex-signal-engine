@@ -25,8 +25,9 @@
 
 import type { MarketSnapshot, Timeframe } from "@/types/market";
 import type { CanonicalCandle, NewsRiskContext } from "@/types/market-data";
-import type { PipelineResult } from "@/core/orchestrator";
-import { analyzeMarket } from "@/core/orchestrator";
+import type { PipelineResult, RoutedAnalysisResult } from "@/core/orchestrator";
+import { analyzeMarketWithRouting } from "@/core/orchestrator";
+import type { StrategyRoutingDecision } from "@/core/strategies/router";
 import type { Evidence, Conflict } from "@/types/engine";
 import { resolveScannerConfig } from "@/config/scanner";
 import type { DeepPartial } from "@/core/config/engine-config";
@@ -286,11 +287,12 @@ export class ScannerService {
 
     const context = outcome.context;
     const news = await this.fetchNewsRisk(symbol, asOf);
-    const pipeline = this.runPipeline(
+    const routedAnalysis = this.runPipeline(
       context,
       asOf,
       news?.evaluationStatus === "EVALUATED" ? news.newsPending : undefined
     );
+    const pipeline = routedAnalysis.pipeline;
     const stale = context.freshness.status === "STALE";
     const conversionUnresolved =
       context.metadata.quoteCurrency !== context.accountCurrency &&
@@ -332,6 +334,7 @@ export class ScannerService {
       lifecycle,
       news,
       stale,
+      routing: routedAnalysis.routing,
       asOf,
     });
 
@@ -352,13 +355,13 @@ export class ScannerService {
     context: BuildContextOutcome["context"],
     asOf: number,
     newsPending?: boolean
-  ): PipelineResult {
+  ): RoutedAnalysisResult {
     const instrument = toCurrencyPair(context!.metadata);
     const biasTimeframe = context!.h4.timeframe;
     const setupTimeframe = context!.h1.timeframe;
     const triggerTimeframe = context!.m15.timeframe;
 
-    return analyzeMarket({
+    return analyzeMarketWithRouting({
       instrument,
       biasTimeframe: {
         timeframe: biasTimeframe,
@@ -542,9 +545,10 @@ export class ScannerService {
     lifecycle: SignalLifecycleState | null;
     news: NewsRiskContext | null;
     stale: boolean;
+    routing: StrategyRoutingDecision;
     asOf: number;
   }): SymbolScanResult {
-    const { symbol, context, pipeline, lifecycle, news, asOf } = input;
+    const { symbol, context, pipeline, lifecycle, news, routing, asOf } = input;
     const trigger = pipeline.trigger?.data ?? null;
     const risk = pipeline.risk?.data ?? null;
     const setup = pipeline.setup.data;
@@ -563,6 +567,8 @@ export class ScannerService {
       latestPrice: context!.latestPrice,
       spreadPips: context!.spreadPips ?? null,
       regime: pipeline.regime.data.regime,
+      strategyId: routing.selectedStrategyId,
+      strategyRouting: routing,
       bias: pipeline.bias.data.label,
       biasScore: pipeline.bias.data.score,
       biasDirection: pipeline.bias.data.direction,
