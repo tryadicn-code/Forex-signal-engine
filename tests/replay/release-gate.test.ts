@@ -33,6 +33,8 @@ const PERMISSIVE_THRESHOLDS: ReleaseGateThresholds = {
   maxEquityDrawdownPercent: 100,
   minPositiveSequentialFolds: 0,
   blockOnSampleWarnings: false,
+  numberOfDevelopmentTrials: 1,
+  multipleTestingAlpha: 0.05,
 };
 
 function trade(

@@ -10,6 +10,7 @@ import {
   DEFAULT_RELEASE_GATE_THRESHOLDS,
   type ReleaseGateThresholds,
 } from "@/replay/release-gate-config";
+import { evaluateMultipleTesting } from "@/replay/multiple-testing";
 import type {
   BacktestReleaseReview,
   ReleaseEvidenceItem,
@@ -352,6 +353,36 @@ export function assertQuantitativeReleaseGate(
         warnings.length +
           " sample adequacy warning(s): " +
           warnings.map((warning) => warning.code).join(", ") +
+          "."
+      );
+    }
+  }
+
+  // B3-M4: multiple-testing correction. A strategy selected from many
+  // parameter combinations must clear a stricter significance bar than one
+  // never tuned against the data.
+  const multipleTesting = evaluateMultipleTesting({
+    trades: artifact.execution.trades,
+    numberOfDevelopmentTrials: thresholds.numberOfDevelopmentTrials,
+    alpha: thresholds.multipleTestingAlpha,
+  });
+  if (multipleTesting.enabled) {
+    const observed = multipleTesting.observedTStatistic;
+    const required = multipleTesting.requiredTStatistic;
+    if (
+      observed === null ||
+      required === null ||
+      observed < required
+    ) {
+      failures.push(
+        "Multiple-testing correction failed: observed t=" +
+          formatMetricForGate(observed) +
+          " < required t=" +
+          formatMetricForGate(required) +
+          " for " +
+          multipleTesting.numberOfTrials +
+          " trial(s) at alpha=" +
+          multipleTesting.alpha +
           "."
       );
     }

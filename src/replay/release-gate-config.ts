@@ -46,6 +46,20 @@ export interface ReleaseGateThresholds {
    * diagnostics layer coherent.
    */
   blockOnSampleWarnings: boolean;
+  /**
+   * B3-M4: how many distinct parameter combinations were evaluated during
+   * development, INCLUDING the final chosen configuration. A value of 1
+   * disables the multiple-testing correction and is appropriate only when
+   * the strategy was never tuned against the data. Honest reporting is
+   * mandatory: understating this number weakens the gate.
+   */
+  numberOfDevelopmentTrials: number;
+  /**
+   * B3-M4: significance level for the Bonferroni-corrected t-test. 0.05 is
+   * the conventional choice; tightening to 0.01 is reasonable when the
+   * strategy is expected to trade a large live account.
+   */
+  multipleTestingAlpha: number;
 }
 
 export const DEFAULT_RELEASE_GATE_THRESHOLDS: ReleaseGateThresholds = {
@@ -55,4 +69,6 @@ export const DEFAULT_RELEASE_GATE_THRESHOLDS: ReleaseGateThresholds = {
   maxEquityDrawdownPercent: 20,
   minPositiveSequentialFolds: 3,
   blockOnSampleWarnings: true,
+  numberOfDevelopmentTrials: 1,
+  multipleTestingAlpha: 0.05,
 };
