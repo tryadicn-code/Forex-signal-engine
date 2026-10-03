@@ -55,6 +55,11 @@ export interface ReleaseGateThresholds {
    */
   numberOfDevelopmentTrials: number;
   /**
+   * Optional. Minimum acceptable Deflated Sharpe Ratio on the probability
+   * scale (0..1). When undefined the DSR gate is skipped. Recommended >= 0.95.
+   */
+  minDeflatedSharpeProbability?: number;
+  /**
    * B3-M4: significance level for the Bonferroni-corrected t-test. 0.05 is
    * the conventional choice; tightening to 0.01 is reasonable when the
    * strategy is expected to trade a large live account.

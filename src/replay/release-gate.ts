@@ -11,6 +11,7 @@ import {
   type ReleaseGateThresholds,
 } from "@/replay/release-gate-config";
 import { evaluateMultipleTesting } from "@/replay/multiple-testing";
+import { deflatedSharpe } from "@/replay/deflated-sharpe";
 import type {
   BacktestReleaseReview,
   ReleaseEvidenceItem,
@@ -366,6 +367,45 @@ export function assertQuantitativeReleaseGate(
     numberOfDevelopmentTrials: thresholds.numberOfDevelopmentTrials,
     alpha: thresholds.multipleTestingAlpha,
   });
+
+  // C2: Deflated Sharpe Ratio gate. Skipped when the threshold is undefined,
+  // so existing artifacts and tests remain unaffected until the operator
+  // opts in by setting minDeflatedSharpeProbability.
+  if (thresholds.minDeflatedSharpeProbability !== undefined) {
+    const rValues = artifact.execution.trades.map((t) => t.realizedR);
+    if (rValues.length >= 4) {
+      try {
+        const dsr = deflatedSharpe({
+          returns: rValues,
+          numberOfTrials: thresholds.numberOfDevelopmentTrials,
+        });
+        if (dsr.deflatedSharpe < thresholds.minDeflatedSharpeProbability) {
+          failures.push(
+            "Deflated Sharpe Ratio " +
+              dsr.deflatedSharpe.toFixed(4) +
+              " < required " +
+              thresholds.minDeflatedSharpeProbability +
+              " (observed SR=" +
+              dsr.sharpeRatio.toFixed(4) +
+              ", expected max SR=" +
+              dsr.expectedMaxSharpe.toFixed(4) +
+              ", trials=" +
+              dsr.trials +
+              ")."
+          );
+        }
+      } catch (error) {
+        failures.push(
+          "Deflated Sharpe Ratio could not be computed: " +
+            (error instanceof Error ? error.message : String(error))
+        );
+      }
+    } else {
+      failures.push(
+        "Deflated Sharpe Ratio requires at least 4 return observations."
+      );
+    }
+  }
   if (multipleTesting.enabled) {
     const observed = multipleTesting.observedTStatistic;
     const required = multipleTesting.requiredTStatistic;
