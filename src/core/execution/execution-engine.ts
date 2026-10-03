@@ -72,10 +72,14 @@ export function decide(input: ExecutionInput): EngineResult<ExecutionResultData>
   const dataAgeMs =
     context.marketDataAgeMs ??
     (hasSnapshot ? context.now - snapshot.asOf : 0);
+  const perRole = context.marketDataFreshnessByRole;
+  const scannerFreshness = perRole?.trigger ?? context.marketDataFreshness;
   const dataFresh =
     hasSnapshot &&
-    (context.marketDataFreshness !== undefined
-      ? context.marketDataFreshness === "FRESH"
+    (scannerFreshness !== undefined
+      ? mode === "LIVE"
+        ? scannerFreshness === "FRESH"
+        : scannerFreshness !== "STALE"
       : dataAgeMs <= config.execution.maxDataAgeMs);
 
   // Spread is mandatory only in LIVE; elsewhere the provider may omit it.

@@ -8,10 +8,6 @@ import type { SetupResultData, TriggerResultData } from "@/types/engine";
  * the array. Using the latest bar misprices R:R whenever a trigger is
  * confirmed several bars late, and leaks lookahead if the final candle is
  * still forming.
- *
- * Fallback order:
- *  1. Close of the trigger bar (if triggerIndex is a valid index).
- *  2. Midpoint of the setup zone (only when the trigger bar cannot be located).
  */
 export function resolveEntryPrice(
   candles: readonly OHLCV[],

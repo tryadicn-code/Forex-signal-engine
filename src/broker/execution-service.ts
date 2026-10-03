@@ -440,12 +440,21 @@ export class BrokerExecutionService {
       try {
         const brokerResult =
           await this.options.provider.placeOrder(intent);
-        await this.markRecord(
-          intent.idempotencyKey,
+        const recordStatus: BrokerExecutionRecord["status"] =
           brokerResult.accepted
             ? "LIVE_ACCEPTED"
-            : "LIVE_REJECTED",
-          brokerResult.message,
+            : brokerResult.outcome === "UNKNOWN"
+              ? "RECONCILIATION_REQUIRED"
+              : "LIVE_REJECTED";
+        const recordMessage =
+          brokerResult.outcome === "UNKNOWN"
+            ? "Broker returned an uncertain transmission outcome. Automatic retry is forbidden: " +
+              brokerResult.message
+            : brokerResult.message;
+        await this.markRecord(
+          intent.idempotencyKey,
+          recordStatus,
+          recordMessage,
           preflight,
           brokerResult
         );
@@ -752,6 +761,16 @@ export class BrokerExecutionService {
     ) {
       blockers.push(
         "An open broker position already exists for this symbol."
+      );
+    }
+    // B2-M6: require a take profit level for live execution unless explicitly
+    // disabled. A live position without a TP can hang indefinitely.
+    if (
+      this.options.config.requireTakeProfitForLive &&
+      intent.takeProfit === null
+    ) {
+      blockers.push(
+        "Live execution requires a take profit level (FSE_LIVE_REQUIRE_TAKE_PROFIT)."
       );
     }
 

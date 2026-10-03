@@ -160,7 +160,7 @@ describe("decide - market data fails closed", () => {
 
   it("blocks when the snapshot is older than the max data age", () => {
     const result = decide(
-      greenInput({ snapshot: snapshot({ ageMs: 120_000, spreadPips: 1.2 }) })
+      greenInput({ snapshot: snapshot({ ageMs: 1_200_000, spreadPips: 1.2 }) })
     );
     expect(result.data.decision).toBe("BLOCKED");
     expect(result.data.triggeredVetoes).toContain("STALE_DATA");
@@ -168,7 +168,7 @@ describe("decide - market data fails closed", () => {
 
   it("still executes with data exactly at the freshness boundary", () => {
     const result = decide(
-      greenInput({ snapshot: snapshot({ ageMs: 60_000, spreadPips: 1.2 }) })
+      greenInput({ snapshot: snapshot({ ageMs: 900_000, spreadPips: 1.2 }) })
     );
     expect(result.data.decision).toBe("EXECUTE");
   });

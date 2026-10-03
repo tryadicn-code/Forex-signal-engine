@@ -102,8 +102,12 @@ export function analyzeReversal(
     pipSize,
     triggerAsOf
   );
+  const triggerCandles =
+    context.closedOnly === true
+      ? triggerTimeframe.snapshot.candles
+      : triggerTimeframe.snapshot.candles.slice(0, -1);
   const trigger = evaluateReversalTrigger({
-    candles: triggerTimeframe.snapshot.candles,
+    candles: triggerCandles,
     setup: setup.data,
     structure: triggerStructure.data,
     direction,
@@ -113,9 +117,7 @@ export function analyzeReversal(
     marketAsOf: triggerAsOf,
   });
 
-  const entry =
-    last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
-    (setup.data.zoneLow + setup.data.zoneHigh) / 2;
+  const entry = resolveEntryPrice(triggerCandles, setup.data, trigger.data);
 
   const explicitTargets =
     context.targetLevels && context.targetLevels.length > 0

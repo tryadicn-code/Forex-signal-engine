@@ -16,6 +16,7 @@ export interface BrokerExecutionConfig {
   blockSameSymbolPosition: boolean;
   armMaxMinutes: number;
   armMaxOrders: number;
+  requireTakeProfitForLive: boolean;
   liveLeaseMs: number;
   mt5BridgeUrl: string;
   mt5BridgeToken: string | null;
@@ -74,6 +75,10 @@ export function resolveBrokerExecutionConfig(
       env.FSE_LIVE_ARM_MAX_ORDERS,
       1
     ),
+    requireTakeProfitForLive: parseBoolean(
+      env.FSE_LIVE_REQUIRE_TAKE_PROFIT,
+      true
+    ),
     liveLeaseMs: parsePositiveInteger(
       env.FSE_LIVE_EXECUTION_LEASE_MS,
       30_000
@@ -129,7 +134,7 @@ function parseBoolean(
   const normalized = value.trim().toLowerCase();
   if (["1", "true", "yes", "on"].includes(normalized)) return true;
   if (["0", "false", "no", "off"].includes(normalized)) return false;
-  return fallback;
+  throw new Error(`Invalid boolean env value: "${value}"`);
 }
 
 function parsePositiveNumber(
@@ -138,7 +143,10 @@ function parsePositiveNumber(
 ): number {
   if (value == null || value.trim() === "") return fallback;
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`Invalid positive number env value: "${value}"`);
+  }
+  return parsed;
 }
 
 function parsePositiveInteger(

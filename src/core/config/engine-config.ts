@@ -185,9 +185,13 @@ export const defaultEngineConfig: EngineConfig = {
     structuralTargetBufferPips: 2,
   },
   execution: {
-    maxDataAgeMs: 60_000,
+    // Fallback freshness threshold when no per-timeframe classification exists.
+    // Sized to roughly one M15 bar so the fallback path is usable outside LIVE.
+    maxDataAgeMs: 900_000,
     maxSpreadPips: 5,
-    maxSignalAgeMs: 3_600_000,
+    // Absolute ceiling on signal age. Effective age is the tighter of this and
+    // signalTtl.triggerBars converted to ms via the trigger timeframe.
+    maxSignalAgeMs: 5_400_000,
   },
 };
 

@@ -104,8 +104,12 @@ export function analyzeBreakoutRetest(
     triggerAsOf
   );
 
+  const triggerCandles =
+    context.closedOnly === true
+      ? triggerTimeframe.snapshot.candles
+      : triggerTimeframe.snapshot.candles.slice(0, -1);
   const trigger = evaluateBreakoutRetestTrigger({
-    candles: triggerTimeframe.snapshot.candles,
+    candles: triggerCandles,
     setup: setup.data,
     structure: triggerStructure.data,
     direction: bias.data.direction,
@@ -115,9 +119,7 @@ export function analyzeBreakoutRetest(
     marketAsOf: triggerAsOf,
   });
 
-  const entry =
-    last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
-    (setup.data.zoneHigh + setup.data.zoneLow) / 2;
+  const entry = resolveEntryPrice(triggerCandles, setup.data, trigger.data);
 
   const explicitTargets =
     context.targetLevels && context.targetLevels.length > 0

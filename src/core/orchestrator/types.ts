@@ -51,6 +51,12 @@ export interface AnalysisContext {
   /** Strategy-specific thresholds; pinned by release governance when ACTIVE. */
   strategyConfigOverrides?: DeepPartial<StrategyConfigBundle>;
   vetoes?: Veto[];
+  /**
+   * True when the caller guarantees every snapshot in this context contains
+   * only closed candles. Strategies use this to skip the potentially-forming
+   * final bar during trigger detection.
+   */
+  closedOnly?: boolean;
 }
 
 export interface PipelineResult {

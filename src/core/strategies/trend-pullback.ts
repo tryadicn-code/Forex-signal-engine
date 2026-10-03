@@ -171,8 +171,12 @@ export function analyzeTrendPullback(context: AnalysisContext): PipelineResult {
     pipSize,
     triggerAsOf
   );
+  const triggerCandles =
+    context.closedOnly === true
+      ? triggerTimeframe.snapshot.candles
+      : triggerTimeframe.snapshot.candles.slice(0, -1);
   const trigger = evaluateTrigger(
-    triggerTimeframe.snapshot.candles,
+    triggerCandles,
     setup.data,
     triggerStructure.data,
     bias.data.direction,
@@ -183,9 +187,7 @@ export function analyzeTrendPullback(context: AnalysisContext): PipelineResult {
   // 6. Risk on the frozen entry candidate, and only then. While the trigger is
   // still WAITING there is nothing to size, so no provisional R:R leaks into
   // the execution decision as if it had been approved.
-  const entry =
-    last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
-    (setup.data.zoneHigh + setup.data.zoneLow) / 2;
+  const entry = resolveEntryPrice(triggerCandles, setup.data, trigger.data);
   const explicitTargets =
     context.targetLevels && context.targetLevels.length > 0
       ? context.targetLevels

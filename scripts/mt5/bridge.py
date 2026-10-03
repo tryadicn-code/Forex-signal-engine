@@ -781,6 +781,12 @@ def _send_trade(payload: dict[str, Any]) -> dict[str, Any]:
     partial = int(getattr(mt5, "TRADE_RETCODE_DONE_PARTIAL", 10010))
     placed = int(getattr(mt5, "TRADE_RETCODE_PLACED", 10008))
 
+    # Transmission-uncertain retcodes: the request may or may not have reached
+    # the broker. Report as UNKNOWN so the caller triggers reconciliation
+    # instead of retrying, which could double-order.
+    connection_lost = int(getattr(mt5, "TRADE_RETCODE_CONNECTION", 10031))
+    timeout = int(getattr(mt5, "TRADE_RETCODE_TIMEOUT", 10012))
+
     if retcode == done:
         outcome = "FILLED"
         accepted = True
@@ -790,6 +796,9 @@ def _send_trade(payload: dict[str, Any]) -> dict[str, Any]:
     elif retcode == placed:
         outcome = "PLACED"
         accepted = True
+    elif retcode in {connection_lost, timeout}:
+        outcome = "UNKNOWN"
+        accepted = False
     else:
         outcome = "REJECTED"
         accepted = False
