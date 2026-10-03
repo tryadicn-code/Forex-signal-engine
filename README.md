@@ -160,3 +160,36 @@ independently.
 - Broker config falls back to safe defaults instead of crashing the process.
 - Integer environment variables throw on non-integer input.
 - .env.example covers every variable read by the bridge.
+
+$f = "README.md"
+$c = [System.IO.File]::ReadAllText($f)
+
+$old = @'
+**Batch 6 — Configuration**
+- Broker config falls back to safe defaults instead of crashing the process.
+- Integer environment variables throw on non-integer input.
+- .env.example covers every variable read by the bridge.
+'@
+
+$new = @'
+**Batch 6 — Configuration**
+- Broker config falls back to safe defaults instead of crashing the process.
+- Integer environment variables throw on non-integer input.
+- .env.example covers every variable read by the bridge.
+
+**Batch 7 — Signal lifecycle and paper trading**
+- INVALIDATED lifecycles spawn fresh occurrences instead of reviving under
+  the old signalId.
+- Transition history is capped at 200 entries per lifecycle.
+- Paper trading computes a per-position candle lookback, fixing silent
+  SL/TP misses on old positions.
+- transitionSignal contract documented; callers must attachIdentity.
+'@
+
+if (-not $c.Contains($old)) {
+  Write-Host "Anchor not found. Update README manual." -ForegroundColor Red
+} else {
+  $c = $c.Replace($old, $new)
+  [System.IO.File]::WriteAllText($f, $c, (New-Object System.Text.UTF8Encoding $false))
+  Write-Host "[OK] README updated" -ForegroundColor Green
+}
