@@ -356,10 +356,7 @@ export class HistoricalExecutionSimulator {
       }
 
       // B3-H4: reject when free margin cannot cover the candidate.
-      const marginRejection = this.validateMarginCapacity(
-        result,
-        effectiveFillPrice
-      );
+      const marginRejection = this.validateMarginCapacity(result);
       if (marginRejection) {
         this.orders.push(
           rejectedOrder(result, executionKey, step.asOf, marginRejection)
@@ -719,8 +716,7 @@ export class HistoricalExecutionSimulator {
    * passes.
    */
   private validateMarginCapacity(
-    result: SymbolScanResult,
-    fillPrice: number
+    result: SymbolScanResult
   ): string | null {
     if (this.leverage <= 0) return null;
     const risk = result.riskDetail!;

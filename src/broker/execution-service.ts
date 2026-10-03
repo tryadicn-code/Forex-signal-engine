@@ -408,7 +408,7 @@ export class BrokerExecutionService {
           null,
           lease.fencingToken
         );
-        await this.refundLiveAttempt(intent);
+        await this.refundLiveAttempt();
         return;
       }
 
@@ -421,7 +421,7 @@ export class BrokerExecutionService {
           null,
           lease.fencingToken
         );
-        await this.refundLiveAttempt(intent);
+        await this.refundLiveAttempt();
         return;
       }
 
@@ -437,7 +437,7 @@ export class BrokerExecutionService {
           null,
           lease.fencingToken
         );
-        await this.refundLiveAttempt(intent);
+        await this.refundLiveAttempt();
         return;
       }
 
@@ -799,9 +799,7 @@ export class BrokerExecutionService {
    * order from ever reaching the broker. Called on every pre-submit abort
    * path. Safe no-op if the arm has already expired or been disarmed.
    */
-  private async refundLiveAttempt(
-    intent: BrokerOrderIntent
-  ): Promise<void> {
+  private async refundLiveAttempt(): Promise<void> {
     await this.options.store.update((state) => {
       const next = structuredClone(state);
       const arm = next.controls.liveArm;
@@ -919,13 +917,6 @@ export class BrokerExecutionService {
     // positions cannot be read, fail closed rather than assuming zero exposure.
     return this.options.provider.listOpenPositions();
   }
-}
-
-function candidateAge(result: SymbolScanResult): number {
-  // Lower is fresher. Unknown age sorts last.
-  return typeof result.triggerAgeBars === "number"
-    ? result.triggerAgeBars
-    : Number.MAX_SAFE_INTEGER;
 }
 
 function isExecutableCandidate(result: SymbolScanResult): boolean {

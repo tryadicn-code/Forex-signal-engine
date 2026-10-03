@@ -7,7 +7,7 @@ import { evaluateRisk } from "@/core/risk";
 import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
-import { last } from "@/core/indicators";
+
 import { resolveEntryPrice } from "@/core/strategies/entry-price";
 import { analyzeBreakoutRetestSetup } from "./setup";
 import { evaluateBreakoutRetestTrigger } from "./trigger";

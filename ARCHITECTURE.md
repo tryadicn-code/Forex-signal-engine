@@ -114,3 +114,13 @@ tests/               Mirrors the source tree
 
 Empty folders are avoided: each directory above is created only when it contains
 real code.
+
+
+## Current implementation status
+
+The original pipeline diagram in this document describes the canonical
+ordering. The implementation has since grown a scanner, paper trading,
+historical and forward validation, immutable strategy releases, shared
+transactional state, broker execution safety, and realtime alerting. Refer
+to README.md "Audit History" for the latest audit pass, and to the per-phase
+documents under docs/ for the operational contract of each layer.

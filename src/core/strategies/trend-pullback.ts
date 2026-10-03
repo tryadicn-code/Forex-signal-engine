@@ -10,7 +10,7 @@ import { evaluateRisk } from "@/core/risk";
 import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
-import { last } from "@/core/indicators";
+
 import { resolveEntryPrice } from "@/core/strategies/entry-price";
 
 export const TREND_PULLBACK_STRATEGY_ID = "TREND_PULLBACK" as const;

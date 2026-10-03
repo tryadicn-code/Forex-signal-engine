@@ -5,7 +5,7 @@ import { classifyRegime } from "@/core/regime";
 import { evaluateRisk } from "@/core/risk";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
-import { last } from "@/core/indicators";
+
 import { resolveEntryPrice } from "@/core/strategies/entry-price";
 import { analyzeRangeMeanReversionSetup } from "./setup";
 import { evaluateRangeMeanReversionTrigger } from "./trigger";
