@@ -60,6 +60,12 @@ export interface ReleaseGateThresholds {
    */
   minDeflatedSharpeProbability?: number;
   /**
+   * Optional. Maximum acceptable single-strategy path failure rate
+   * (fraction of CSCV splits where OOS Sharpe <= 0). When undefined the
+   * path-robustness gate is skipped. Recommended <= 0.2.
+   */
+  maxPathFailureRate?: number;
+  /**
    * B3-M4: significance level for the Bonferroni-corrected t-test. 0.05 is
    * the conventional choice; tightening to 0.01 is reasonable when the
    * strategy is expected to trade a large live account.

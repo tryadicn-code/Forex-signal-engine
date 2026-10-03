@@ -69,6 +69,7 @@ export interface HistoricalExecutionConfig {
    * times this hour is crossed while a position is open.
    */
   rolloverHourUtc?: number;
+  tripleSwapWeekday?: number;
   /**
    * B3-H4: broker leverage used to compute required margin. Example 100 for
    * 1:100 leverage, 30 for 1:30. Undefined (default) disables both the

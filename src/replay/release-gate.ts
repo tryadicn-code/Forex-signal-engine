@@ -12,6 +12,7 @@ import {
 } from "@/replay/release-gate-config";
 import { evaluateMultipleTesting } from "@/replay/multiple-testing";
 import { deflatedSharpe } from "@/replay/deflated-sharpe";
+import { pathRobustnessDiagnostic } from "@/replay/pbo";
 import type {
   BacktestReleaseReview,
   ReleaseEvidenceItem,
@@ -424,6 +425,42 @@ export function assertQuantitativeReleaseGate(
           " trial(s) at alpha=" +
           multipleTesting.alpha +
           "."
+      );
+    }
+  }
+
+  // C3: single-strategy path robustness gate. Skipped when the threshold is
+  // undefined, so existing artifacts and tests remain unaffected until the
+  // operator opts in by setting maxPathFailureRate.
+  if (thresholds.maxPathFailureRate !== undefined) {
+    const rValues = artifact.execution.trades.map((t) => t.realizedR);
+    if (rValues.length >= 20) {
+      try {
+        const robustness = pathRobustnessDiagnostic({ returns: rValues });
+        if (robustness.outOfSampleFailureRate > thresholds.maxPathFailureRate) {
+          failures.push(
+            "Path failure rate " +
+              robustness.outOfSampleFailureRate.toFixed(4) +
+              " > allowed " +
+              thresholds.maxPathFailureRate +
+              " (CSCV splits=" +
+              robustness.combinations +
+              ", OOS Sharpe mean=" +
+              robustness.outOfSampleSharpeMean.toFixed(4) +
+              ", robustness score=" +
+              robustness.robustnessScore.toFixed(4) +
+              ")."
+          );
+        }
+      } catch (error) {
+        failures.push(
+          "Path robustness could not be computed: " +
+            (error instanceof Error ? error.message : String(error))
+        );
+      }
+    } else {
+      failures.push(
+        "Path robustness requires at least 20 return observations."
       );
     }
   }

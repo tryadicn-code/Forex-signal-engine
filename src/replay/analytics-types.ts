@@ -35,9 +35,9 @@ export interface HistoricalSegmentPerformance {
   averageR: number | null;
   expectancyR: number | null;
   /** Per-trade Sharpe on R values. Not annualized. Null if stdDev = 0. */
-  sharpeR: number | null;
+  sharpeR?: number | null;
   /** Per-trade Sortino on R values. Not annualized. Null if no losing trades. */
-  sortinoR: number | null;
+  sortinoR?: number | null;
   profitFactor: number | null;
 }
 
@@ -78,9 +78,9 @@ export interface HistoricalBacktestAnalytics {
   standardDeviationR: number | null;
   expectancyR: number | null;
   /** Per-trade Sharpe on R values. Not annualized. Null if stdDev = 0. */
-  sharpeR: number | null;
+  sharpeR?: number | null;
   /** Per-trade Sortino on R values. Not annualized. Null if no losing trades. */
-  sortinoR: number | null;
+  sortinoR?: number | null;
   bestTradePnL: number | null;
   worstTradePnL: number | null;
   bestTradeR: number | null;
@@ -124,9 +124,9 @@ export interface ComparablePerformance {
   profitFactor: number | null;
   expectancyR: number | null;
   /** Per-trade Sharpe on R values. Not annualized. Null if stdDev = 0. */
-  sharpeR: number | null;
+  sharpeR?: number | null;
   /** Per-trade Sortino on R values. Not annualized. Null if no losing trades. */
-  sortinoR: number | null;
+  sortinoR?: number | null;
   averageR: number | null;
   maxDrawdownPercent: number;
   netReturnPercent: number;
@@ -141,9 +141,9 @@ export interface HistoricalForwardComparison {
     profitFactor: number | null;
     expectancyR: number | null;
   /** Per-trade Sharpe on R values. Not annualized. Null if stdDev = 0. */
-  sharpeR: number | null;
+  sharpeR?: number | null;
   /** Per-trade Sortino on R values. Not annualized. Null if no losing trades. */
-  sortinoR: number | null;
+  sortinoR?: number | null;
     averageR: number | null;
     maxDrawdownPercent: number;
     netReturnPercent: number;

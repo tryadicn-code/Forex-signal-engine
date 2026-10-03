@@ -172,6 +172,8 @@ export function toComparableHistoricalPerformance(
     profitFactor: analytics.profitFactor,
     expectancyR: analytics.expectancyR,
     averageR: analytics.averageR,
+    sharpeR: analytics.sharpeR ?? null,
+    sortinoR: analytics.sortinoR ?? null,
     maxDrawdownPercent: analytics.maxEquityDrawdownPercent,
     netReturnPercent: analytics.netReturnPercent,
   };
@@ -194,6 +196,8 @@ export function compareHistoricalToForward(
       profitFactor: nullableDelta(forward.profitFactor, historical.profitFactor),
       expectancyR: nullableDelta(forward.expectancyR, historical.expectancyR),
       averageR: nullableDelta(forward.averageR, historical.averageR),
+      sharpeR: nullableDelta(forward.sharpeR ?? null, historical.sharpeR ?? null),
+      sortinoR: nullableDelta(forward.sortinoR ?? null, historical.sortinoR ?? null),
       maxDrawdownPercent:
         forward.maxDrawdownPercent - historical.maxDrawdownPercent,
       netReturnPercent:
