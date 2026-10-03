@@ -192,17 +192,30 @@ function artifact(): BacktestRunArtifact {
 }
 
 describe("Phase 5.6 temporal holdout", () => {
-  it("assigns trades by entry time so pre-boundary positions cannot leak into OOS", () => {
-    const result = calculateTemporalHoldout(artifact(), 0.7);
+  it("assigns trades by entry time when purge is disabled (legacy behavior)", () => {
+    // This test isolates the "assign by entry time" rule from purge. With
+    // purge disabled, a trade whose entry lies before the split is counted
+    // in-sample even if it closes after the split. See the purge test below
+    // for the stricter default behavior.
+    const result = calculateTemporalHoldout(artifact(), 0.7, { purge: false });
 
     expect(result.splitAt).toBe(START + 70 * DAY);
     expect(result.inSample.metrics.sampleSize).toBe(3);
     expect(result.outOfSample.metrics.sampleSize).toBe(3);
-
-    // The crossing trade opened on day 65 and closed on day 75. It belongs
-    // to in-sample because the entry decision existed before the OOS boundary.
     expect(result.inSample.metrics.netR).toBe(2);
     expect(result.outOfSample.metrics.netR).toBe(2);
+  });
+
+  it("purges boundary-spanning trades from in-sample by default (H4-4)", () => {
+    // The crossing trade opened on day 65 and closed on day 75. Its price
+    // path spans the split, so counting its realized PnL in-sample leaks
+    // out-of-sample information backwards. Default purge removes it from
+    // in-sample without moving it to OOS (its entry is still pre-split).
+    const result = calculateTemporalHoldout(artifact(), 0.7);
+
+    expect(result.splitAt).toBe(START + 70 * DAY);
+    expect(result.inSample.metrics.sampleSize).toBe(2);
+    expect(result.outOfSample.metrics.sampleSize).toBe(3);
   });
 
   it("fails closed for extreme holdout ratios", () => {
