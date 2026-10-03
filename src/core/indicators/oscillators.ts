@@ -58,7 +58,9 @@ export function macd(
   slowPeriod = 26,
   signalPeriod = 9
 ): MacdResult {
-  const macdLine = ema(values, fastPeriod).map((v, i) => v - ema(values, slowPeriod)[i]);
+  const emaFast = ema(values, fastPeriod);
+  const emaSlow = ema(values, slowPeriod);
+  const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
   const signalLine = ema(macdLine, signalPeriod);
   const histogram = macdLine.map((v, i) => v - signalLine[i]);
   return { macd: macdLine, signal: signalLine, histogram };

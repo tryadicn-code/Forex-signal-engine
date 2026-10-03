@@ -171,12 +171,7 @@ export function analyzeTrendPullback(context: AnalysisContext): PipelineResult {
     pipSize,
     triggerAsOf
   );
-  // C2: scanner delivers closed-only snapshots. Only strip the last bar when
-  // the caller explicitly says it may still be forming (closedOnly === false).
-  const triggerCandles =
-    context.closedOnly === false
-      ? triggerTimeframe.snapshot.candles.slice(0, -1)
-      : triggerTimeframe.snapshot.candles;
+  const triggerCandles = resolveTriggerCandles(context.closedOnly, triggerTimeframe.snapshot.candles);
   const trigger = evaluateTrigger(
     triggerCandles,
     setup.data,

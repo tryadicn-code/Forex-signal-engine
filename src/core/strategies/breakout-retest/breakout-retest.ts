@@ -105,10 +105,12 @@ export function analyzeBreakoutRetest(
     triggerAsOf
   );
 
+  // C2: scanner delivers closed-only snapshots. Only strip the last bar when
+  // the caller explicitly says it may still be forming (closedOnly === false).
   const triggerCandles =
-    context.closedOnly === true
-      ? triggerTimeframe.snapshot.candles
-      : triggerTimeframe.snapshot.candles.slice(0, -1);
+    context.closedOnly === false
+      ? triggerTimeframe.snapshot.candles.slice(0, -1)
+      : triggerTimeframe.snapshot.candles;
   const trigger = evaluateBreakoutRetestTrigger({
     candles: triggerCandles,
     setup: setup.data,

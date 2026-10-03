@@ -33,15 +33,12 @@ export function ema(values: readonly number[], period: number): number[] {
   const out: number[] = new Array<number>(n);
   let prev = values[0];
   for (let i = 0; i < n; i++) {
-    if (i < period - 1) {
-      const seedSlice = values.slice(0, i + 1);
-      const partial = mean(seedSlice);
+    if (i < period) {
+      // Warmup: running mean of values[0..i]. At i = period-1 this is exactly
+      // the SMA seed of the first `period` values.
+      const partial = mean(values.slice(0, i + 1));
       out[i] = partial;
       prev = partial;
-    } else if (i === period - 1) {
-      const seed = mean(values.slice(0, period));
-      out[i] = seed;
-      prev = seed;
     } else {
       prev = values[i] * k + prev * (1 - k);
       out[i] = prev;

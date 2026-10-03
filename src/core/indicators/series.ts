@@ -56,8 +56,34 @@ export function clamp(value: number, min: number, max: number): number {
  * backtest reproduces identical timestamps. When no market time is supplied the
  * current wall clock is used, which is only valid for live operation.
  */
+let deterministicMode = false;
+
+/**
+ * Enable deterministic mode: any engineTimestamp() call without marketAsOf
+ * throws instead of silently using the wall clock, which would break replay
+ * reproducibility.
+ */
+export function setDeterministicMode(enabled: boolean): void {
+  deterministicMode = enabled;
+}
+
+export function isDeterministicMode(): boolean {
+  return deterministicMode;
+}
+
 export function engineTimestamp(marketAsOf?: number): string {
-  return new Date(marketAsOf ?? Date.now()).toISOString();
+  if (marketAsOf === undefined) {
+    if (deterministicMode) {
+      throw new Error(
+        "engineTimestamp() called without marketAsOf in deterministic mode."
+      );
+    }
+    return new Date().toISOString();
+  }
+  if (!Number.isFinite(marketAsOf)) {
+    throw new Error("engineTimestamp() marketAsOf must be finite.");
+  }
+  return new Date(marketAsOf).toISOString();
 }
 
 /**
