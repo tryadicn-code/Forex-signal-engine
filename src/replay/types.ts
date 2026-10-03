@@ -51,6 +51,12 @@ export interface ReplayRunConfig {
   accountCurrency?: string;
   riskPercent?: number;
   /** Optional Phase 5.2 historical order/position simulation. Disabled by default. */
+  /**
+   * B3-M1: when true, the replay clock skips timestamps that fall outside
+   * the modelled FX trading window (Friday 22:00 UTC through Sunday 21:00 UTC).
+   * Default false preserves legacy runs that evaluate every M15 bar.
+   */
+  skipNonTradingHours?: boolean;
   execution?: HistoricalExecutionConfig;
 }
 

@@ -5,6 +5,7 @@ import { HistoricalReplayProvider } from "@/replay/historical-replay-provider";
 import { HistoricalExecutionSimulator } from "@/replay/historical-execution-simulator";
 import { calculateHistoricalAnalytics } from "@/replay/backtest-analytics";
 import { HistoricalReplayClock } from "@/replay/replay-clock";
+import { isFxMarketOpen } from "@/replay/trading-hours";
 import type {
   ReplayDataset,
   ReplayRunConfig,
@@ -35,7 +36,7 @@ export class HistoricalReplayRunner {
       | "accountCurrency"
       | "riskPercent"
     >
-  >;
+  > & { skipNonTradingHours: boolean };
   private readonly provider: HistoricalReplayProvider;
   private readonly scannerApi: ScannerApi;
   private readonly executionSimulator: HistoricalExecutionSimulator | null;
@@ -61,7 +62,9 @@ export class HistoricalReplayRunner {
       accountBalance: config.accountBalance ?? DEFAULT_ACCOUNT.balance,
       accountCurrency: config.accountCurrency ?? DEFAULT_ACCOUNT.currency,
       riskPercent: config.riskPercent ?? DEFAULT_ACCOUNT.riskPercent,
-    };
+      // B3-M1: default false to preserve legacy behaviour.
+      skipNonTradingHours: config.skipNonTradingHours ?? false,
+    } as typeof this.config;
 
     this.provider = new HistoricalReplayProvider(dataset);
     this.executionSimulator = config.execution?.enabled
@@ -74,7 +77,13 @@ export class HistoricalReplayRunner {
     this.scannerApi = new ScannerApi(
       {
         providerId: this.provider.id,
-        executionMode: "PAPER",
+        // B3-H2: default PAPER preserves legacy behaviour, but real backtests
+        // should pass executionMode: "LIVE" so the strategy enforces the
+        // stricter live confirmation window (B2-H4) and the release gate
+        // reflects realistic trade counts.
+        executionMode:
+          (config as { executionMode?: "SIGNAL_ONLY" | "PAPER" | "LIVE" })
+            .executionMode ?? "PAPER",
         symbols: this.config.symbols,
         candleLookback: this.config.candleLookback,
         account: {
@@ -117,7 +126,15 @@ export class HistoricalReplayRunner {
     let firstStepAt: number | null = null;
     let lastStepAt: number | null = null;
 
+    let skippedNonTrading = 0;
     for (const asOf of clock) {
+      // B3-M1: skip bars outside the FX trading window. This avoids phantom
+      // signals from a closed Saturday session and keeps signal aging
+      // measured in real trading hours.
+      if (this.config.skipNonTradingHours && !isFxMarketOpen(asOf)) {
+        skippedNonTrading += 1;
+        continue;
+      }
       // Candle exits at this boundary are realized BEFORE evaluating new
       // signals at the same market time. The existing Risk Engine therefore
       // sizes new entries from the correct realized historical balance.
@@ -142,6 +159,14 @@ export class HistoricalReplayRunner {
       }
 
       index += 1;
+    }
+
+    if (skippedNonTrading > 0) {
+      console.warn(
+        "[HistoricalReplayRunner] skipped " +
+          skippedNonTrading +
+          " timestamp(s) outside the FX trading window."
+      );
     }
 
     const execution = this.executionSimulator?.getSummary() ?? null;
