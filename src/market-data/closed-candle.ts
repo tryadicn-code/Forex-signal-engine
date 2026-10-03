@@ -66,3 +66,17 @@ export function newestIsClosed(
   if (!last) return false;
   return isCandleClosed(timeframe, last.timestamp, asOf);
 }
+
+/**
+ * Index of the newest candle that is safe to reason about.
+ *
+ * When `closedOnly` is true the data provider guarantees the last array
+ * element is already closed and can be used directly. Otherwise we skip the
+ * final element (potentially still forming) to avoid lookahead.
+ *
+ * Returns -1 for an empty array.
+ */
+export function lastDecisionIndex(length: number, closedOnly: boolean): number {
+  if (length === 0) return -1;
+  return closedOnly ? length - 1 : Math.max(0, length - 2);
+}
