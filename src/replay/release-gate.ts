@@ -6,6 +6,10 @@ import {
 } from "@/replay/robustness-validation";
 import { buildSampleAdequacyWarnings } from "@/replay/statistical-diagnostics";
 import { toComparableHistoricalPerformance } from "@/replay/backtest-analytics";
+import {
+  DEFAULT_RELEASE_GATE_THRESHOLDS,
+  type ReleaseGateThresholds,
+} from "@/replay/release-gate-config";
 import type {
   BacktestReleaseReview,
   ReleaseEvidenceItem,
@@ -185,7 +189,8 @@ export function isReleaseReviewCurrent(
 
 export function validateReleaseReviewForPersistence(
   artifact: BacktestRunArtifact,
-  review: BacktestReleaseReview
+  review: BacktestReleaseReview,
+  thresholds: ReleaseGateThresholds = DEFAULT_RELEASE_GATE_THRESHOLDS
 ): void {
   if (!review.reviewer.trim()) {
     throw new Error("Release review requires a reviewer name/identifier.");
@@ -247,7 +252,122 @@ export function validateReleaseReviewForPersistence(
         "PROMOTE requires Forward Paper to be REVIEWED or explicitly WAIVED."
       );
     }
+
+    // B3-H3: quantitative gate. A strategy may not graduate to live unless
+    // it clears every statistical threshold on out-of-sample data. The
+    // checks below use the same diagnostics the release evidence panel
+    // already renders, so a reviewer sees exactly what blocks promotion.
+    assertQuantitativeReleaseGate(artifact, thresholds);
   }
+}
+
+/**
+ * B3-H3: quantitative release gate.
+ *
+ * Runs the 70/30 temporal holdout, the expanding-window sequential
+ * validation and the sample adequacy diagnostics one more time and rejects
+ * the PROMOTE decision if any threshold is missed. Extracted so tests can
+ * exercise it directly without persisting a review.
+ */
+export function assertQuantitativeReleaseGate(
+  artifact: BacktestRunArtifact,
+  thresholds: ReleaseGateThresholds
+): void {
+  const failures: string[] = [];
+
+  const holdout = calculateTemporalHoldout(artifact, 0.7);
+  const oos = holdout.outOfSample.metrics;
+
+  if (oos.sampleSize < thresholds.minOutOfSampleSampleSize) {
+    failures.push(
+      "Out-of-sample sample size " +
+        oos.sampleSize +
+        " < required " +
+        thresholds.minOutOfSampleSampleSize +
+        "."
+    );
+  }
+
+  const oosExpectancy = oos.expectancyR;
+  if (
+    oosExpectancy === null ||
+    !Number.isFinite(oosExpectancy) ||
+    oosExpectancy <= thresholds.minOutOfSampleExpectancyR
+  ) {
+    failures.push(
+      "Out-of-sample expectancy R " +
+        formatMetricForGate(oosExpectancy) +
+        " <= required " +
+        thresholds.minOutOfSampleExpectancyR +
+        "."
+    );
+  }
+
+  const oosProfitFactor = oos.profitFactor;
+  if (
+    oosProfitFactor === null ||
+    !Number.isFinite(oosProfitFactor) ||
+    oosProfitFactor <= thresholds.minOutOfSampleProfitFactor
+  ) {
+    failures.push(
+      "Out-of-sample profit factor " +
+        formatMetricForGate(oosProfitFactor) +
+        " <= required " +
+        thresholds.minOutOfSampleProfitFactor +
+        "."
+    );
+  }
+
+  const maxDD = artifact.analytics.maxEquityDrawdownPercent;
+  if (maxDD > thresholds.maxEquityDrawdownPercent) {
+    failures.push(
+      "Max equity drawdown " +
+        maxDD.toFixed(2) +
+        "% > allowed " +
+        thresholds.maxEquityDrawdownPercent +
+        "%."
+    );
+  }
+
+  const sequential = calculateSequentialValidation(artifact, 4);
+  if (
+    sequential.diagnostics.positiveExpectancyFolds <
+    thresholds.minPositiveSequentialFolds
+  ) {
+    failures.push(
+      "Positive sequential folds " +
+        sequential.diagnostics.positiveExpectancyFolds +
+        " < required " +
+        thresholds.minPositiveSequentialFolds +
+        "."
+    );
+  }
+
+  if (thresholds.blockOnSampleWarnings) {
+    const warnings = buildSampleAdequacyWarnings(artifact).filter(
+      (warning) => warning.severity === "WARNING"
+    );
+    if (warnings.length > 0) {
+      failures.push(
+        warnings.length +
+          " sample adequacy warning(s): " +
+          warnings.map((warning) => warning.code).join(", ") +
+          "."
+      );
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      "PROMOTE blocked by quantitative release gate:\n  - " +
+        failures.join("\n  - ")
+    );
+  }
+}
+
+function formatMetricForGate(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return "â€”";
+  return value.toFixed(2);
 }
 
 function countStatuses(
