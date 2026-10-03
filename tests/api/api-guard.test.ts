@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   isValidBacktestId,
   isValidSnapshotKey,
@@ -11,6 +11,15 @@ describe("api-guard path validation", () => {
   it("accepts sane backtest ids", () => {
     expect(isValidBacktestId("abc-123_XYZ")).toBe(true);
     expect(isValidBacktestId("a")).toBe(true);
+  });
+
+  it("rejects dot segments", () => {
+    expect(isValidBacktestId(".")).toBe(false);
+    expect(isValidBacktestId("..")).toBe(false);
+    expect(isValidStrategyVersion(".")).toBe(false);
+    expect(isValidStrategyVersion("..")).toBe(false);
+    expect(isValidSnapshotKey(".")).toBe(false);
+    expect(isValidSnapshotKey("..")).toBe(false);
   });
 
   it("rejects path traversal in backtest ids", () => {

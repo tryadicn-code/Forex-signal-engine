@@ -49,16 +49,25 @@ const ID_PATTERN = /^[A-Za-z0-9_-]{1,80}$/;
 const VERSION_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
 const SNAPSHOT_KEY_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 
+/**
+ * N8A-1: reject "." and ".." explicitly. They pass the character class
+ * because "." is allowed, but they would resolve to the current or parent
+ * directory when joined into a path. No legitimate identifier has that shape.
+ */
+function isNotDotSegment(value: string): boolean {
+  return value !== "." && value !== "..";
+}
+
 export function isValidBacktestId(id: string): boolean {
-  return ID_PATTERN.test(id);
+  return isNotDotSegment(id) && ID_PATTERN.test(id);
 }
 
 export function isValidStrategyVersion(version: string): boolean {
-  return VERSION_PATTERN.test(version);
+  return isNotDotSegment(version) && VERSION_PATTERN.test(version);
 }
 
 export function isValidSnapshotKey(key: string): boolean {
-  return SNAPSHOT_KEY_PATTERN.test(key);
+  return isNotDotSegment(key) && SNAPSHOT_KEY_PATTERN.test(key);
 }
 
 /**
