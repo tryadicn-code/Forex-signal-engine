@@ -758,41 +758,6 @@ export class BrokerExecutionService {
     return blockers;
   }
 
-  /**
-   * B2-H1: auto-escalate stale LIVE_SUBMITTING records.
-   *
-   * A process kill between reserveLiveAttempt and markRecord leaves a record
-   * stuck at LIVE_SUBMITTING. Without this, the broker may have received the
-   * order while FSE never reconciles. Escalating to RECONCILIATION_REQUIRED
-   * blocks new live orders and forces operator review.
-   */
-  private async normalizeStaleLiveSubmitting(
-    maxAgeMs: number = 10 * 60_000
-  ): Promise<void> {
-    const now = Date.now();
-    await this.options.store.update((state) => {
-      const stale = state.records.filter(
-        (record) =>
-          record.status === "LIVE_SUBMITTING" &&
-          now - record.updatedAt > maxAgeMs
-      );
-      if (stale.length === 0) return { next: state, result: null };
-      const next = structuredClone(state);
-      for (const s of stale) {
-        const target = next.records.find((r) => r.id === s.id);
-        if (target) {
-          target.status = "RECONCILIATION_REQUIRED";
-          target.message =
-            "Stale LIVE_SUBMITTING record auto-escalated after " +
-            Math.round(maxAgeMs / 1000) +
-            "s without update.";
-          target.updatedAt = now;
-        }
-      }
-      return { next, result: null };
-    });
-  }
-
   private async normalizeExpiredArm(): Promise<BrokerExecutionStoreState> {
     const current = await this.options.store.read();
     if (
@@ -838,13 +803,6 @@ export class BrokerExecutionService {
     // positions cannot be read, fail closed rather than assuming zero exposure.
     return this.options.provider.listOpenPositions();
   }
-}
-
-function candidateAge(result: SymbolScanResult): number {
-  // Lower is fresher. Unknown age sorts last.
-  return typeof result.triggerAgeBars === "number"
-    ? result.triggerAgeBars
-    : Number.MAX_SAFE_INTEGER;
 }
 
 function isExecutableCandidate(result: SymbolScanResult): boolean {

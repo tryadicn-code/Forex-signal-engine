@@ -135,6 +135,8 @@ export interface SymbolScanResult {
   /** Data-quality and provider issues, surfaced rather than hidden. */
   issues: ValidationIssue[];
   errors: string[];
+    /** B2-M4: trigger bar age; lower is fresher. Used to prioritise live candidates. */
+  triggerAgeBars?: number;
 }
 
 export type SymbolScanStatus =
