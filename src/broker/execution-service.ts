@@ -384,12 +384,13 @@ export class BrokerExecutionService {
       if (freshBlockers.length > 0) {
         await this.recordLiveRejection(
           intent,
-          freshBlockers.join("; ")
+          freshBlockers.join("; "),
+          lease.fencingToken
         );
         return;
       }
 
-      const reserved = await this.reserveLiveAttempt(intent);
+      const reserved = await this.reserveLiveAttempt(intent, lease.fencingToken);
       if (!reserved) return;
 
       let preflight;
@@ -402,7 +403,8 @@ export class BrokerExecutionService {
           "Broker preflight failed safely before submission: " +
             errorMessage(error),
           null,
-          null
+          null,
+          lease.fencingToken
         );
         await this.refundLiveAttempt(intent);
         return;
@@ -414,7 +416,8 @@ export class BrokerExecutionService {
           "LIVE_PREFLIGHT_REJECTED",
           preflight.message,
           preflight,
-          null
+          null,
+          lease.fencingToken
         );
         await this.refundLiveAttempt(intent);
         return;
@@ -429,7 +432,8 @@ export class BrokerExecutionService {
           "LIVE_PREFLIGHT_REJECTED",
           "Broker volume normalization differs from the frozen execution intent.",
           preflight,
-          null
+          null,
+          lease.fencingToken
         );
         await this.refundLiveAttempt(intent);
         return;
@@ -440,7 +444,8 @@ export class BrokerExecutionService {
         "LIVE_SUBMITTING",
         "Broker preflight passed; one live submission is in progress.",
         preflight,
-        null
+        null,
+        lease.fencingToken
       );
 
       try {
@@ -462,7 +467,8 @@ export class BrokerExecutionService {
           recordStatus,
           recordMessage,
           preflight,
-          brokerResult
+          brokerResult,
+          lease.fencingToken
         );
       } catch (error) {
         await this.markRecord(
@@ -480,7 +486,8 @@ export class BrokerExecutionService {
   }
 
   private async reserveLiveAttempt(
-    intent: BrokerOrderIntent
+    intent: BrokerOrderIntent,
+    fencingToken?: number
   ): Promise<boolean> {
     return this.options.store.update((state) => {
       if (
@@ -543,12 +550,13 @@ export class BrokerExecutionService {
       };
       next.records = [...next.records, record].slice(-500);
       return { next, result: true };
-    });
+    }, fencingToken);
   }
 
   private async recordLiveRejection(
     intent: BrokerOrderIntent,
-    message: string
+    message: string,
+    fencingToken?: number
   ): Promise<void> {
     const now = Date.now();
     await this.options.store.update((state) => {
@@ -588,7 +596,7 @@ export class BrokerExecutionService {
         },
       ].slice(-500);
       return { next, result: null };
-    });
+    }, fencingToken);
   }
 
   private async markRecord(
@@ -596,7 +604,8 @@ export class BrokerExecutionService {
     status: BrokerExecutionRecord["status"],
     message: string,
     preflight: BrokerExecutionRecord["preflight"],
-    brokerResult: BrokerExecutionRecord["brokerResult"]
+    brokerResult: BrokerExecutionRecord["brokerResult"],
+    fencingToken?: number
   ): Promise<void> {
     await this.options.store.update((state) => {
       const next = structuredClone(state);
@@ -614,7 +623,7 @@ export class BrokerExecutionService {
       if (preflight) record.preflight = preflight;
       if (brokerResult) record.brokerResult = brokerResult;
       return { next, result: null };
-    });
+    }, fencingToken);
   }
 
   private async findByKey(
