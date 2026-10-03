@@ -868,19 +868,48 @@ function evaluateHistoricalBarExit(
 
   if (stopTouched && targetTouched) {
     if (policy === "REJECT_AMBIGUOUS") {
-      return { exitPrice: position.stopLoss, reason: "AMBIGUOUS_BAR" };
+      return {
+        exitPrice: stopExitPrice(position, candle),
+        reason: "AMBIGUOUS_BAR",
+      };
     }
     if (policy === "TARGET_FIRST" && position.takeProfit !== null) {
       return { exitPrice: position.takeProfit, reason: "TAKE_PROFIT" };
     }
-    return { exitPrice: position.stopLoss, reason: "STOP_LOSS" };
+    return {
+      exitPrice: stopExitPrice(position, candle),
+      reason: "STOP_LOSS",
+    };
   }
 
   if (stopTouched) {
-    return { exitPrice: position.stopLoss, reason: "STOP_LOSS" };
+    return {
+      exitPrice: stopExitPrice(position, candle),
+      reason: "STOP_LOSS",
+    };
   }
 
   return position.takeProfit === null
     ? null
     : { exitPrice: position.takeProfit, reason: "TAKE_PROFIT" };
+}
+
+/**
+ * B3-H1: real stop fill price accounting for gaps.
+ *
+ * When a bar opens past the stop (down for LONG, up for SHORT), the exchange
+ * fills the order at the open, not at the stop price. Modelled conservatively:
+ * the trader receives the worse of the stop and the open, never the better.
+ *
+ * Without this correction a weekend or news gap silently becomes phantom
+ * profit equal to the gap distance on every stopped-out trade.
+ */
+function stopExitPrice(
+  position: HistoricalPosition,
+  candle: CanonicalCandle
+): number {
+  if (position.side === "LONG") {
+    return candle.open < position.stopLoss ? candle.open : position.stopLoss;
+  }
+  return candle.open > position.stopLoss ? candle.open : position.stopLoss;
 }
