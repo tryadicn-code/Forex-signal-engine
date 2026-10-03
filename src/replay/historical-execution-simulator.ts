@@ -39,6 +39,8 @@ export class HistoricalExecutionSimulator {
   private readonly swapLongPerLotPerNight: number;
   private readonly swapShortPerLotPerNight: number;
   private readonly rolloverHourUtc: number;
+  private readonly leverage: number;
+  private readonly marginCallLevelPercent: number;
   private orders: HistoricalOrder[] = [];
   private positions: HistoricalPosition[] = [];
   private trades: HistoricalTrade[] = [];
@@ -125,6 +127,31 @@ export class HistoricalExecutionSimulator {
       );
     }
 
+    // B3-H4: margin. When leverage is undefined the margin checks are
+    // disabled entirely so legacy fixtures keep their original behaviour.
+    const configuredLeverage = input.config?.leverage;
+    if (configuredLeverage === undefined) {
+      this.leverage = 0;
+      this.marginCallLevelPercent = 0;
+      console.warn(
+        "[HistoricalExecutionSimulator] leverage not set: margin capacity and forced-liquidation checks are disabled. Set config.execution.leverage (e.g. 100) for realistic account behaviour."
+      );
+    } else {
+      if (!Number.isFinite(configuredLeverage) || configuredLeverage <= 0) {
+        throw new Error(
+          "Historical leverage must be a positive finite number."
+        );
+      }
+      this.leverage = configuredLeverage;
+      const level = input.config?.marginCallLevelPercent ?? 50;
+      if (!Number.isFinite(level) || level <= 0) {
+        throw new Error(
+          "Historical marginCallLevelPercent must be a positive finite number."
+        );
+      }
+      this.marginCallLevelPercent = level;
+    }
+
     if (!this.applySpread) {
       console.warn(
         "[HistoricalExecutionSimulator] applySpread is false: backtest P&L excludes the dataset spread. Set config.execution.applySpread = true for realistic results."
@@ -152,6 +179,9 @@ export class HistoricalExecutionSimulator {
    */
   advanceTo(asOf: number): HistoricalExecutionSummary {
     this.advanceOpenPositions(asOf);
+    // B3-H4: margin call pass runs after exits so the equity figure used
+    // for the check reflects the latest candle close.
+    this.enforceMarginCall(asOf);
     return this.summary();
   }
 
@@ -310,6 +340,18 @@ export class HistoricalExecutionSimulator {
       if (portfolioRejection) {
         this.orders.push(
           rejectedOrder(result, executionKey, step.asOf, portfolioRejection)
+        );
+        continue;
+      }
+
+      // B3-H4: reject when free margin cannot cover the candidate.
+      const marginRejection = this.validateMarginCapacity(
+        result,
+        effectiveFillPrice
+      );
+      if (marginRejection) {
+        this.orders.push(
+          rejectedOrder(result, executionKey, step.asOf, marginRejection)
         );
         continue;
       }
@@ -620,6 +662,86 @@ export class HistoricalExecutionSimulator {
     const firstDay = Math.floor((openedAt - rolloverMs) / MS_PER_DAY);
     const lastDay = Math.floor((closedAt - rolloverMs - 1) / MS_PER_DAY);
     return Math.max(0, lastDay - firstDay);
+  }
+
+  /**
+   * B3-H4: current used margin in account currency.
+   *
+   * Approximates notional as `positionSize * contractSize`, which assumes the
+   * instrument''s base currency is the account currency. For USD accounts
+   * trading USD-quoted majors this is exact; for crosses and JPY pairs it is
+   * conservative. The simulator does not have a full conversion table, so the
+   * approximation is deliberate and documented here.
+   */
+  private usedMargin(): number {
+    return this.positions
+      .filter((position) => position.status === "OPEN")
+      .reduce((sum, position) => {
+        const meta = this.dataset.symbols[position.symbol]?.metadata;
+        const contractSize = meta?.contractSize ?? 100_000;
+        return sum + (position.positionSize * contractSize) / this.leverage;
+      }, 0);
+  }
+
+  /**
+   * B3-H4: reject a candidate when free margin cannot cover its required
+   * margin. Returns a rejection reason string or null when the candidate
+   * passes.
+   */
+  private validateMarginCapacity(
+    result: SymbolScanResult,
+    fillPrice: number
+  ): string | null {
+    if (this.leverage <= 0) return null;
+    const risk = result.riskDetail!;
+    const meta = this.dataset.symbols[result.symbol]?.metadata;
+    if (!meta) return "HISTORICAL_MARGIN_SYMBOL_MISSING";
+    const contractSize = meta.contractSize;
+    const requiredMargin =
+      (risk.positionSize! * contractSize) / this.leverage;
+    const freeMargin = this.balance() - this.usedMargin();
+    if (freeMargin < requiredMargin) {
+      return "HISTORICAL_INSUFFICIENT_MARGIN";
+    }
+    return null;
+  }
+
+  /**
+   * B3-H4: forced liquidation pass. Runs after every advanceTo() so the
+   * margin level reflects the latest candle close. When the level drops
+   * below marginCallLevelPercent, closes the worst losing position at the
+   * current bar close and re-checks. Loops are bounded by the number of
+   * open positions to guarantee termination.
+   */
+  private enforceMarginCall(asOf: number): void {
+    if (this.leverage <= 0) return;
+    const maxIterations = this.positions.length + 1;
+    for (let i = 0; i < maxIterations; i += 1) {
+      const open = this.positions.filter(
+        (position) => position.status === "OPEN"
+      );
+      if (open.length === 0) return;
+      const used = this.usedMargin();
+      if (used <= 0) return;
+      const unrealized = open.reduce(
+        (sum, position) => sum + position.unrealizedPnL,
+        0
+      );
+      const equity = this.balance() + unrealized;
+      const marginLevel = (equity / used) * 100;
+      if (marginLevel >= this.marginCallLevelPercent) return;
+
+      const worst = open.reduce((a, b) =>
+        a.unrealizedPnL < b.unrealizedPnL ? a : b
+      );
+      const exitPrice =
+        worst.currentPrice > 0 ? worst.currentPrice : worst.entryPrice;
+      this.closePosition(
+        worst,
+        { exitPrice, reason: "MARGIN_CALL" },
+        asOf
+      );
+    }
   }
 
   private balance(): number {

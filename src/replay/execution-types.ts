@@ -6,7 +6,7 @@ export type HistoricalPositionStatus = "OPEN" | "CLOSED";
 export type HistoricalCloseReason =
   | "TAKE_PROFIT"
   | "STOP_LOSS"
-  | "AMBIGUOUS_BAR";
+  | "AMBIGUOUS_BAR" | "MARGIN_CALL";
 
 export type HistoricalIntrabarConflictPolicy =
   | "STOP_FIRST"
@@ -69,6 +69,22 @@ export interface HistoricalExecutionConfig {
    * times this hour is crossed while a position is open.
    */
   rolloverHourUtc?: number;
+  /**
+   * B3-H4: broker leverage used to compute required margin. Example 100 for
+   * 1:100 leverage, 30 for 1:30. Undefined (default) disables both the
+   * margin capacity check at open time and the forced liquidation pass,
+   * preserving pre-B3-H4 behaviour. Production backtests should set this to
+   * the real account leverage.
+   */
+  leverage?: number;
+  /**
+   * B3-H4: forced liquidation threshold expressed as a margin-level
+   * percentage (equity / usedMargin * 100). When the margin level drops
+   * below this value, the simulator force-closes the worst losing position
+   * at the current bar close and re-checks. Default 50 matches the standard
+   * MT5 stop-out level for retail accounts.
+   */
+  marginCallLevelPercent?: number;
 }
 
 export interface HistoricalEngineSnapshot {
