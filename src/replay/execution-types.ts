@@ -31,6 +31,24 @@ export interface HistoricalExecutionConfig {
   maxDirectionalCurrencyExposure?: number;
   /** Cooldown after a stop loss before the same symbol may re-enter. Defaults to 60m. */
   stopLossReentryCooldownMs?: number;
+  /**
+   * B3-C1: when true, subtract the dataset's assumed spread from every
+   * round-trip P&L so the backtest reflects a realistic cost per trade.
+   * Defaults to false to preserve historical test fixtures.
+   */
+  applySpread?: boolean;
+  /**
+   * B3-C2: maximum allowed drift, in pips, between the strategy's frozen
+   * entry and the current market price at execution time. Serves the same
+   * role as MT5_TRADE_MAX_DEVIATION_POINTS on the live bridge: a signal
+   * whose entry reference has moved farther than this is rejected rather
+   * than filled at a stale price.
+   *
+   * Default is Infinity (drift check disabled) to preserve legacy fixture
+   * behaviour; production backtests should set this to 2 to match the live
+   * MT5 bridge (MT5_TRADE_MAX_DEVIATION_POINTS / 10).
+   */
+  maxEntryDriftPips?: number;
 }
 
 export interface HistoricalEngineSnapshot {

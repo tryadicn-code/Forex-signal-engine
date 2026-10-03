@@ -33,6 +33,8 @@ export class HistoricalExecutionSimulator {
   private readonly maxOpenPositionsPerSymbol: number;
   private readonly maxDirectionalCurrencyExposure: number;
   private readonly stopLossReentryCooldownMs: number;
+  private readonly applySpread: boolean;
+  private readonly maxEntryDriftPips: number;
   private orders: HistoricalOrder[] = [];
   private positions: HistoricalPosition[] = [];
   private trades: HistoricalTrade[] = [];
@@ -60,6 +62,30 @@ export class HistoricalExecutionSimulator {
       input.config?.maxDirectionalCurrencyExposure ?? 2;
     this.stopLossReentryCooldownMs =
       input.config?.stopLossReentryCooldownMs ?? 60 * 60_000;
+    this.applySpread = input.config?.applySpread ?? false;
+    // B3-C2: default Infinity disables the check so legacy fixtures keep
+    // their original open-everything behaviour. Production backtests should
+    // set maxEntryDriftPips = 2 to mirror MT5_TRADE_MAX_DEVIATION_POINTS / 10.
+    this.maxEntryDriftPips = input.config?.maxEntryDriftPips ?? Number.POSITIVE_INFINITY;
+    if (
+      !(this.maxEntryDriftPips > 0) ||
+      Number.isNaN(this.maxEntryDriftPips)
+    ) {
+      throw new Error(
+        "Historical maxEntryDriftPips must be positive or Infinity."
+      );
+    }
+    if (!Number.isFinite(this.maxEntryDriftPips)) {
+      console.warn(
+        "[HistoricalExecutionSimulator] maxEntryDriftPips is Infinity: signals are never rejected for entry drift. Set config.execution.maxEntryDriftPips = 2 for realistic backtests."
+      );
+    }
+
+    if (!this.applySpread) {
+      console.warn(
+        "[HistoricalExecutionSimulator] applySpread is false: backtest P&L excludes the dataset spread. Set config.execution.applySpread = true for realistic results."
+      );
+    }
 
     if (!Number.isInteger(this.maxOpenPositions) || this.maxOpenPositions <= 0) {
       throw new Error("Historical maxOpenPositions must be a positive integer.");
@@ -206,6 +232,36 @@ export class HistoricalExecutionSimulator {
         continue;
       }
 
+      // B3-C2: resolve current market price and reject signals whose entry
+      // reference has drifted beyond the allowed band. Matches the live
+      // bridge behaviour (MT5_TRADE_MAX_DEVIATION_POINTS) so the backtest
+      // cannot fill trades that a real broker would refuse.
+      const plannedEntry = result.riskDetail!.entryPrice!;
+      const pipSize = result.riskDetail!.pipSize!;
+      const marketPrice = this.resolveCurrentMarketPrice(
+        result.symbol,
+        step.asOf
+      );
+      // When no closed candle exists at asOf (e.g. a signal on the very
+      // first replay step), fall back to the planned entry. Drift cannot be
+      // measured against a non-existent market price.
+      const effectiveFillPrice = marketPrice ?? plannedEntry;
+      if (marketPrice !== null) {
+        const driftPips =
+          Math.abs(marketPrice - plannedEntry) / pipSize;
+        if (driftPips > this.maxEntryDriftPips) {
+          this.orders.push(
+            rejectedOrder(
+              result,
+              executionKey,
+              step.asOf,
+              "HISTORICAL_ENTRY_DRIFT_EXCEEDED"
+            )
+          );
+          continue;
+        }
+      }
+
       const portfolioRejection = this.validatePortfolioRisk(result, step.asOf);
       if (portfolioRejection) {
         this.orders.push(
@@ -214,7 +270,7 @@ export class HistoricalExecutionSimulator {
         continue;
       }
 
-      this.openPosition(result, executionKey, step.asOf);
+      this.openPosition(result, executionKey, step.asOf, effectiveFillPrice);
     }
   }
 
@@ -283,11 +339,16 @@ export class HistoricalExecutionSimulator {
   private openPosition(
     result: SymbolScanResult,
     executionKey: string,
-    at: number
+    at: number,
+    fillPrice: number
   ): void {
     const risk = result.riskDetail!;
     const signalId = result.signalId!;
     const side = result.biasDirection as HistoricalDirection;
+    // B3-C2: the planned entry is the strategy's frozen reference; the
+    // actual fill is the current market price. Stop and target remain tied
+    // to the plan; P&L is calculated from the real fill, so the backtest
+    // experiences the same slippage a live order would.
     const entry = risk.entryPrice!;
     const stopPips = risk.stopDistancePips!;
     const size = risk.positionSize!;
@@ -303,7 +364,7 @@ export class HistoricalExecutionSimulator {
       requestedAt: at,
       filledAt: at,
       requestedEntry: entry,
-      fillPrice: entry,
+      fillPrice: fillPrice,
       stopLoss: risk.stopLoss!,
       takeProfit: risk.takeProfit1 ?? null,
       positionSize: size,
@@ -321,8 +382,8 @@ export class HistoricalExecutionSimulator {
       signalId,
       symbol: result.symbol,
       side,
-      entryPrice: entry,
-      currentPrice: entry,
+      entryPrice: fillPrice,
+      currentPrice: fillPrice,
       stopLoss: risk.stopLoss!,
       takeProfit: risk.takeProfit1 ?? null,
       positionSize: size,
@@ -356,7 +417,7 @@ export class HistoricalExecutionSimulator {
     );
     if (!current) return;
 
-    const realizedPnL = calculatePnl({
+    const grossRealizedPnL = calculatePnl({
       side: current.side,
       entryPrice: current.entryPrice,
       exitPrice: decision.exitPrice,
@@ -364,6 +425,19 @@ export class HistoricalExecutionSimulator {
       positionSize: current.positionSize,
       pipValuePerLotAccountCurrency: current.pipValuePerLotAccountCurrency,
     });
+    // B3-C1: subtract the dataset spread from every round-trip P&L.
+    // A LONG enters at ask and exits at bid, a SHORT enters at bid and exits
+    // at ask; both pay exactly one full spread per round trip. Without this
+    // the backtest reports phantom profit equal to spread * pipValue * size
+    // per trade.
+    const spreadPips = this.applySpread
+      ? Math.max(0, this.dataset.symbols[current.symbol]?.spreadPips ?? 0)
+      : 0;
+    const spreadCost =
+      spreadPips *
+      current.pipValuePerLotAccountCurrency *
+      current.positionSize;
+    const realizedPnL = grossRealizedPnL - spreadCost;
     const realizedR = calculateR(realizedPnL, current.riskAmount);
     const balanceBefore = this.balance();
 
@@ -435,6 +509,40 @@ export class HistoricalExecutionSimulator {
       this.equityCurve.push(point);
       this.equityCurve.sort((a, b) => a.asOf - b.asOf);
     }
+  }
+
+  /**
+   * B3-C2: close price of the most recent candle whose close time is at or
+   * before `asOf`. Mirrors what MT5 would quote when a live order is placed
+   * at that instant. Returns null when no eligible candle exists so the
+   * caller can reject instead of filling at a stale price.
+   */
+  private resolveCurrentMarketPrice(
+    symbol: string,
+    asOf: number
+  ): number | null {
+    const symbolData = this.dataset.symbols[symbol];
+    if (!symbolData) return null;
+    const candles = symbolData.candles[this.executionTimeframe];
+    if (!candles || candles.length === 0) return null;
+
+    let lo = 0;
+    let hi = candles.length - 1;
+    let best = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const closeAt = candleCloseTime(
+        this.executionTimeframe,
+        candles[mid].timestamp
+      );
+      if (closeAt <= asOf) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return best >= 0 ? candles[best].close : null;
   }
 
   private balance(): number {
