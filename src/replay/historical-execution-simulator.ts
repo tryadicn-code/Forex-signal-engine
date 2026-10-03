@@ -39,6 +39,7 @@ export class HistoricalExecutionSimulator {
   private readonly swapLongPerLotPerNight: number;
   private readonly swapShortPerLotPerNight: number;
   private readonly rolloverHourUtc: number;
+  private readonly tripleSwapWeekday: number;
   private readonly leverage: number;
   private readonly marginCallLevelPercent: number;
   private orders: HistoricalOrder[] = [];
@@ -96,6 +97,7 @@ export class HistoricalExecutionSimulator {
     this.swapShortPerLotPerNight =
       input.config?.swapShortPerLotPerNight ?? 0;
     this.rolloverHourUtc = input.config?.rolloverHourUtc ?? 21;
+    this.tripleSwapWeekday = input.config?.tripleSwapWeekday ?? 3;
 
     for (const [name, value] of [
       ["commissionPerLotPerSide", this.commissionPerLotPerSide],
@@ -115,6 +117,15 @@ export class HistoricalExecutionSimulator {
     ) {
       throw new Error(
         "Historical rolloverHourUtc must be an integer in [0, 23]."
+      );
+    }
+    if (
+      !Number.isInteger(this.tripleSwapWeekday) ||
+      this.tripleSwapWeekday < 0 ||
+      this.tripleSwapWeekday > 6
+    ) {
+      throw new Error(
+        "Historical tripleSwapWeekday must be an integer in [0, 6] (0=Sun .. 6=Sat)."
       );
     }
     const allCostsZero =
@@ -530,7 +541,7 @@ export class HistoricalExecutionSimulator {
 
     // B3-C3: swap. Count rollover crossings and apply the direction-specific
     // per-lot-per-night cost. Positive values are costs (the common case).
-    const nights = this.countRollovers(current.openedAt, closedAt);
+    const nights = this.countSwapNights(current.openedAt, closedAt);
     const swapRatePerLotPerNight =
       current.side === "LONG"
         ? this.swapLongPerLotPerNight
@@ -652,16 +663,35 @@ export class HistoricalExecutionSimulator {
    * openedAt (exclusive) and closedAt (inclusive). Standard FX convention:
    * a position held across 21:00 UTC pays one night of swap per crossing.
    */
-  private countRollovers(
+  /**
+   * H4-2 / M4-1: count swap nights with explicit boundary semantics.
+   *
+   * Rollover instants are at k * MS_PER_DAY + rolloverHourUtc for all
+   * integers k (UTC). A rollover instant T is "crossed" by a position when
+   * openedAt < T < closedAt (strict both sides):
+   *   - opened exactly AT a rollover instant -> that rollover is skipped.
+   *   - closed exactly AT a rollover instant -> that rollover is skipped.
+   *
+   * Each crossed rollover counts as 1 night by default. When the rollover
+   * falls on `tripleSwapWeekday` (default Wednesday, standard FX weekend
+   * compensation), it counts as 3 nights.
+   */
+  private countSwapNights(
     openedAt: number,
     closedAt: number
   ): number {
     if (closedAt <= openedAt) return 0;
     const MS_PER_DAY = 86_400_000;
     const rolloverMs = this.rolloverHourUtc * 3_600_000;
-    const firstDay = Math.floor((openedAt - rolloverMs) / MS_PER_DAY);
-    const lastDay = Math.floor((closedAt - rolloverMs - 1) / MS_PER_DAY);
-    return Math.max(0, lastDay - firstDay);
+    const firstK = Math.floor((openedAt - rolloverMs) / MS_PER_DAY) + 1;
+    const lastK = Math.floor((closedAt - 1 - rolloverMs) / MS_PER_DAY);
+    let nights = 0;
+    for (let k = firstK; k <= lastK; k += 1) {
+      const rolloverAt = k * MS_PER_DAY + rolloverMs;
+      const day = new Date(rolloverAt).getUTCDay();
+      nights += day === this.tripleSwapWeekday ? 3 : 1;
+    }
+    return nights;
   }
 
   /**
@@ -699,7 +729,12 @@ export class HistoricalExecutionSimulator {
     const contractSize = meta.contractSize;
     const requiredMargin =
       (risk.positionSize! * contractSize) / this.leverage;
-    const freeMargin = this.balance() - this.usedMargin();
+    // H4-1: free margin must include unrealized PnL. Using balance alone
+    // overstates free margin when open positions are losing, which causes
+    // the backtest to open trades a real broker would reject.
+    const open = this.positions.filter((p) => p.status === "OPEN");
+    const unrealized = open.reduce((sum, p) => sum + p.unrealizedPnL, 0);
+    const freeMargin = this.balance() + unrealized - this.usedMargin();
     if (freeMargin < requiredMargin) {
       return "HISTORICAL_INSUFFICIENT_MARGIN";
     }
