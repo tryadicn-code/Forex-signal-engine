@@ -142,12 +142,14 @@ export class BrokerExecutionService {
     const durationMinutes = clampInteger(
       input.durationMinutes ?? this.options.config.armMaxMinutes,
       1,
-      this.options.config.armMaxMinutes
+      this.options.config.armMaxMinutes,
+      "durationMinutes"
     );
     const maxOrders = clampInteger(
       input.maxOrders ?? this.options.config.armMaxOrders,
       1,
-      this.options.config.armMaxOrders
+      this.options.config.armMaxOrders,
+      "maxOrders"
     );
     const armedAt = Date.now();
     const arm: LiveExecutionArm = {
@@ -1060,15 +1062,29 @@ function normalizeReason(value: string): string {
   return reason;
 }
 
+/**
+ * H5-2: reject out-of-range integers instead of silently clamping.
+ *
+ * Silent clamping is dangerous for arm limits: an operator requesting a
+ * 60-minute window but silently getting 10 minutes may believe they have
+ * authority they do not actually have.
+ */
 function clampInteger(
   value: number,
   min: number,
-  max: number
+  max: number,
+  label: string
 ): number {
   if (!Number.isInteger(value)) {
-    throw new Error("Approval limits must be integers.");
+    throw new Error(label + " must be an integer, got " + value + ".");
   }
-  return Math.max(min, Math.min(max, value));
+  if (value < min) {
+    throw new Error(label + " " + value + " is below the minimum " + min + ".");
+  }
+  if (value > max) {
+    throw new Error(label + " " + value + " exceeds the maximum " + max + ".");
+  }
+  return value;
 }
 
 function shortHash(value: string): string {
