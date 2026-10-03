@@ -201,6 +201,8 @@ export class BrokerExecutionService {
     release: ReleaseRuntimeState
   ): Promise<void> {
     if (this.options.config.mode === "off") return;
+    await this.normalizeStaleLiveSubmitting();
+    await this.purgeExpiredRejections(this.options.config.rejectionTtlMs);
 
     const candidates = snapshot.results
       .filter(isExecutableCandidate)
@@ -401,6 +403,7 @@ export class BrokerExecutionService {
           null,
           null
         );
+        await this.refundLiveAttempt(intent);
         return;
       }
 
@@ -412,6 +415,7 @@ export class BrokerExecutionService {
           preflight,
           null
         );
+        await this.refundLiveAttempt(intent);
         return;
       }
 
@@ -426,6 +430,7 @@ export class BrokerExecutionService {
           preflight,
           null
         );
+        await this.refundLiveAttempt(intent);
         return;
       }
 
@@ -775,6 +780,51 @@ export class BrokerExecutionService {
     }
 
     return blockers;
+  }
+
+  /**
+   * M1: refund one live-order slot when a preflight failure prevented the
+   * order from ever reaching the broker. Called on every pre-submit abort
+   * path. Safe no-op if the arm has already expired or been disarmed.
+   */
+  private async refundLiveAttempt(
+    intent: BrokerOrderIntent
+  ): Promise<void> {
+    await this.options.store.update((state) => {
+      const next = structuredClone(state);
+      const arm = next.controls.liveArm;
+      if (arm && arm.expiresAt > Date.now()) {
+        arm.remainingOrders += 1;
+      }
+      return { next, result: null };
+    });
+  }
+
+  /**
+   * M2: purge preflight rejections older than the TTL so a transient blocker
+   * does not permanently starve a signal. Only LIVE_PREFLIGHT_REJECTED
+   * records are eligible: those provably never reached the broker.
+   */
+  private async purgeExpiredRejections(
+    ttlMs: number
+  ): Promise<void> {
+    const now = Date.now();
+    await this.options.store.update((state) => {
+      const before = state.records.length;
+      const filtered = state.records.filter(
+        (r) =>
+          !(
+            r.status === "LIVE_PREFLIGHT_REJECTED" &&
+            now - r.createdAt > ttlMs
+          )
+      );
+      if (filtered.length === before) {
+        return { next: state, result: null };
+      }
+      const next = structuredClone(state);
+      next.records = filtered;
+      return { next, result: null };
+    });
   }
 
   /**

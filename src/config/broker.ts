@@ -17,6 +17,8 @@ export interface BrokerExecutionConfig {
   armMaxMinutes: number;
   armMaxOrders: number;
   requireTakeProfitForLive: boolean;
+  /** M2: preflight rejections expire after this many ms, allowing retry. */
+  rejectionTtlMs: number;
   liveLeaseMs: number;
   mt5BridgeUrl: string;
   mt5BridgeToken: string | null;
@@ -78,6 +80,10 @@ export function resolveBrokerExecutionConfig(
     requireTakeProfitForLive: parseBoolean(
       env.FSE_LIVE_REQUIRE_TAKE_PROFIT,
       true
+    ),
+    rejectionTtlMs: parsePositiveInteger(
+      env.FSE_LIVE_REJECTION_TTL_MS,
+      300_000
     ),
     liveLeaseMs: parsePositiveInteger(
       env.FSE_LIVE_EXECUTION_LEASE_MS,

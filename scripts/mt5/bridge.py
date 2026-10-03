@@ -43,7 +43,7 @@ TRADE_BRIDGE_ENABLED = os.getenv(
 TRADE_BRIDGE_TOKEN = os.getenv("MT5_TRADE_BRIDGE_TOKEN", "").strip()
 TRADE_MAGIC = int(os.getenv("MT5_TRADE_MAGIC", "105610"))
 TRADE_HISTORY_DAYS = max(
-    1, min(90, int(os.getenv("MT5_TRADE_HISTORY_DAYS", "14")))
+    1, min(365, int(os.getenv("MT5_TRADE_HISTORY_DAYS", "90")))
 )
 MAX_TRADE_BODY_BYTES = 16 * 1024
 
