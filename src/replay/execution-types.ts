@@ -49,6 +49,26 @@ export interface HistoricalExecutionConfig {
    * MT5 bridge (MT5_TRADE_MAX_DEVIATION_POINTS / 10).
    */
   maxEntryDriftPips?: number;
+  /**
+   * B3-C3: broker commission per side per 1.0 lot, in account currency.
+   * A round trip pays this value twice. Default 0 means the backtest
+   * omits commission.
+   */
+  commissionPerLotPerSide?: number;
+  /**
+   * B3-C3: swap cost for a LONG position per 1.0 lot per night, in account
+   * currency. Positive means the broker charges (most common). Negative
+   * would mean the broker credits (rare for retail FX).
+   */
+  swapLongPerLotPerNight?: number;
+  /** B3-C3: swap cost for a SHORT position per 1.0 lot per night. */
+  swapShortPerLotPerNight?: number;
+  /**
+   * B3-C3: UTC hour at which the daily swap rollover happens. Most brokers
+   * use 21:00 or 22:00 UTC (17:00 New York). The simulator counts how many
+   * times this hour is crossed while a position is open.
+   */
+  rolloverHourUtc?: number;
 }
 
 export interface HistoricalEngineSnapshot {

@@ -35,6 +35,10 @@ export class HistoricalExecutionSimulator {
   private readonly stopLossReentryCooldownMs: number;
   private readonly applySpread: boolean;
   private readonly maxEntryDriftPips: number;
+  private readonly commissionPerLotPerSide: number;
+  private readonly swapLongPerLotPerNight: number;
+  private readonly swapShortPerLotPerNight: number;
+  private readonly rolloverHourUtc: number;
   private orders: HistoricalOrder[] = [];
   private positions: HistoricalPosition[] = [];
   private trades: HistoricalTrade[] = [];
@@ -78,6 +82,46 @@ export class HistoricalExecutionSimulator {
     if (!Number.isFinite(this.maxEntryDriftPips)) {
       console.warn(
         "[HistoricalExecutionSimulator] maxEntryDriftPips is Infinity: signals are never rejected for entry drift. Set config.execution.maxEntryDriftPips = 2 for realistic backtests."
+      );
+    }
+
+    // B3-C3: commission and swap. Defaults are 0 so legacy fixtures keep
+    // their original P&L; production backtests should set realistic values.
+    this.commissionPerLotPerSide =
+      input.config?.commissionPerLotPerSide ?? 0;
+    this.swapLongPerLotPerNight =
+      input.config?.swapLongPerLotPerNight ?? 0;
+    this.swapShortPerLotPerNight =
+      input.config?.swapShortPerLotPerNight ?? 0;
+    this.rolloverHourUtc = input.config?.rolloverHourUtc ?? 21;
+
+    for (const [name, value] of [
+      ["commissionPerLotPerSide", this.commissionPerLotPerSide],
+      ["swapLongPerLotPerNight", this.swapLongPerLotPerNight],
+      ["swapShortPerLotPerNight", this.swapShortPerLotPerNight],
+    ] as const) {
+      if (!Number.isFinite(value)) {
+        throw new Error(
+          "Historical " + name + " must be a finite number."
+        );
+      }
+    }
+    if (
+      !Number.isInteger(this.rolloverHourUtc) ||
+      this.rolloverHourUtc < 0 ||
+      this.rolloverHourUtc > 23
+    ) {
+      throw new Error(
+        "Historical rolloverHourUtc must be an integer in [0, 23]."
+      );
+    }
+    const allCostsZero =
+      this.commissionPerLotPerSide === 0 &&
+      this.swapLongPerLotPerNight === 0 &&
+      this.swapShortPerLotPerNight === 0;
+    if (allCostsZero) {
+      console.warn(
+        "[HistoricalExecutionSimulator] commission and swap are zero: backtest P&L excludes broker fees. Set config.execution.commissionPerLotPerSide and swap*PerLotPerNight for realistic results."
       );
     }
 
@@ -437,7 +481,23 @@ export class HistoricalExecutionSimulator {
       spreadPips *
       current.pipValuePerLotAccountCurrency *
       current.positionSize;
-    const realizedPnL = grossRealizedPnL - spreadCost;
+
+    // B3-C3: commission per side per lot, charged on entry and exit.
+    const commissionCost =
+      this.commissionPerLotPerSide * current.positionSize * 2;
+
+    // B3-C3: swap. Count rollover crossings and apply the direction-specific
+    // per-lot-per-night cost. Positive values are costs (the common case).
+    const nights = this.countRollovers(current.openedAt, closedAt);
+    const swapRatePerLotPerNight =
+      current.side === "LONG"
+        ? this.swapLongPerLotPerNight
+        : this.swapShortPerLotPerNight;
+    const swapCost =
+      swapRatePerLotPerNight * current.positionSize * nights;
+
+    const realizedPnL =
+      grossRealizedPnL - spreadCost - commissionCost - swapCost;
     const realizedR = calculateR(realizedPnL, current.riskAmount);
     const balanceBefore = this.balance();
 
@@ -543,6 +603,23 @@ export class HistoricalExecutionSimulator {
       }
     }
     return best >= 0 ? candles[best].close : null;
+  }
+
+  /**
+   * B3-C3: number of times the daily rollover hour (UTC) is crossed between
+   * openedAt (exclusive) and closedAt (inclusive). Standard FX convention:
+   * a position held across 21:00 UTC pays one night of swap per crossing.
+   */
+  private countRollovers(
+    openedAt: number,
+    closedAt: number
+  ): number {
+    if (closedAt <= openedAt) return 0;
+    const MS_PER_DAY = 86_400_000;
+    const rolloverMs = this.rolloverHourUtc * 3_600_000;
+    const firstDay = Math.floor((openedAt - rolloverMs) / MS_PER_DAY);
+    const lastDay = Math.floor((closedAt - rolloverMs - 1) / MS_PER_DAY);
+    return Math.max(0, lastDay - firstDay);
   }
 
   private balance(): number {
