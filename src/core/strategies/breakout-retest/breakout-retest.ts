@@ -11,6 +11,7 @@ import { last } from "@/core/indicators";
 import { resolveEntryPrice } from "@/core/strategies/entry-price";
 import { analyzeBreakoutRetestSetup } from "./setup";
 import { evaluateBreakoutRetestTrigger } from "./trigger";
+import { modeAwareConfirmationAgeOverride } from "@/core/strategies/runtime-limits";
 
 export const BREAKOUT_RETEST_STRATEGY_ID = "BREAKOUT_RETEST" as const;
 
@@ -115,7 +116,10 @@ export function analyzeBreakoutRetest(
     direction: bias.data.direction,
     breakout: setupAnalysis.breakout,
     coreConfigOverrides: context.configOverrides,
-    strategyConfig: context.strategyConfigOverrides?.breakoutRetest,
+    strategyConfig: {
+      ...context.strategyConfigOverrides?.breakoutRetest,
+      ...modeAwareConfirmationAgeOverride(context.execution?.mode),
+    },
     marketAsOf: triggerAsOf,
   });
 

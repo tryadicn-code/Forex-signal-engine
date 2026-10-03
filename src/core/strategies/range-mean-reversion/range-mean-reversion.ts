@@ -9,6 +9,7 @@ import { last } from "@/core/indicators";
 import { resolveEntryPrice } from "@/core/strategies/entry-price";
 import { analyzeRangeMeanReversionSetup } from "./setup";
 import { evaluateRangeMeanReversionTrigger } from "./trigger";
+import { modeAwareConfirmationAgeOverride } from "@/core/strategies/runtime-limits";
 
 export const RANGE_MEAN_REVERSION_STRATEGY_ID =
   "RANGE_MEAN_REVERSION" as const;
@@ -104,7 +105,10 @@ export function analyzeRangeMeanReversion(
     structure: triggerStructure.data,
     direction: range.direction,
     coreConfigOverrides: context.configOverrides,
-    strategyConfig: context.strategyConfigOverrides?.rangeMeanReversion,
+    strategyConfig: {
+      ...context.strategyConfigOverrides?.rangeMeanReversion,
+      ...modeAwareConfirmationAgeOverride(context.execution?.mode),
+    },
     marketAsOf: triggerAsOf,
   });
 

@@ -11,6 +11,7 @@ import { resolveEntryPrice } from "@/core/strategies/entry-price";
 import { qualifyReversal } from "./qualification";
 import { analyzeReversalSetup } from "./setup";
 import { evaluateReversalTrigger } from "./trigger";
+import { modeAwareConfirmationAgeOverride } from "@/core/strategies/runtime-limits";
 
 export const REVERSAL_STRATEGY_ID = "REVERSAL" as const;
 
@@ -113,7 +114,10 @@ export function analyzeReversal(
     direction,
     qualification,
     coreConfigOverrides: context.configOverrides,
-    strategyConfig: context.strategyConfigOverrides?.reversal,
+    strategyConfig: {
+      ...context.strategyConfigOverrides?.reversal,
+      ...modeAwareConfirmationAgeOverride(context.execution?.mode),
+    },
     marketAsOf: triggerAsOf,
   });
 
