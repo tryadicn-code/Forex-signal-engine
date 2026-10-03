@@ -100,19 +100,27 @@ export function freshTriggerOccurrenceIdentity(
 }
 
 /**
- * CLOSED is terminal, but a genuinely newer trigger is a new signal occurrence.
- * Repeated scans of the same trigger resolve to the same deterministic id.
+ * A lifecycle in a terminal state (CLOSED or INVALIDATED) never revives. When
+ * the engines observe a genuinely newer trigger inside the same setup zone,
+ * that trigger gets a fresh occurrence id and starts a new lifecycle.
+ *
+ * H7-1: previously only CLOSED triggered a fresh occurrence. INVALIDATED was
+ * documented as terminal but reused the same signalId, so a revalidated setup
+ * could be silently revived under the old id. That aliased alerts, paper
+ * orders, and broker idempotency keys across two genuinely distinct signals.
  */
 export function resolveLifecycleIdentity(
   base: SignalIdentity,
   existing: SignalLifecycleState | null,
   observedTriggerTimestamp: number | null
 ): SignalIdentity {
+  const terminal =
+    existing?.state === "CLOSED" || existing?.state === "INVALIDATED";
   if (
-    existing?.state === "CLOSED" &&
+    terminal &&
     observedTriggerTimestamp !== null &&
-    (existing.triggerOriginTimestamp === null ||
-      observedTriggerTimestamp > existing.triggerOriginTimestamp)
+    (existing!.triggerOriginTimestamp === null ||
+      observedTriggerTimestamp > existing!.triggerOriginTimestamp)
   ) {
     return freshTriggerOccurrenceIdentity(base, observedTriggerTimestamp);
   }
@@ -189,16 +197,31 @@ export function isSetupExpired(
   return elapsed > ttlBars;
 }
 
+/**
+ * H7-2: cap the per-lifecycle transition history.
+ *
+ * A long-lived signal scanned every 15 minutes can accumulate hundreds of
+ * transitions. The cap keeps recent history (which the dashboard and audit
+ * care about) without unbounded growth. The number is deliberately larger
+ * than any legitimate single-signal history we have observed.
+ */
+export const MAX_TRANSITIONS_PER_LIFECYCLE = 200;
+
 /** Record a transition onto a lifecycle, returning an updated copy. */
 export function recordTransition(
   lifecycle: SignalLifecycleState,
   transition: SignalStateTransition,
   now: number
 ): SignalLifecycleState {
+  const next = [...lifecycle.transitions, transition];
+  const trimmed =
+    next.length > MAX_TRANSITIONS_PER_LIFECYCLE
+      ? next.slice(next.length - MAX_TRANSITIONS_PER_LIFECYCLE)
+      : next;
   return {
     ...lifecycle,
     state: transition.newState,
     updatedAt: now,
-    transitions: [...lifecycle.transitions, transition],
+    transitions: trimmed,
   };
 }

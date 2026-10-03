@@ -1,6 +1,6 @@
 import type { MarketDataProvider } from "@/providers/market-data/provider";
 import type { ScannerSnapshot, SymbolScanResult } from "@/scanner/scanner-result";
-import { candleCloseTime } from "@/market-data/timeframe";
+import { candleCloseTime, intervalMs } from "@/market-data/timeframe";
 import {
   resolvePaperTradingConfig,
   type PaperTradingConfig,
@@ -30,7 +30,15 @@ import { findDirectionalCurrencyExposureBlock } from "@/paper/exposure";
 
 const ENGINE_VERSION = "phase-4";
 const PAPER_CONFIG_VERSION = "phase-4.1";
-const POSITION_CANDLE_LOOKBACK = 500;
+/**
+ * M7-2: minimum candle window when scanning for exits on an open position.
+ *
+ * A fixed window silently skipped SL/TP touches on positions older than the
+ * window. The effective lookback is now max(MIN, barsSinceOpen + BUFFER),
+ * computed per position.
+ */
+const POSITION_CANDLE_LOOKBACK_MIN = 500;
+const POSITION_CANDLE_LOOKBACK_BUFFER = 100;
 
 export class PaperTradingService {
   private queue: Promise<void> = Promise.resolve();
@@ -211,10 +219,17 @@ export class PaperTradingService {
         }
       }
 
+      const barsSinceOpen = Math.ceil(
+        (asOf - position.openedAt) / intervalMs("M15")
+      );
+      const lookback = Math.max(
+        POSITION_CANDLE_LOOKBACK_MIN,
+        barsSinceOpen + POSITION_CANDLE_LOOKBACK_BUFFER
+      );
       const candleResult = await marketData.getCandles({
         symbol: position.symbol,
         timeframe: "M15",
-        limit: POSITION_CANDLE_LOOKBACK,
+        limit: lookback,
         asOf,
       });
       if (!candleResult.ok) continue;
