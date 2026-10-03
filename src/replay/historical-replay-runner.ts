@@ -14,6 +14,10 @@ import type {
   ReplayStepHandler,
 } from "@/replay/types";
 import { ScannerApi } from "@/scanner/scanner-api";
+import {
+  setDeterministicMode,
+  isDeterministicMode,
+} from "@/core/indicators/series";
 
 /**
  * Phase 5.1 historical replay orchestrator.
@@ -112,6 +116,23 @@ export class HistoricalReplayRunner {
   }
 
   async run(options?: {
+    onStep?: ReplayStepHandler;
+    collectSteps?: boolean;
+  }): Promise<ReplayRunResult> {
+    // H4-5: replay must be deterministic. Any engineTimestamp() call without
+    // marketAsOf would otherwise silently substitute the wall clock and break
+    // reproducibility. Scope the flag to this run() so a same-process live
+    // scanner is not affected.
+    const previousMode = isDeterministicMode();
+    setDeterministicMode(true);
+    try {
+      return await this.runInternal(options);
+    } finally {
+      setDeterministicMode(previousMode);
+    }
+  }
+
+  private async runInternal(options?: {
     onStep?: ReplayStepHandler;
     collectSteps?: boolean;
   }): Promise<ReplayRunResult> {

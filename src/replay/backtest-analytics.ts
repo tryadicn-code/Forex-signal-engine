@@ -94,7 +94,18 @@ export function calculateHistoricalAnalytics(
     averageR: average(rValues),
     medianR: median(rValues),
     standardDeviationR: populationStandardDeviation(rValues),
-    expectancyR: average(rValues),
+    // M4-5: expectancyR is mathematically equal to averageR when break-even
+    // trades contribute 0R (which they always do). It is kept as a distinct
+    // field because its name communicates the classical expectancy intent
+    // (P(win)*E[R|win] + P(loss)*E[R|loss]) and downstream consumers already
+    // depend on it. The explicit win/loss formula below makes the intent
+    // auditable and would diverge from averageR only if break-even handling
+    // ever changed.
+    expectancyR: classicalExpectancyR(wins, losses, rValues),
+    // NEW: per-trade Sharpe and Sortino on R values. These are NOT
+    // annualized; they compare strategies on a per-trade risk-adjusted basis.
+    sharpeR: computeSharpeR(rValues),
+    sortinoR: computeSortinoR(rValues),
     bestTradePnL:
       sampleSize > 0
         ? Math.max(...trades.map((trade) => trade.realizedPnL))
@@ -452,4 +463,58 @@ function nullableDelta(
   historical: number | null
 ): number | null {
   return forward === null || historical === null ? null : forward - historical;
+}
+
+
+/**
+ * Classical expectancy in R units:
+ *   E[R] = P(win) * E[R | win] + P(loss) * E[R | loss]
+ *
+ * Mathematically equivalent to averageR when break-even trades contribute 0R.
+ * Kept as an explicit formula so the win/loss breakdown stays visible.
+ */
+function classicalExpectancyR(
+  wins: HistoricalTrade[],
+  losses: HistoricalTrade[],
+  allRValues: number[]
+): number | null {
+  if (allRValues.length === 0) return null;
+  const n = allRValues.length;
+  const winR = wins.map((t) => t.realizedR);
+  const lossR = losses.map((t) => t.realizedR);
+  const pWin = winR.length / n;
+  const pLoss = lossR.length / n;
+  const eWin = winR.length > 0 ? sum(winR) / winR.length : 0;
+  const eLoss = lossR.length > 0 ? sum(lossR) / lossR.length : 0;
+  return pWin * eWin + pLoss * eLoss;
+}
+
+/**
+ * Per-trade Sharpe: mean(R) / populationStdDev(R). Not annualized.
+ * Returns null when the sample has no variance (stdDev = 0) or is empty.
+ */
+function computeSharpeR(rValues: number[]): number | null {
+  if (rValues.length === 0) return null;
+  const mean = average(rValues);
+  const sd = populationStandardDeviation(rValues);
+  if (mean === null || sd === null || sd === 0) return null;
+  return mean / sd;
+}
+
+/**
+ * Per-trade Sortino: mean(R) / downsideDeviation(R), where downsideDeviation
+ * is the population standard deviation of non-positive R values. Not
+ * annualized. Returns null when there are no losing trades (no downside).
+ */
+function computeSortinoR(rValues: number[]): number | null {
+  if (rValues.length === 0) return null;
+  const mean = average(rValues);
+  if (mean === null) return null;
+  const downside = rValues.filter((r) => r < 0);
+  if (downside.length === 0) return null;
+  const downsideVariance =
+    sum(downside.map((r) => r * r)) / rValues.length;
+  const downsideDev = Math.sqrt(downsideVariance);
+  if (downsideDev === 0) return null;
+  return mean / downsideDev;
 }
