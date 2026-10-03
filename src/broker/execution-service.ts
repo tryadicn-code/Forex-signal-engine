@@ -38,6 +38,7 @@ export class BrokerExecutionService {
   constructor(private readonly options: BrokerExecutionServiceOptions) {}
 
   async dashboard(): Promise<BrokerExecutionDashboard> {
+    await this.normalizeStaleLiveSubmitting();
     const state = await this.normalizeExpiredArm();
     const brokerStatus = await this.safeStatus();
     const openPositions = brokerStatus.connected
