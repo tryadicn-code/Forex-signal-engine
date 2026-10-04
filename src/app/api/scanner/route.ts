@@ -12,7 +12,6 @@
  * No trading logic lives here: the route only forwards to scanner-access.
  */
 
-import { NextResponse } from "next/server";
 import { readDashboard, refreshScanner } from "@/server/scanner-access";
 import {
   errorResponse,

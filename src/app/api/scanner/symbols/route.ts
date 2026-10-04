@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { DEFAULT_SYMBOL_UNIVERSE, SYMBOL_METADATA } from "@/config/scanner";
 import { resolveRuntimeSymbols } from "@/providers/market-data/runtime-provider";
 import {

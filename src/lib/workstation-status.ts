@@ -181,10 +181,10 @@ export function workstationStages(result: SymbolScanResult): WorkstationStage[] 
 }
 
 export function stageGlyph(stage: WorkstationStage): string {
-  if (stage.state === "done") return "?";
-  if (stage.state === "blocked") return "?";
-  if (stage.state === "current") return "?";
-  return "�";
+  if (stage.state === "done") return "\u2713";
+  if (stage.state === "blocked") return "\u2715";
+  if (stage.state === "current") return "\u25C9";
+  return "\u2014";
 }
 
 export function workstationToneClass(tone: WorkstationTone): string {
