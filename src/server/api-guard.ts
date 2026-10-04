@@ -38,6 +38,27 @@ export function requireBrokerSecret(request: Request): void {
 }
 
 /**
+ * Soft variant for GET endpoints that expose operational state but must keep
+ * working in a local development session where no secret is configured.
+ *
+ *   - No secret configured in production -> refuse (fail closed).
+ *   - No secret configured outside production -> allow (dev convenience).
+ *   - Secret configured -> require a matching header.
+ */
+export function requireBrokerSecretOrDevOpen(request: Request): void {
+  const expected = (process.env.FSE_LIVE_APPROVAL_SECRET ?? "").trim();
+  if (!expected) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "FSE_LIVE_APPROVAL_SECRET is not configured; refusing to serve operational state in production."
+      );
+    }
+    return;
+  }
+  assertBrokerApprovalSecret(readBrokerApprovalSecret(request));
+}
+
+/**
  * Path parameter format validators.
  *
  * Path params are user input. Without a strict format check, an id can

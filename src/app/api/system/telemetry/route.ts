@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import {
   sharedTransactionalMode,
   transactionalStore,
 } from "@/transactional/runtime";
+import { errorResponse, okResponse } from "@/server/api-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,29 +12,22 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const parsed = Number(url.searchParams.get("limit") ?? "50");
     const limit =
-      Number.isInteger(parsed) && parsed > 0
-        ? Math.min(parsed, 200)
-        : 50;
+      Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, 200) : 50;
 
     if (!sharedTransactionalMode()) {
-      return NextResponse.json({
+      return okResponse({
         protocol: "phase-9-telemetry-v1",
         mode: "LOCAL",
         events: [],
       });
     }
 
-    return NextResponse.json({
+    return okResponse({
       protocol: "phase-9-telemetry-v1",
       mode: "SHARED",
       events: await transactionalStore().recentTelemetry(limit),
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : String(error),
-      },
-      { status: 503 }
-    );
+    return errorResponse(error, "Telemetry unavailable.");
   }
 }
