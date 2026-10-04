@@ -71,6 +71,12 @@ export interface NotificationDelivery {
   createdAt: number;
   updatedAt: number;
   message: string;
+  /**
+   * N8B-7: timestamp when the delivery exhausted maxAttempts and was moved
+   * to the dead-letter queue. retryFailed() never touches deliveries with a
+   * non-null value; the operator must explicitly force-retry them.
+   */
+  deadLetteredAt: number | null;
 }
 
 export interface NotificationStoreState {

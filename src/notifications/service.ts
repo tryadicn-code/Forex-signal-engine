@@ -99,6 +99,14 @@ export class NotificationService {
     return processed;
   }
 
+  /**
+   * N8B-7: retry only FAILED deliveries that are NOT dead-lettered.
+   * Dead-lettered deliveries require an explicit force-retry (a future
+   * operator action) because the retry budget is exhausted.
+   *
+   * N8B-10: a SUPPRESSED event is never revived, because it was never
+   * queued. Only FAILED/PARTIAL/QUEUED events can move back to QUEUED.
+   */
   async retryFailed(): Promise<number> {
     const now = Date.now();
     return this.store.update((state) => {
@@ -106,9 +114,7 @@ export class NotificationService {
       const next = structuredClone(state);
       for (const delivery of next.deliveries) {
         if (delivery.status !== "FAILED") continue;
-        if (delivery.attempts >= delivery.maxAttempts) {
-          delivery.attempts = 0;
-        }
+        if (delivery.deadLetteredAt !== null) continue;
         delivery.status = "PENDING";
         delivery.nextAttemptAt = now;
         delivery.claimedAt = null;
@@ -143,10 +149,16 @@ export class NotificationService {
         return { next: state, result: false };
       }
 
+      // N8B-8: cooldown applies to a DIFFERENT signal on the same symbol and
+      // state. Same signalId is already dedup'd by the event key check
+      // above, so it never reaches this point. Excluding it here prevents
+      // the case where signal A's alert suppresses signal B just because
+      // they share a symbol and a state within the cooldown window.
       const cooldownMatch = [...state.events]
         .reverse()
         .find(
           (event) =>
+            event.signalId !== candidate.signalId &&
             event.symbol === candidate.symbol &&
             event.state === candidate.state &&
             (event.strategyId ?? null) === candidate.strategyId &&
@@ -193,6 +205,7 @@ export class NotificationService {
               createdAt: now,
               updatedAt: now,
               message,
+              deadLetteredAt: null,
             };
           });
 
@@ -313,6 +326,9 @@ export class NotificationService {
       } else if (delivery.attempts >= delivery.maxAttempts) {
         delivery.status = "FAILED";
         delivery.lastError = error;
+        // N8B-7: mark as dead-letter so retryFailed() does not keep
+        // resetting the attempt counter and hammering the provider.
+        delivery.deadLetteredAt = now;
       } else {
         delivery.status = "PENDING";
         delivery.lastError = error;
