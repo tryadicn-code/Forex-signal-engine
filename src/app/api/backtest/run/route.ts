@@ -8,6 +8,7 @@ import type {
 } from "@/replay/execution-types";
 import type { HistoricalTextFile } from "@/replay/import-types";
 import { executeAndPersistBacktest } from "@/server/backtest-access";
+import { requireBrokerSecret } from "@/server/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,6 +19,11 @@ const MAX_TOTAL_BYTES = 128 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
+    // H8A-G2-3: backtest runs are CPU-heavy, buffer up to 128 MB in memory,
+    // and write a report to disk. Authentication is mandatory so this cannot
+    // be used to exhaust server resources.
+    requireBrokerSecret(request);
+
     const form = await request.formData();
     const uploads = form.getAll("files").filter(
       (value): value is File => value instanceof File
