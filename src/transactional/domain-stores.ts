@@ -66,6 +66,13 @@ export class TransactionalPaperStore implements PaperStore {
     return structuredClone(document.value);
   }
 
+  /**
+   * H8E-E1-3: retry the CAS up to 5 times on conflict. The previous
+   * implementation relied on a cached `revision` and did not retry, so a
+   * concurrent write from another caller sharing the same instance (or from
+   * another node in shared transactional mode) would surface as a bare
+   * TransactionConflictError to the Paper trading service.
+   */
   async save(state: PaperStoreState): Promise<void> {
     validatePaperStoreState(state);
     if (this.revision === undefined) {
