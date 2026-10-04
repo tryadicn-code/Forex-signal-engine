@@ -89,8 +89,21 @@ export interface ForwardValidationReport {
     tradeCount: number;
     firstTradeOpenedAt: number | null;
     lastTradeClosedAt: number | null;
+    /**
+     * H8C-1: the report carries at most MAX_SAMPLE_TRADES (see analyzer.ts)
+     * to keep the HTTP payload bounded. When the underlying sample is larger,
+     * this flag is true and only the most recent trades are present.
+     */
+    tradesTruncated: boolean;
     trades: PaperTrade[];
   };
+  /**
+   * M8C-2: true when the release-scoped sample has reached the configured
+   * minimum. Consumers that gate their logic on statistical significance
+   * should check this flag rather than the top-level status, because a
+   * data-quality ATTENTION can co-exist with an insufficient trade sample.
+   */
+  sampleReady: boolean;
   historical: ComparablePerformance;
   forward: ComparablePerformance;
   comparison: HistoricalForwardComparison;

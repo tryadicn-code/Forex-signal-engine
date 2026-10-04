@@ -38,7 +38,16 @@ export interface SignalFunnelObservation {
   triggerState: SymbolScanResult["triggerState"];
   executionDecision: SymbolScanResult["executionDecision"];
   passedStages: SignalFunnelStage[];
+  /**
+   * L8C-1: the deepest stage this observation successfully passed, i.e.
+   * the last element of `passedStages`. This is NOT the same as
+   * `rejectionStage`, which is the stage where the observation was dropped.
+   * For a rejected observation the two are adjacent (rejectionStage follows
+   * deepestStage in SIGNAL_FUNNEL_STAGES); for an executed observation
+   * deepestStage is "EXECUTE" and rejectionStage is null.
+   */
   deepestStage: SignalFunnelStage;
+  /** Stage where the observation stopped progressing, or null on EXECUTE. */
   rejectionStage: SignalFunnelStage | null;
   rejectionCode: string | null;
   rejectionDetail: string | null;
@@ -414,7 +423,10 @@ function summarizeWindow(
       percentage:
         rejected.length === 0 ? 0 : round2((value.count / rejected.length) * 100),
     }))
-    .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+    .sort((a, b) =>
+      b.count - a.count ||
+      (a.code < b.code ? -1 : a.code > b.code ? 1 : 0)
+    );
 
   const regimeMap = new Map<string, { observations: number; executions: number }>();
   for (const item of filtered) {
@@ -435,7 +447,10 @@ function summarizeWindow(
           ? 0
           : round2((value.executions / value.observations) * 100),
     }))
-    .sort((a, b) => b.observations - a.observations || a.regime.localeCompare(b.regime));
+    .sort((a, b) =>
+      b.observations - a.observations ||
+      (a.regime < b.regime ? -1 : a.regime > b.regime ? 1 : 0)
+    );
 
   const strategyRoutingMap = new Map<
     string,
@@ -479,7 +494,11 @@ function summarizeWindow(
     .sort(
       (a, b) =>
         b.observations - a.observations ||
-        a.preferredStrategyId.localeCompare(b.preferredStrategyId)
+        (a.preferredStrategyId < b.preferredStrategyId
+          ? -1
+          : a.preferredStrategyId > b.preferredStrategyId
+            ? 1
+            : 0)
     );
 
   return {

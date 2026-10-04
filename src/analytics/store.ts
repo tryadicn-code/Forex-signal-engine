@@ -84,7 +84,12 @@ export function mergeSignalFunnelObservations(
   const cutoff = referenceAt - SIGNAL_FUNNEL_MAX_RETENTION_MS;
   const observations = [...byKey.values()]
     .filter((item) => item.observedAt >= cutoff)
-    .sort((a, b) => a.observedAt - b.observedAt || a.symbol.localeCompare(b.symbol));
+    // M8C-4: codepoint comparator, not localeCompare, for cross-machine
+    // determinism.
+    .sort((a, b) =>
+      a.observedAt - b.observedAt ||
+      (a.symbol < b.symbol ? -1 : a.symbol > b.symbol ? 1 : 0)
+    );
 
   return {
     schemaVersion: 1,

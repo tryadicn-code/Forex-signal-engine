@@ -18,6 +18,13 @@ import type {
   ForwardValidationReport,
 } from "@/forward-validation/types";
 
+/**
+ * H8C-1: cap on the number of individual trades embedded in the report.
+ * The dashboard only renders aggregate metrics, so the full history is not
+ * needed; keeping the payload small avoids bloating every poll cycle.
+ */
+const MAX_SAMPLE_TRADES = 200;
+
 export function buildForwardValidationReport(input: {
   manifest: StrategyVersionManifest;
   activationAt: number;
@@ -38,7 +45,11 @@ export function buildForwardValidationReport(input: {
     .filter((trade) =>
       tradeMatchesRelease(trade, version, fingerprint, input.activationAt)
     )
-    .sort((a, b) => a.closedAt - b.closedAt || a.id.localeCompare(b.id));
+    // M8C-4: codepoint comparator for cross-machine determinism.
+    .sort((a, b) =>
+      a.closedAt - b.closedAt ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+    );
   const observations = input.observations
     .filter(
       (item) =>
@@ -132,12 +143,18 @@ export function buildForwardValidationReport(input: {
     info: indicators.filter((item) => item.status === "INFO").length,
   };
 
+  const sampleReady = trades.length >= config.minimumTradeSample;
+  // M8C-2: status is driven by drift indicators; sampleReady is exposed
+  // separately so consumers can tell "not enough data" from "enough data
+  // but something drifted". The ordering below keeps ATTENTION meaningful
+  // even when the sample is small (a data-quality red flag is real), while
+  // COLLECTING remains the default for a healthy but undersampled release.
   const status =
     counts.outsideReference > 0 || counts.attention > 0
       ? "ATTENTION"
-      : trades.length < config.minimumTradeSample
-        ? "COLLECTING"
-        : "MONITORING";
+      : sampleReady
+        ? "MONITORING"
+        : "COLLECTING";
 
   return {
     schemaVersion: 1,
@@ -153,10 +170,22 @@ export function buildForwardValidationReport(input: {
     },
     sample: {
       tradeCount: trades.length,
-      firstTradeOpenedAt: trades[0]?.openedAt ?? null,
+      // M8C-1: trades are sorted by closedAt (for cumulative performance),
+      // so trades[0].openedAt is not necessarily the earliest opening.
+      firstTradeOpenedAt: trades.reduce<number | null>(
+        (min, trade) =>
+          min === null || trade.openedAt < min ? trade.openedAt : min,
+        null
+      ),
       lastTradeClosedAt: trades[trades.length - 1]?.closedAt ?? null,
-      trades: structuredClone(trades),
+      tradesTruncated: trades.length > MAX_SAMPLE_TRADES,
+      trades: structuredClone(
+        trades.length > MAX_SAMPLE_TRADES
+          ? trades.slice(-MAX_SAMPLE_TRADES)
+          : trades
+      ),
     },
+    sampleReady,
     historical,
     forward,
     comparison,
