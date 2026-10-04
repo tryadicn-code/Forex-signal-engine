@@ -1,24 +1,24 @@
-import type {
-  NotificationAdapter,
-  NotificationSendResult,
+import {
+  NotificationDeliveryError,
+  type NotificationAdapter,
+  type NotificationSendResult,
 } from "@/notifications/types";
 
 const TELEGRAM_TEXT_LIMIT = 4096;
 const WHATSAPP_TEXT_LIMIT = 4096;
 /** WhatsApp Cloud API body parameters are limited to 1024 characters. */
 const WHATSAPP_TEMPLATE_PARAM_LIMIT = 1024;
+/** Fallback retry delay for WhatsApp throttling when no explicit hint exists. */
+const WHATSAPP_THROTTLE_FALLBACK_MS = 5 * 60_000;
 
 /**
  * N8B-2: sanitize a provider error message before it is stored in
  * `delivery.lastError`. Provider responses can echo back phone numbers,
- * phone number IDs, or long opaque tokens. Truncate to a bounded length and
- * redact anything that looks like a phone number or a long identifier.
+ * phone number IDs, or long opaque tokens.
  */
 function sanitizeProviderError(raw: string, maxLength = 200): string {
   let cleaned = raw;
-  // Redact E.164-ish phone numbers (+628123456789, 62812-3456-789, etc.)
   cleaned = cleaned.replace(/\+?\d[\d\s\-()]{7,}\d/g, "<redacted>");
-  // Redact long alphanumeric tokens (30+ chars) that may be session ids
   cleaned = cleaned.replace(/[A-Za-z0-9_-]{30,}/g, "<token>");
   if (cleaned.length > maxLength) {
     cleaned = cleaned.slice(0, maxLength) + "\u2026";
@@ -28,8 +28,7 @@ function sanitizeProviderError(raw: string, maxLength = 200): string {
 
 /**
  * N8B-5: parse a JSON body safely. A non-JSON 200 response from a corporate
- * proxy or error page would otherwise surface as "Unexpected token < in JSON
- * at position 0" with no context.
+ * proxy or error page would otherwise surface as a bare SyntaxError.
  */
 function parseJsonBody(
   raw: string,
@@ -42,14 +41,17 @@ function parseJsonBody(
   } catch (error) {
     const snippet = raw.length > 200 ? raw.slice(0, 200) + "..." : raw;
     const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(
+    throw new NotificationDeliveryError(
       label +
         " returned non-JSON (HTTP " +
         status +
         "): " +
         reason +
         ". Body: " +
-        snippet
+        snippet,
+      null,
+      status,
+      null
     );
   }
 }
@@ -90,18 +92,34 @@ export class TelegramNotificationAdapter
           cache: "no-store",
         }
       );
+      const requestId = response.headers?.get?.("x-request-id") ?? null;
       const raw = await response.text();
       const parsed = parseJsonBody(raw, "Telegram", response.status) as {
         ok?: boolean;
         description?: string;
+        error_code?: number;
+        parameters?: { retry_after?: number };
         result?: { message_id?: number };
       };
+
       if (!response.ok || parsed.ok !== true) {
-        throw new Error(
+        // N8B-4: Telegram signals rate limits with HTTP 429 + error_code 429
+        // and a `parameters.retry_after` value in seconds.
+        const retryAfterMs =
+          parsed.error_code === 429 &&
+          typeof parsed.parameters?.retry_after === "number"
+            ? parsed.parameters.retry_after * 1000
+            : response.status === 429
+              ? 60_000
+              : null;
+        throw new NotificationDeliveryError(
           "Telegram sendMessage failed: " +
             sanitizeProviderError(
               parsed.description ?? "HTTP " + response.status
-            )
+            ),
+          retryAfterMs,
+          response.status,
+          requestId
         );
       }
       return {
@@ -140,10 +158,6 @@ export class WhatsAppNotificationAdapter
       this.options.timeoutMs
     );
     try {
-      // N8B-3: text mode allows up to 4096 chars, but the template body
-      // parameter is limited to 1024. Truncate per mode, and mark the
-      // truncation with an ellipsis so the recipient knows the message
-      // was cut.
       const isTemplate = Boolean(this.options.templateName);
       const limit = isTemplate
         ? WHATSAPP_TEMPLATE_PARAM_LIMIT
@@ -197,17 +211,37 @@ export class WhatsAppNotificationAdapter
           cache: "no-store",
         }
       );
+      // Meta returns x-fb-trace-id; some proxies mirror it as x-request-id.
+      const requestId =
+        response.headers?.get?.("x-fb-trace-id") ??
+        response.headers?.get?.("x-request-id") ??
+        null;
+
       const raw = await response.text();
       const parsed = parseJsonBody(raw, "WhatsApp", response.status) as {
         messages?: Array<{ id?: string }>;
-        error?: { message?: string };
+        error?: { message?: string; code?: number };
       };
+
       if (!response.ok) {
-        throw new Error(
+        // N8B-4: Meta throttle codes are 130429 (rate limit hit) and 131056
+        // (pair rate limit). Meta does not return an explicit retry_after
+        // value, so we use a conservative fixed fallback.
+        const isThrottle =
+          response.status === 429 ||
+          parsed.error?.code === 130429 ||
+          parsed.error?.code === 131056;
+        const retryAfterMs = isThrottle
+          ? WHATSAPP_THROTTLE_FALLBACK_MS
+          : null;
+        throw new NotificationDeliveryError(
           "WhatsApp Cloud API send failed: " +
             sanitizeProviderError(
               parsed.error?.message ?? "HTTP " + response.status
-            )
+            ),
+          retryAfterMs,
+          response.status,
+          requestId
         );
       }
       return {

@@ -5,14 +5,15 @@ import {
 } from "@/notifications/detector";
 import { formatAlertMessage } from "@/notifications/message";
 import type { NotificationStore } from "@/notifications/store";
-import type {
-  AlertCandidate,
-  AlertEventRecord,
-  NotificationAdapter,
-  NotificationChannelHealth,
-  NotificationDashboard,
-  NotificationDelivery,
-  NotificationStoreState,
+import {
+  NotificationDeliveryError,
+  type AlertCandidate,
+  type AlertEventRecord,
+  type NotificationAdapter,
+  type NotificationChannelHealth,
+  type NotificationDashboard,
+  type NotificationDelivery,
+  type NotificationStoreState,
 } from "@/notifications/types";
 import type { ReleaseRuntimeState } from "@/runtime/release-runtime-types";
 import type { ScannerSnapshot } from "@/scanner/scanner-result";
@@ -206,6 +207,8 @@ export class NotificationService {
               updatedAt: now,
               message,
               deadLetteredAt: null,
+              lastHttpStatus: null,
+              lastRequestId: null,
             };
           });
 
@@ -280,7 +283,10 @@ export class NotificationService {
         delivery,
         false,
         null,
-        "Notification channel adapter is unavailable."
+        "Notification channel adapter is unavailable.",
+        null,
+        null,
+        null
       );
       return;
     }
@@ -291,15 +297,35 @@ export class NotificationService {
         delivery,
         true,
         result.providerMessageId,
+        null,
+        null,
+        null,
         null
       );
     } catch (error) {
-      await this.completeDelivery(
-        delivery,
-        false,
-        null,
-        error instanceof Error ? error.message : String(error)
-      );
+      // N8B-4: adapters throw NotificationDeliveryError with a retryAfterMs
+      // hint on 429 responses. Fall back to the raw message otherwise.
+      if (error instanceof NotificationDeliveryError) {
+        await this.completeDelivery(
+          delivery,
+          false,
+          null,
+          error.message,
+          error.retryAfterMs,
+          error.httpStatus,
+          error.requestId
+        );
+      } else {
+        await this.completeDelivery(
+          delivery,
+          false,
+          null,
+          error instanceof Error ? error.message : String(error),
+          null,
+          null,
+          null
+        );
+      }
     }
   }
 
@@ -307,7 +333,10 @@ export class NotificationService {
     claimed: NotificationDelivery,
     success: boolean,
     providerMessageId: string | null,
-    error: string | null
+    error: string | null,
+    retryAfterMs: number | null,
+    httpStatus: number | null,
+    requestId: string | null
   ): Promise<void> {
     const now = Date.now();
     await this.store.update((state) => {
@@ -323,19 +352,29 @@ export class NotificationService {
         delivery.status = "SENT";
         delivery.providerMessageId = providerMessageId;
         delivery.lastError = null;
+        delivery.lastHttpStatus = httpStatus;
+        delivery.lastRequestId = requestId;
       } else if (delivery.attempts >= delivery.maxAttempts) {
         delivery.status = "FAILED";
         delivery.lastError = error;
+        delivery.lastHttpStatus = httpStatus;
+        delivery.lastRequestId = requestId;
         // N8B-7: mark as dead-letter so retryFailed() does not keep
         // resetting the attempt counter and hammering the provider.
         delivery.deadLetteredAt = now;
       } else {
         delivery.status = "PENDING";
         delivery.lastError = error;
-        delivery.nextAttemptAt =
-          now +
-          this.config.retryBaseMs *
-            Math.pow(2, Math.max(0, delivery.attempts - 1));
+        delivery.lastHttpStatus = httpStatus;
+        delivery.lastRequestId = requestId;
+        // N8B-4: honor a provider-supplied retry hint. Fall back to the
+        // exponential backoff when the provider gave us nothing useful.
+        const delay =
+          retryAfterMs !== null
+            ? retryAfterMs
+            : this.config.retryBaseMs *
+              Math.pow(2, Math.max(0, delivery.attempts - 1));
+        delivery.nextAttemptAt = now + delay;
       }
       delivery.claimedAt = null;
       delivery.updatedAt = now;
