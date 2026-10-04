@@ -13,6 +13,7 @@ import type {
   ReleaseDecision,
   ReleaseReviewChecklist,
 } from "@/replay/release-gate-types";
+import { apiFetch, ApiError } from "@/lib/api-client";
 
 const EMPTY_CHECKLIST: ReleaseReviewChecklist = {
   datasetQualityReviewed: false,
@@ -82,7 +83,10 @@ export function ReleaseGateWorkbench({
             : stored?.forwardEvidence ?? null
           : null;
 
-      const response = await fetch(
+      const payload = await apiFetch<
+        | { ok: true; artifact: BacktestRunArtifact }
+        | { ok: false; error: string }
+      >(
         "/api/backtest/runs/" + encodeURIComponent(artifact.id),
         {
           method: "PATCH",
@@ -98,15 +102,18 @@ export function ReleaseGateWorkbench({
           }),
         }
       );
-      const payload = (await response.json()) as
-        | { ok: true; artifact: BacktestRunArtifact }
-        | { ok: false; error: string };
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.ok ? "Release review update failed." : payload.error);
+      if (!payload.ok) {
+        throw new Error(payload.error);
       }
       onArtifactUpdated(payload.artifact);
       await onRecentRunsRefresh();
     } catch (saveError) {
+      if (saveError instanceof ApiError && saveError.code === "UNAUTHORIZED") {
+        setError(
+          "Approval secret is required to save the release review. Set it from the dialog, then try again."
+        );
+        return;
+      }
       setError(saveError instanceof Error ? saveError.message : String(saveError));
     } finally {
       setSaving(false);

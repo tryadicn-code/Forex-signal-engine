@@ -7,6 +7,7 @@ import type {
   StrategyVersionEntry,
   StrategyVersionRegistry,
 } from "@/replay/strategy-version-types";
+import { apiFetch, ApiError } from "@/lib/api-client";
 
 export function StrategyVersionRegistryWorkbench({
   artifact,
@@ -82,7 +83,10 @@ export function StrategyVersionRegistryWorkbench({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/backtest/strategy-versions", {
+      const payload = await apiFetch<
+        | { ok: true; registry: StrategyVersionRegistry }
+        | { ok: false; error: string }
+      >("/api/backtest/strategy-versions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -91,24 +95,26 @@ export function StrategyVersionRegistryWorkbench({
           note,
           registeredBy,
           sourceReportId: artifact.id,
-          ...(supersedesVersion
-            ? { supersedesVersion }
-            : {}),
+          ...(supersedesVersion ? { supersedesVersion } : {}),
         }),
       });
-      const payload = (await response.json()) as
-        | { ok: true; registry: StrategyVersionRegistry }
-        | { ok: false; error: string };
-      if (!response.ok || !payload.ok) {
-        throw new Error(
-          payload.ok ? "Strategy registration failed." : payload.error
-        );
+      if (!payload.ok) {
+        throw new Error(payload.error);
       }
       setRegistry(payload.registry);
       setVersion("");
       setNote("");
       setSupersedesVersion("");
     } catch (registerError) {
+      if (
+        registerError instanceof ApiError &&
+        registerError.code === "UNAUTHORIZED"
+      ) {
+        setError(
+          "Approval secret is required to register a strategy version. Set it from the dialog, then try again."
+        );
+        return;
+      }
       setError(
         registerError instanceof Error
           ? registerError.message
@@ -124,7 +130,10 @@ export function StrategyVersionRegistryWorkbench({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
+      const payload = await apiFetch<
+        | { ok: true; registry: StrategyVersionRegistry }
+        | { ok: false; error: string }
+      >(
         "/api/backtest/strategy-versions/" +
           encodeURIComponent(rollingBackVersion),
         {
@@ -137,18 +146,22 @@ export function StrategyVersionRegistryWorkbench({
           }),
         }
       );
-      const payload = (await response.json()) as
-        | { ok: true; registry: StrategyVersionRegistry }
-        | { ok: false; error: string };
-      if (!response.ok || !payload.ok) {
-        throw new Error(
-          payload.ok ? "Rollback failed." : payload.error
-        );
+      if (!payload.ok) {
+        throw new Error(payload.error);
       }
       setRegistry(payload.registry);
       setRollingBackVersion(null);
       setRollbackReason("");
     } catch (rollbackError) {
+      if (
+        rollbackError instanceof ApiError &&
+        rollbackError.code === "UNAUTHORIZED"
+      ) {
+        setError(
+          "Approval secret is required to rollback. Set it from the dialog, then try again."
+        );
+        return;
+      }
       setError(
         rollbackError instanceof Error
           ? rollbackError.message
@@ -164,7 +177,10 @@ export function StrategyVersionRegistryWorkbench({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
+      const payload = await apiFetch<
+        | { ok: true; registry: StrategyVersionRegistry }
+        | { ok: false; error: string }
+      >(
         "/api/backtest/strategy-versions/" +
           encodeURIComponent(deprecatingVersion),
         {
@@ -177,18 +193,22 @@ export function StrategyVersionRegistryWorkbench({
           }),
         }
       );
-      const payload = (await response.json()) as
-        | { ok: true; registry: StrategyVersionRegistry }
-        | { ok: false; error: string };
-      if (!response.ok || !payload.ok) {
-        throw new Error(
-          payload.ok ? "Lifecycle update failed." : payload.error
-        );
+      if (!payload.ok) {
+        throw new Error(payload.error);
       }
       setRegistry(payload.registry);
       setDeprecatingVersion(null);
       setDeprecateReason("");
     } catch (deprecateError) {
+      if (
+        deprecateError instanceof ApiError &&
+        deprecateError.code === "UNAUTHORIZED"
+      ) {
+        setError(
+          "Approval secret is required to deprecate. Set it from the dialog, then try again."
+        );
+        return;
+      }
       setError(
         deprecateError instanceof Error
           ? deprecateError.message

@@ -19,6 +19,7 @@ export function PaperTradingOverlay({
   closingPositionId,
   onSetInitialBalance,
   settingInitialBalance,
+  externalError,
 }: {
   open: boolean;
   view: Exclude<PaperPanelView, "both">;
@@ -31,6 +32,8 @@ export function PaperTradingOverlay({
   closingPositionId?: string | null;
   onSetInitialBalance?: (initialBalance: number) => Promise<void>;
   settingInitialBalance?: boolean;
+  /** Error surfaced by the parent overlay (reset / balance / close failures). */
+  externalError?: string | null;
 }) {
   const [activeView, setActiveView] = useState<Exclude<PaperPanelView, "both">>(
     view
@@ -123,6 +126,15 @@ export function PaperTradingOverlay({
             </button>
           </div>
         </header>
+
+        {externalError && (
+          <div
+            role="alert"
+            className="shrink-0 border-b border-red-900/60 bg-red-950/20 px-3 py-2 text-[11px] text-red-200"
+          >
+            {externalError}
+          </div>
+        )}
 
         <div className="overflow-y-auto p-3 sm:p-4">
           <PaperTradingPanel

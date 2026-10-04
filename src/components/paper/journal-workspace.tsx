@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PaperTradingPanel } from "@/components/paper/paper-trading-panel";
 import type { PaperDashboardData } from "@/paper/types";
+import { apiFetch, ApiError } from "@/lib/api-client";
 
 export function JournalWorkspace({
   initialPaper,
@@ -22,11 +23,21 @@ export function JournalWorkspace({
     setResetting(true);
     setError(null);
     try {
-      const response = await fetch("/api/paper", { method: "DELETE", cache: "no-store" });
-      if (!response.ok) throw new Error("Paper reset failed with HTTP " + response.status + ".");
-      setPaper((await response.json()) as PaperDashboardData);
+      const next = await apiFetch<PaperDashboardData>("/api/paper", {
+        method: "DELETE",
+        cache: "no-store",
+      });
+      setPaper(next);
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : String(resetError));
+      if (resetError instanceof ApiError && resetError.code === "UNAUTHORIZED") {
+        setError(
+          "Approval secret is required to reset the paper account. Set it from the dialog, then try again."
+        );
+      } else {
+        setError(
+          resetError instanceof Error ? resetError.message : String(resetError)
+        );
+      }
     } finally {
       setResetting(false);
     }
@@ -46,7 +57,7 @@ export function JournalWorkspace({
     setSettingInitialBalance(true);
     setError(null);
     try {
-      const response = await fetch("/api/paper", {
+      const next = await apiFetch<PaperDashboardData>("/api/paper", {
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
@@ -55,15 +66,22 @@ export function JournalWorkspace({
           initialBalance,
         }),
       });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Paper balance update failed.");
-      }
-      setPaper(payload as PaperDashboardData);
+      setPaper(next);
     } catch (balanceError) {
-      setError(
-        balanceError instanceof Error ? balanceError.message : String(balanceError)
-      );
+      if (
+        balanceError instanceof ApiError &&
+        balanceError.code === "UNAUTHORIZED"
+      ) {
+        setError(
+          "Approval secret is required to change the paper balance. Set it from the dialog, then try again."
+        );
+      } else {
+        setError(
+          balanceError instanceof Error
+            ? balanceError.message
+            : String(balanceError)
+        );
+      }
     } finally {
       setSettingInitialBalance(false);
     }
@@ -84,19 +102,23 @@ export function JournalWorkspace({
     setClosingPositionId(positionId);
     setError(null);
     try {
-      const response = await fetch("/api/paper", {
+      const next = await apiFetch<PaperDashboardData>("/api/paper", {
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "close-position", positionId }),
       });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Paper close failed.");
-      }
-      setPaper(payload as PaperDashboardData);
+      setPaper(next);
     } catch (closeError) {
-      setError(closeError instanceof Error ? closeError.message : String(closeError));
+      if (closeError instanceof ApiError && closeError.code === "UNAUTHORIZED") {
+        setError(
+          "Approval secret is required to close a paper position. Set it from the dialog, then try again."
+        );
+      } else {
+        setError(
+          closeError instanceof Error ? closeError.message : String(closeError)
+        );
+      }
     } finally {
       setClosingPositionId(null);
     }
