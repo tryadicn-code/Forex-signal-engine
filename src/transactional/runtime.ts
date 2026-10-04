@@ -60,13 +60,22 @@ export function transactionalStore(): TransactionalStateStore {
 export async function acquireScannerLease(): Promise<LeaseGrant | null> {
   if (!sharedTransactionalMode()) return null;
   const runtime = globalThis as TransactionalRuntimeGlobal;
-  const grant = await transactionalStore().acquireLease(
-    "scanner-cycle",
-    runtimeInstanceId(),
-    TRANSACTIONAL_CONFIG.leaseTtlMs
-  );
-  runtime.__fseScannerLease = grant;
-  return grant;
+  // M8E-E1-2: clear any previous lease before attempting a new one, and on
+  // failure keep it null. Without this, a failed acquire leaves the stale
+  // lease visible to currentScannerLease().
+  runtime.__fseScannerLease = null;
+  try {
+    const grant = await transactionalStore().acquireLease(
+      "scanner-cycle",
+      runtimeInstanceId(),
+      TRANSACTIONAL_CONFIG.leaseTtlMs
+    );
+    runtime.__fseScannerLease = grant;
+    return grant;
+  } catch (error) {
+    runtime.__fseScannerLease = null;
+    throw error;
+  }
 }
 
 export async function releaseScannerLease(
@@ -85,10 +94,20 @@ export async function releaseScannerLease(
   }
 }
 
+/**
+ * M8E-E1-3: only returns a lease that has not yet expired. A stored grant
+ * past its expiresAt is cleared and reported as null so callers cannot
+ * accidentally rely on a dead lease.
+ */
 export function currentScannerLease(): LeaseGrant | null {
-  return (
-    (globalThis as TransactionalRuntimeGlobal).__fseScannerLease ?? null
-  );
+  const lease =
+    (globalThis as TransactionalRuntimeGlobal).__fseScannerLease ?? null;
+  if (!lease) return null;
+  if (lease.expiresAt <= Date.now()) {
+    (globalThis as TransactionalRuntimeGlobal).__fseScannerLease = null;
+    return null;
+  }
+  return lease;
 }
 
 export async function emitRuntimeTelemetry(

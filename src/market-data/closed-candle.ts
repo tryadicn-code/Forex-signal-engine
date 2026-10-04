@@ -66,3 +66,13 @@ export function newestIsClosed(
   if (!last) return false;
   return isCandleClosed(timeframe, last.timestamp, asOf);
 }
+
+/**
+ * Index of the newest candle that is safe to reason about.
+ *
+ * When `closedOnly` is true the last element is closed; otherwise skip it.
+ */
+export function lastDecisionIndex(length: number, closedOnly: boolean): number {
+  if (length === 0) return -1;
+  return closedOnly ? length - 1 : Math.max(0, length - 2);
+}

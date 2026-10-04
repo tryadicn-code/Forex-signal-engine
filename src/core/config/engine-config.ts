@@ -185,9 +185,13 @@ export const defaultEngineConfig: EngineConfig = {
     structuralTargetBufferPips: 2,
   },
   execution: {
-    maxDataAgeMs: 60_000,
+    // Fallback freshness threshold when no per-timeframe classification exists.
+    // Sized to roughly one M15 bar so the fallback path is usable outside LIVE.
+    maxDataAgeMs: 900_000,
     maxSpreadPips: 5,
-    maxSignalAgeMs: 3_600_000,
+    // Absolute ceiling on signal age. Effective age is the tighter of this and
+    // signalTtl.triggerBars converted to ms via the trigger timeframe.
+    maxSignalAgeMs: 5_400_000,
   },
 };
 
@@ -227,4 +231,35 @@ function mergeSection<T>(base: T, override: DeepPartial<T> | undefined): T {
         : o;
   }
   return out as T;
+}
+
+
+/**
+ * Throw if the supplied config violates internal invariants.
+ * Call once at app startup after resolveConfig(); never per-request.
+ */
+export function assertEngineConfigValid(config: EngineConfig): void {
+  const { risk, bias, execution } = config;
+  if (!(risk.defaultRiskPercent <= risk.maxRiskPercent)) {
+    throw new Error(
+      `Config invalid: defaultRiskPercent ${risk.defaultRiskPercent} > maxRiskPercent ${risk.maxRiskPercent}.`
+    );
+  }
+  if (!(risk.defaultRiskPercent >= risk.minRiskPercent)) {
+    throw new Error(
+      `Config invalid: defaultRiskPercent ${risk.defaultRiskPercent} < minRiskPercent ${risk.minRiskPercent}.`
+    );
+  }
+  if (!(risk.tp2RR >= risk.minRR)) {
+    throw new Error(
+      `Config invalid: tp2RR ${risk.tp2RR} < minRR ${risk.minRR}.`
+    );
+  }
+  const weightSum = Object.values(bias.weights).reduce((a, b) => a + b, 0);
+  if (Math.abs(weightSum - 100) > 0.01) {
+    throw new Error(`Config invalid: bias.weights sum to ${weightSum}, expected 100.`);
+  }
+  if (!(execution.maxDataAgeMs > 0) || !(execution.maxSignalAgeMs > 0)) {
+    throw new Error("Config invalid: execution age thresholds must be positive.");
+  }
 }

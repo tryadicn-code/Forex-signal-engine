@@ -16,6 +16,7 @@ import math
 import os
 import secrets
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -43,7 +44,7 @@ TRADE_BRIDGE_ENABLED = os.getenv(
 TRADE_BRIDGE_TOKEN = os.getenv("MT5_TRADE_BRIDGE_TOKEN", "").strip()
 TRADE_MAGIC = int(os.getenv("MT5_TRADE_MAGIC", "105610"))
 TRADE_HISTORY_DAYS = max(
-    1, min(90, int(os.getenv("MT5_TRADE_HISTORY_DAYS", "14")))
+    1, min(365, int(os.getenv("MT5_TRADE_HISTORY_DAYS", "90")))
 )
 MAX_TRADE_BODY_BYTES = 16 * 1024
 
@@ -73,6 +74,28 @@ def _last_error_text() -> str:
     code, message = mt5.last_error()
     return f"MT5 error {code}: {message}"
 
+# L5-1: structured JSON logging. Every log line is a single JSON object so
+# a collector can parse without a regex.
+def _log(level: str, message: str, **fields: Any) -> None:
+    record: dict[str, Any] = {
+        "ts": datetime.now(tz=timezone.utc).isoformat(timespec="milliseconds"),
+        "level": level,
+        "service": "mt5-bridge",
+        "message": message,
+    }
+    if fields:
+        record.update(fields)
+    print(json.dumps(record, default=str), flush=True)
+
+
+# M5-4: short TTL cache for _reconcile_trade_tag. Live retry loops can call
+# reconcile dozens of times per second, and each call scans positions, open
+# orders, and up to a year of history. Cache positive and negative results
+# for a short window to keep the bridge responsive.
+_RECONCILE_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_RECONCILE_CACHE_TTL_SECONDS = 5.0
+_RECONCILE_CACHE_MAX_ENTRIES = 256
+
 
 def _ensure_mt5() -> bool:
     terminal = mt5.terminal_info()
@@ -99,15 +122,33 @@ def _resolve_symbol(canonical: str) -> str | None:
     if symbols is None:
         return None
 
-    matches = [
+    # H5-B3: exact matches are always safe. Fuzzy prefix matching is only
+    # accepted when unambiguous; previously EUR silently resolved to EURAUD.
+    fuzzy = [
         item.name
         for item in symbols
         if item.name.upper().startswith(canonical)
     ]
-    if not matches:
+    if not fuzzy:
         return None
-
-    resolved = sorted(matches, key=lambda name: (len(name), name))[0]
+    if len(fuzzy) == 1:
+        resolved = fuzzy[0]
+    else:
+        exact = [name for name in fuzzy if name.upper() == canonical]
+        if len(exact) == 1:
+            resolved = exact[0]
+        else:
+            raise LookupError(
+                "Ambiguous symbol "
+                + canonical
+                + ": "
+                + str(len(fuzzy))
+                + " MT5 symbols start with this prefix ("
+                + ", ".join(sorted(fuzzy)[:5])
+                + (", ..." if len(fuzzy) > 5 else "")
+                + "). Configure MT5_SYMBOL_PREFIX or MT5_SYMBOL_SUFFIX to "
+                + "disambiguate."
+            )
     mt5.symbol_select(resolved, True)
     return resolved
 
@@ -751,13 +792,27 @@ def _reconcile_trade_tag(client_tag: str) -> dict[str, Any]:
         "message": "No matching MT5 order, deal, or position found.",
     }
 
+def _reconcile_trade_tag_cached(client_tag: str) -> dict[str, Any]:
+    now = time.monotonic()
+    cached = _RECONCILE_CACHE.get(client_tag)
+    if cached is not None:
+        ts, result = cached
+        if now - ts < _RECONCILE_CACHE_TTL_SECONDS:
+            return result
+    result = _reconcile_trade_tag(client_tag)
+    _RECONCILE_CACHE[client_tag] = (now, result)
+    if len(_RECONCILE_CACHE) > _RECONCILE_CACHE_MAX_ENTRIES:
+        oldest_key = min(_RECONCILE_CACHE.items(), key=lambda kv: kv[1][0])[0]
+        _RECONCILE_CACHE.pop(oldest_key, None)
+    return result
+
 
 def _send_trade(payload: dict[str, Any]) -> dict[str, Any]:
     if str(payload.get("liveConfirmation", "")) != "FSE-LIVE":
         raise ValueError("Explicit liveConfirmation is required.")
 
     client_tag = str(payload.get("clientTag", "")).strip()
-    existing = _reconcile_trade_tag(client_tag)
+    existing = _reconcile_trade_tag_cached(client_tag)
     if existing["found"]:
         return {
             "accepted": True,
@@ -781,6 +836,12 @@ def _send_trade(payload: dict[str, Any]) -> dict[str, Any]:
     partial = int(getattr(mt5, "TRADE_RETCODE_DONE_PARTIAL", 10010))
     placed = int(getattr(mt5, "TRADE_RETCODE_PLACED", 10008))
 
+    # Transmission-uncertain retcodes: the request may or may not have reached
+    # the broker. Report as UNKNOWN so the caller triggers reconciliation
+    # instead of retrying, which could double-order.
+    connection_lost = int(getattr(mt5, "TRADE_RETCODE_CONNECTION", 10031))
+    timeout = int(getattr(mt5, "TRADE_RETCODE_TIMEOUT", 10012))
+
     if retcode == done:
         outcome = "FILLED"
         accepted = True
@@ -790,6 +851,9 @@ def _send_trade(payload: dict[str, Any]) -> dict[str, Any]:
     elif retcode == placed:
         outcome = "PLACED"
         accepted = True
+    elif retcode in {connection_lost, timeout}:
+        outcome = "UNKNOWN"
+        accepted = False
     else:
         outcome = "REJECTED"
         accepted = False
@@ -811,7 +875,14 @@ def _send_trade(payload: dict[str, Any]) -> dict[str, Any]:
             if int(getattr(result, "deal", 0) or 0) > 0
             else None
         ),
-        "positionId": None,
+        # H5-1: extract position_id when the MT5 build exposes it. MT5 Python
+        # 5.0.45+ returns it on the order_send result; older builds do not,
+        # so getattr with default 0 keeps the code valid on both.
+        "positionId": (
+            str(getattr(result, "position_id", ""))
+            if int(getattr(result, "position_id", 0) or 0) > 0
+            else None
+        ),
         "filledPrice": price if price > 0 else None,
     }
 
@@ -820,7 +891,8 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "FSE-MT5-Bridge/1.0"
 
     def log_message(self, fmt: str, *args: Any) -> None:
-        print(f"[mt5-bridge] {self.address_string()} - {fmt % args}")
+        # L5-1: structured JSON line so a collector can parse without regex.
+        _log("INFO", fmt % args, client=self.address_string())
 
     def send_json(self, status: int, payload: dict[str, Any]) -> None:
         encoded = json.dumps(payload, separators=(",", ":")).encode("utf-8")
@@ -974,6 +1046,17 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    # L5-3: the bridge can transmit real orders. Non-loopback binding is
+    # almost always a misconfiguration and must be flagged loudly.
+    if HOST not in {"127.0.0.1", "localhost", "::1"}:
+        print(
+            "WARNING: MT5_BRIDGE_HOST is set to "
+            + HOST
+            + ", which is not a loopback address. The bridge can submit "
+            + "live orders and should never be exposed beyond the local host.",
+            file=sys.stderr,
+        )
+
     print("Forex Signal Engine MT5 bridge")
     print(f"Listening on http://{HOST}:{PORT}")
     print("Market-data endpoints: /health, /candles, /quote")

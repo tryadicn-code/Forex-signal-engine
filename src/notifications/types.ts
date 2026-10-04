@@ -71,6 +71,22 @@ export interface NotificationDelivery {
   createdAt: number;
   updatedAt: number;
   message: string;
+  /**
+   * N8B-7: timestamp when the delivery exhausted maxAttempts and was moved
+   * to the dead-letter queue. retryFailed() never touches deliveries with a
+   * non-null value; the operator must explicitly force-retry them.
+   */
+  deadLetteredAt: number | null;
+  /**
+   * N8B-12: last HTTP status from the provider. Null on transport errors that
+   * never produced a response.
+   */
+  lastHttpStatus: number | null;
+  /**
+   * N8B-12: provider request id (x-request-id for Telegram, x-fb-trace-id for
+   * Meta) for correlating a failed delivery with the provider's own logs.
+   */
+  lastRequestId: string | null;
 }
 
 export interface NotificationStoreState {
@@ -108,6 +124,30 @@ export interface NotificationDashboard {
 
 export interface NotificationSendResult {
   providerMessageId: string | null;
+}
+
+/**
+ * N8B-4: structured error thrown by adapters when delivery fails.
+ *
+ * `retryAfterMs` is a hint from the provider (e.g. Telegram's retry_after in
+ * seconds, WhatsApp's throttling codes). When non-null, the delivery service
+ * uses it as the minimum delay before the next attempt instead of the
+ * exponential backoff. This prevents a retry that the provider would only
+ * reject again.
+ *
+ * `httpStatus` and `requestId` are observability fields: they make it
+ * possible to correlate a failed delivery with the provider's own logs.
+ */
+export class NotificationDeliveryError extends Error {
+  constructor(
+    message: string,
+    public readonly retryAfterMs: number | null = null,
+    public readonly httpStatus: number | null = null,
+    public readonly requestId: string | null = null
+  ) {
+    super(message);
+    this.name = "NotificationDeliveryError";
+  }
 }
 
 export interface NotificationAdapter {

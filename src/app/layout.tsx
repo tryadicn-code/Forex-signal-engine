@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { GlobalOverlays } from "@/components/system/global-overlays";
 
 export const metadata: Metadata = {
   title: "Forex Signal Engine",
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
+        <GlobalOverlays />
       </body>
     </html>
   );

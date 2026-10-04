@@ -43,3 +43,28 @@ next-env.d.ts
 
 # local paper-trading persistence
 /.data/
+
+# Audit backup folders created by patch scripts
+*.backup/
+src.batch1.backup/
+src.preBatch1/
+src.preBatch1-v3/
+wave1.backup/
+wave2.backup/
+wave3.backup/
+b2h4.backup/
+batch2.backup/
+fencing.backup/
+apply-*.ps1
+fix-*.ps1
+
+# Audit additions
+node_modules/
+.next/
+out/
+tsconfig.tsbuildinfo
+.turbo/
+# fix pack backups
+src.batch*.backup/
+*.backup/
+

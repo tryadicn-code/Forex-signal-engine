@@ -11,6 +11,7 @@ import {
 import type { HistoricalTrade } from "@/replay/execution-types";
 import type {
   BacktestReproducibilityFingerprint,
+  PurgeEmbargoOptions,
   RobustnessPeriodMetrics,
   SequentialValidationDiagnostics,
   SequentialValidationFold,
@@ -20,20 +21,37 @@ import type {
 
 export function calculateTemporalHoldout(
   artifact: BacktestRunArtifact,
-  splitRatio = 0.7
+  splitRatio = 0.7,
+  options: PurgeEmbargoOptions = {}
 ): TemporalHoldoutResult {
   validateSplitRatio(splitRatio);
   const { startAt, endAt } = artifact.config;
   if (endAt <= startAt) {
     throw new Error("Backtest window must have positive duration.");
   }
+  const purge = options.purge ?? true;
+  const embargoMs = options.embargoMs ?? 0;
+  if (!Number.isFinite(embargoMs) || embargoMs < 0) {
+    throw new Error("embargoMs must be a non-negative finite number.");
+  }
 
   const splitAt = Math.floor(startAt + (endAt - startAt) * splitRatio);
-  const inSampleTrades = artifact.execution.trades.filter(
-    (trade) => trade.openedAt >= startAt && trade.openedAt < splitAt
-  );
+
+  // H4-4: purge. A trade opened in-sample but closed at or after the split
+  // is removed from in-sample. Its price path lives in the out-of-sample
+  // window, so counting its realized PnL in-sample leaks future information
+  // backwards.
+  const inSampleTrades = artifact.execution.trades.filter((trade) => {
+    if (trade.openedAt < startAt) return false;
+    if (trade.openedAt >= splitAt) return false;
+    if (purge && trade.closedAt >= splitAt) return false;
+    return true;
+  });
+
+  // Out-of-sample starts after the embargo cooling period.
+  const outOfSampleStart = splitAt + embargoMs;
   const outOfSampleTrades = artifact.execution.trades.filter(
-    (trade) => trade.openedAt >= splitAt && trade.openedAt <= endAt
+    (trade) => trade.openedAt >= outOfSampleStart && trade.openedAt <= endAt
   );
 
   const inSample = periodMetrics(inSampleTrades);
@@ -81,10 +99,17 @@ export function calculateTemporalHoldout(
  */
 export function calculateSequentialValidation(
   artifact: BacktestRunArtifact,
-  foldCount = 4
+  foldCount = 4,
+  options: PurgeEmbargoOptions = {}
 ): SequentialValidationResult {
   if (!Number.isInteger(foldCount) || foldCount < 2 || foldCount > 8) {
     throw new Error("Sequential validation foldCount must be an integer from 2 to 8.");
+  }
+
+  const purge = options.purge ?? true;
+  const embargoMs = options.embargoMs ?? 0;
+  if (!Number.isFinite(embargoMs) || embargoMs < 0) {
+    throw new Error("embargoMs must be a non-negative finite number.");
   }
 
   const { startAt, endAt } = artifact.config;
@@ -109,26 +134,35 @@ export function calculateSequentialValidation(
         ? endAt
         : boundary(startAt, duration, index + 2, segmentCount);
 
-    const developmentTrades = artifact.execution.trades.filter(
-      (trade) =>
-        trade.openedAt >= startAt && trade.openedAt < developmentEndAt
-    );
+    // H4-4: development must be fully closed before the validation start.
+    // Without purge, a development trade can stay open into the validation
+    // window, so the fold validation sample is contaminated by trades whose
+    // realized PnL depends on out-of-sample prices.
+    const developmentTrades = artifact.execution.trades.filter((trade) => {
+      if (trade.openedAt < startAt) return false;
+      if (trade.openedAt >= developmentEndAt) return false;
+      if (purge && trade.closedAt >= developmentEndAt) return false;
+      return true;
+    });
+
+    // H4-4: embargo. When enabled, the first embargoMs of the validation
+    // window is skipped to let serial correlation from development decay.
+    const effectiveValidationStart =
+      embargoMs > 0 ? validationStartAt + embargoMs : validationStartAt;
+
     const validationTrades = artifact.execution.trades.filter((trade) => {
+      if (trade.openedAt < effectiveValidationStart) return false;
       if (index === foldCount - 1) {
-        return (
-          trade.openedAt >= validationStartAt && trade.openedAt <= validationEndAt
-        );
+        return trade.openedAt <= validationEndAt;
       }
-      return (
-        trade.openedAt >= validationStartAt && trade.openedAt < validationEndAt
-      );
+      return trade.openedAt < validationEndAt;
     });
 
     folds.push({
       index: index + 1,
       developmentStartAt: startAt,
       developmentEndAt,
-      validationStartAt,
+      validationStartAt: effectiveValidationStart,
       validationEndAt,
       development: periodMetrics(developmentTrades),
       validation: periodMetrics(validationTrades),

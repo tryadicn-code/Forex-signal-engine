@@ -6,7 +6,7 @@ export type HistoricalPositionStatus = "OPEN" | "CLOSED";
 export type HistoricalCloseReason =
   | "TAKE_PROFIT"
   | "STOP_LOSS"
-  | "AMBIGUOUS_BAR";
+  | "AMBIGUOUS_BAR" | "MARGIN_CALL";
 
 export type HistoricalIntrabarConflictPolicy =
   | "STOP_FIRST"
@@ -31,6 +31,61 @@ export interface HistoricalExecutionConfig {
   maxDirectionalCurrencyExposure?: number;
   /** Cooldown after a stop loss before the same symbol may re-enter. Defaults to 60m. */
   stopLossReentryCooldownMs?: number;
+  /**
+   * B3-C1: when true, subtract the dataset's assumed spread from every
+   * round-trip P&L so the backtest reflects a realistic cost per trade.
+   * Defaults to false to preserve historical test fixtures.
+   */
+  applySpread?: boolean;
+  /**
+   * B3-C2: maximum allowed drift, in pips, between the strategy's frozen
+   * entry and the current market price at execution time. Serves the same
+   * role as MT5_TRADE_MAX_DEVIATION_POINTS on the live bridge: a signal
+   * whose entry reference has moved farther than this is rejected rather
+   * than filled at a stale price.
+   *
+   * Default is Infinity (drift check disabled) to preserve legacy fixture
+   * behaviour; production backtests should set this to 2 to match the live
+   * MT5 bridge (MT5_TRADE_MAX_DEVIATION_POINTS / 10).
+   */
+  maxEntryDriftPips?: number;
+  /**
+   * B3-C3: broker commission per side per 1.0 lot, in account currency.
+   * A round trip pays this value twice. Default 0 means the backtest
+   * omits commission.
+   */
+  commissionPerLotPerSide?: number;
+  /**
+   * B3-C3: swap cost for a LONG position per 1.0 lot per night, in account
+   * currency. Positive means the broker charges (most common). Negative
+   * would mean the broker credits (rare for retail FX).
+   */
+  swapLongPerLotPerNight?: number;
+  /** B3-C3: swap cost for a SHORT position per 1.0 lot per night. */
+  swapShortPerLotPerNight?: number;
+  /**
+   * B3-C3: UTC hour at which the daily swap rollover happens. Most brokers
+   * use 21:00 or 22:00 UTC (17:00 New York). The simulator counts how many
+   * times this hour is crossed while a position is open.
+   */
+  rolloverHourUtc?: number;
+  tripleSwapWeekday?: number;
+  /**
+   * B3-H4: broker leverage used to compute required margin. Example 100 for
+   * 1:100 leverage, 30 for 1:30. Undefined (default) disables both the
+   * margin capacity check at open time and the forced liquidation pass,
+   * preserving pre-B3-H4 behaviour. Production backtests should set this to
+   * the real account leverage.
+   */
+  leverage?: number;
+  /**
+   * B3-H4: forced liquidation threshold expressed as a margin-level
+   * percentage (equity / usedMargin * 100). When the margin level drops
+   * below this value, the simulator force-closes the worst losing position
+   * at the current bar close and re-checks. Default 50 matches the standard
+   * MT5 stop-out level for retail accounts.
+   */
+  marginCallLevelPercent?: number;
 }
 
 export interface HistoricalEngineSnapshot {

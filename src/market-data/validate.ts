@@ -35,6 +35,7 @@ import type {
 import { intervalMs, candleCloseTime } from "./timeframe";
 
 const PIP_TOLERANCE = 1e-9;
+const GAP_TOLERANCE_MS = 1;
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -130,7 +131,7 @@ export function validateCandles(
     if (lastTimestamp !== null) {
       const gap = candle.timestamp - lastTimestamp;
       const expected = intervalMs(timeframe);
-      if (gap > expected + PIP_TOLERANCE) {
+      if (gap > expected + GAP_TOLERANCE_MS) {
         issues.push({ ...base, code: "MISSING_INTERVAL", message: `Gap of ${gap}ms between ${lastTimestamp} and ${candle.timestamp} exceeds the ${expected}ms interval.` });
       }
     }

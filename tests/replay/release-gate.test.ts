@@ -10,11 +10,32 @@ import {
 import {
   buildBacktestReproducibilityFingerprint,
 } from "@/replay/robustness-validation";
+import {
+  DEFAULT_RELEASE_GATE_THRESHOLDS,
+  type ReleaseGateThresholds,
+} from "@/replay/release-gate-config";
 import type { BacktestReleaseReview } from "@/replay/release-gate-types";
 
 const DAY = 24 * 60 * 60_000;
 const START = Date.UTC(2026, 0, 1);
 const END = START + 100 * DAY;
+
+/**
+ * B3-H3: thresholds used by tests that exercise checklist / evidence logic
+ * but are not themselves testing the quantitative gate. Passing these as
+ * the third argument isolates checklist behaviour from statistical
+ * thresholds, so a change to one does not break the other.
+ */
+const PERMISSIVE_THRESHOLDS: ReleaseGateThresholds = {
+  minOutOfSampleSampleSize: 0,
+  minOutOfSampleExpectancyR: -Infinity,
+  minOutOfSampleProfitFactor: 0,
+  maxEquityDrawdownPercent: 100,
+  minPositiveSequentialFolds: 0,
+  blockOnSampleWarnings: false,
+  numberOfDevelopmentTrials: 1,
+  multipleTestingAlpha: 0.05,
+};
 
 function trade(
   id: string,
@@ -229,8 +250,48 @@ describe("Phase 5.8 release evidence review", () => {
     const complete = review(source, { decision: "PROMOTE" });
 
     expect(() =>
-      validateReleaseReviewForPersistence(source, complete)
+      validateReleaseReviewForPersistence(
+        source,
+        complete,
+        PERMISSIVE_THRESHOLDS
+      )
     ).not.toThrow();
+  });
+
+  it("blocks PROMOTE with default thresholds when OOS sample is too small", () => {
+    const source = artifact();
+    const complete = review(source, { decision: "PROMOTE" });
+    expect(() =>
+      validateReleaseReviewForPersistence(
+        source,
+        complete,
+        DEFAULT_RELEASE_GATE_THRESHOLDS
+      )
+    ).toThrow(/PROMOTE blocked by quantitative release gate/);
+  });
+
+  it("allows PROMOTE when permissive thresholds override the default gate", () => {
+    const source = artifact();
+    const complete = review(source, { decision: "PROMOTE" });
+    expect(() =>
+      validateReleaseReviewForPersistence(
+        source,
+        complete,
+        PERMISSIVE_THRESHOLDS
+      )
+    ).not.toThrow();
+  });
+
+  it("rejects a custom threshold that requires more OOS trades than available", () => {
+    const source = artifact();
+    const complete = review(source, { decision: "PROMOTE" });
+    const strict: ReleaseGateThresholds = {
+      ...PERMISSIVE_THRESHOLDS,
+      minOutOfSampleSampleSize: 1000,
+    };
+    expect(() =>
+      validateReleaseReviewForPersistence(source, complete, strict)
+    ).toThrow(/Out-of-sample sample size/);
   });
 
   it("requires captured evidence when Forward Paper is marked REVIEWED", () => {

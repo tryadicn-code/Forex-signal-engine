@@ -5,9 +5,11 @@ import { classifyRegime } from "@/core/regime";
 import { evaluateRisk } from "@/core/risk";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
-import { last } from "@/core/indicators";
+
+import { resolveEntryPrice } from "@/core/strategies/entry-price";
 import { analyzeRangeMeanReversionSetup } from "./setup";
 import { evaluateRangeMeanReversionTrigger } from "./trigger";
+import { modeAwareConfirmationAgeOverride } from "@/core/strategies/runtime-limits";
 
 export const RANGE_MEAN_REVERSION_STRATEGY_ID =
   "RANGE_MEAN_REVERSION" as const;
@@ -92,20 +94,27 @@ export function analyzeRangeMeanReversion(
     pipSize,
     triggerAsOf
   );
+  // C2: scanner delivers closed-only snapshots. Only strip the last bar when
+  // the caller explicitly says it may still be forming (closedOnly === false).
+  const triggerCandles =
+    context.closedOnly === false
+      ? triggerTimeframe.snapshot.candles.slice(0, -1)
+      : triggerTimeframe.snapshot.candles;
   const trigger = evaluateRangeMeanReversionTrigger({
-    candles: triggerTimeframe.snapshot.candles,
+    candles: triggerCandles,
     setup: setup.data,
     range,
     structure: triggerStructure.data,
     direction: range.direction,
     coreConfigOverrides: context.configOverrides,
-    strategyConfig: context.strategyConfigOverrides?.rangeMeanReversion,
+    strategyConfig: {
+      ...context.strategyConfigOverrides?.rangeMeanReversion,
+      ...modeAwareConfirmationAgeOverride(context.execution?.mode),
+    },
     marketAsOf: triggerAsOf,
   });
 
-  const entry =
-    last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
-    (setup.data.zoneLow + setup.data.zoneHigh) / 2;
+  const entry = resolveEntryPrice(triggerCandles, setup.data, trigger.data);
 
   const oppositeBoundaryTarget =
     range.direction === "LONG"

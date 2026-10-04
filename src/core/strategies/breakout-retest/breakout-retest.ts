@@ -7,9 +7,11 @@ import { evaluateRisk } from "@/core/risk";
 import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
-import { last } from "@/core/indicators";
+
+import { resolveEntryPrice } from "@/core/strategies/entry-price";
 import { analyzeBreakoutRetestSetup } from "./setup";
 import { evaluateBreakoutRetestTrigger } from "./trigger";
+import { modeAwareConfirmationAgeOverride } from "@/core/strategies/runtime-limits";
 
 export const BREAKOUT_RETEST_STRATEGY_ID = "BREAKOUT_RETEST" as const;
 
@@ -103,20 +105,27 @@ export function analyzeBreakoutRetest(
     triggerAsOf
   );
 
+  // C2: scanner delivers closed-only snapshots. Only strip the last bar when
+  // the caller explicitly says it may still be forming (closedOnly === false).
+  const triggerCandles =
+    context.closedOnly === false
+      ? triggerTimeframe.snapshot.candles.slice(0, -1)
+      : triggerTimeframe.snapshot.candles;
   const trigger = evaluateBreakoutRetestTrigger({
-    candles: triggerTimeframe.snapshot.candles,
+    candles: triggerCandles,
     setup: setup.data,
     structure: triggerStructure.data,
     direction: bias.data.direction,
     breakout: setupAnalysis.breakout,
     coreConfigOverrides: context.configOverrides,
-    strategyConfig: context.strategyConfigOverrides?.breakoutRetest,
+    strategyConfig: {
+      ...context.strategyConfigOverrides?.breakoutRetest,
+      ...modeAwareConfirmationAgeOverride(context.execution?.mode),
+    },
     marketAsOf: triggerAsOf,
   });
 
-  const entry =
-    last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
-    (setup.data.zoneHigh + setup.data.zoneLow) / 2;
+  const entry = resolveEntryPrice(triggerCandles, setup.data, trigger.data);
 
   const explicitTargets =
     context.targetLevels && context.targetLevels.length > 0

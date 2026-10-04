@@ -30,6 +30,14 @@ export interface SignalFunnelDashboardView {
   persistenceError: string | null;
 }
 
+/**
+ * H8C-2: this function throws on persistence failure on purpose. Callers
+ * must treat signal-funnel analytics as observability, not as part of the
+ * trading critical path: the scanner persists observations from a detached
+ * promise and catches the error there (see scanner-access.ts
+ * persistSignalFunnelSafely). Do not call this from a synchronous scanner
+ * step without wrapping it.
+ */
 export async function recordSignalFunnelObservations(
   scanner: ScannerApi,
   snapshot: ScannerSnapshot

@@ -33,6 +33,15 @@ export class HistoricalExecutionSimulator {
   private readonly maxOpenPositionsPerSymbol: number;
   private readonly maxDirectionalCurrencyExposure: number;
   private readonly stopLossReentryCooldownMs: number;
+  private readonly applySpread: boolean;
+  private readonly maxEntryDriftPips: number;
+  private readonly commissionPerLotPerSide: number;
+  private readonly swapLongPerLotPerNight: number;
+  private readonly swapShortPerLotPerNight: number;
+  private readonly rolloverHourUtc: number;
+  private readonly tripleSwapWeekday: number;
+  private readonly leverage: number;
+  private readonly marginCallLevelPercent: number;
   private orders: HistoricalOrder[] = [];
   private positions: HistoricalPosition[] = [];
   private trades: HistoricalTrade[] = [];
@@ -60,6 +69,105 @@ export class HistoricalExecutionSimulator {
       input.config?.maxDirectionalCurrencyExposure ?? 2;
     this.stopLossReentryCooldownMs =
       input.config?.stopLossReentryCooldownMs ?? 60 * 60_000;
+    this.applySpread = input.config?.applySpread ?? false;
+    // B3-C2: default Infinity disables the check so legacy fixtures keep
+    // their original open-everything behaviour. Production backtests should
+    // set maxEntryDriftPips = 2 to mirror MT5_TRADE_MAX_DEVIATION_POINTS / 10.
+    this.maxEntryDriftPips = input.config?.maxEntryDriftPips ?? Number.POSITIVE_INFINITY;
+    if (
+      !(this.maxEntryDriftPips > 0) ||
+      Number.isNaN(this.maxEntryDriftPips)
+    ) {
+      throw new Error(
+        "Historical maxEntryDriftPips must be positive or Infinity."
+      );
+    }
+    if (!Number.isFinite(this.maxEntryDriftPips)) {
+      console.warn(
+        "[HistoricalExecutionSimulator] maxEntryDriftPips is Infinity: signals are never rejected for entry drift. Set config.execution.maxEntryDriftPips = 2 for realistic backtests."
+      );
+    }
+
+    // B3-C3: commission and swap. Defaults are 0 so legacy fixtures keep
+    // their original P&L; production backtests should set realistic values.
+    this.commissionPerLotPerSide =
+      input.config?.commissionPerLotPerSide ?? 0;
+    this.swapLongPerLotPerNight =
+      input.config?.swapLongPerLotPerNight ?? 0;
+    this.swapShortPerLotPerNight =
+      input.config?.swapShortPerLotPerNight ?? 0;
+    this.rolloverHourUtc = input.config?.rolloverHourUtc ?? 21;
+    this.tripleSwapWeekday = input.config?.tripleSwapWeekday ?? 3;
+
+    for (const [name, value] of [
+      ["commissionPerLotPerSide", this.commissionPerLotPerSide],
+      ["swapLongPerLotPerNight", this.swapLongPerLotPerNight],
+      ["swapShortPerLotPerNight", this.swapShortPerLotPerNight],
+    ] as const) {
+      if (!Number.isFinite(value)) {
+        throw new Error(
+          "Historical " + name + " must be a finite number."
+        );
+      }
+    }
+    if (
+      !Number.isInteger(this.rolloverHourUtc) ||
+      this.rolloverHourUtc < 0 ||
+      this.rolloverHourUtc > 23
+    ) {
+      throw new Error(
+        "Historical rolloverHourUtc must be an integer in [0, 23]."
+      );
+    }
+    if (
+      !Number.isInteger(this.tripleSwapWeekday) ||
+      this.tripleSwapWeekday < 0 ||
+      this.tripleSwapWeekday > 6
+    ) {
+      throw new Error(
+        "Historical tripleSwapWeekday must be an integer in [0, 6] (0=Sun .. 6=Sat)."
+      );
+    }
+    const allCostsZero =
+      this.commissionPerLotPerSide === 0 &&
+      this.swapLongPerLotPerNight === 0 &&
+      this.swapShortPerLotPerNight === 0;
+    if (allCostsZero) {
+      console.warn(
+        "[HistoricalExecutionSimulator] commission and swap are zero: backtest P&L excludes broker fees. Set config.execution.commissionPerLotPerSide and swap*PerLotPerNight for realistic results."
+      );
+    }
+
+    // B3-H4: margin. When leverage is undefined the margin checks are
+    // disabled entirely so legacy fixtures keep their original behaviour.
+    const configuredLeverage = input.config?.leverage;
+    if (configuredLeverage === undefined) {
+      this.leverage = 0;
+      this.marginCallLevelPercent = 0;
+      console.warn(
+        "[HistoricalExecutionSimulator] leverage not set: margin capacity and forced-liquidation checks are disabled. Set config.execution.leverage (e.g. 100) for realistic account behaviour."
+      );
+    } else {
+      if (!Number.isFinite(configuredLeverage) || configuredLeverage <= 0) {
+        throw new Error(
+          "Historical leverage must be a positive finite number."
+        );
+      }
+      this.leverage = configuredLeverage;
+      const level = input.config?.marginCallLevelPercent ?? 50;
+      if (!Number.isFinite(level) || level <= 0) {
+        throw new Error(
+          "Historical marginCallLevelPercent must be a positive finite number."
+        );
+      }
+      this.marginCallLevelPercent = level;
+    }
+
+    if (!this.applySpread) {
+      console.warn(
+        "[HistoricalExecutionSimulator] applySpread is false: backtest P&L excludes the dataset spread. Set config.execution.applySpread = true for realistic results."
+      );
+    }
 
     if (!Number.isInteger(this.maxOpenPositions) || this.maxOpenPositions <= 0) {
       throw new Error("Historical maxOpenPositions must be a positive integer.");
@@ -82,6 +190,9 @@ export class HistoricalExecutionSimulator {
    */
   advanceTo(asOf: number): HistoricalExecutionSummary {
     this.advanceOpenPositions(asOf);
+    // B3-H4: margin call pass runs after exits so the equity figure used
+    // for the check reflects the latest candle close.
+    this.enforceMarginCall(asOf);
     return this.summary();
   }
 
@@ -206,6 +317,36 @@ export class HistoricalExecutionSimulator {
         continue;
       }
 
+      // B3-C2: resolve current market price and reject signals whose entry
+      // reference has drifted beyond the allowed band. Matches the live
+      // bridge behaviour (MT5_TRADE_MAX_DEVIATION_POINTS) so the backtest
+      // cannot fill trades that a real broker would refuse.
+      const plannedEntry = result.riskDetail!.entryPrice!;
+      const pipSize = result.riskDetail!.pipSize!;
+      const marketPrice = this.resolveCurrentMarketPrice(
+        result.symbol,
+        step.asOf
+      );
+      // When no closed candle exists at asOf (e.g. a signal on the very
+      // first replay step), fall back to the planned entry. Drift cannot be
+      // measured against a non-existent market price.
+      const effectiveFillPrice = marketPrice ?? plannedEntry;
+      if (marketPrice !== null) {
+        const driftPips =
+          Math.abs(marketPrice - plannedEntry) / pipSize;
+        if (driftPips > this.maxEntryDriftPips) {
+          this.orders.push(
+            rejectedOrder(
+              result,
+              executionKey,
+              step.asOf,
+              "HISTORICAL_ENTRY_DRIFT_EXCEEDED"
+            )
+          );
+          continue;
+        }
+      }
+
       const portfolioRejection = this.validatePortfolioRisk(result, step.asOf);
       if (portfolioRejection) {
         this.orders.push(
@@ -214,7 +355,16 @@ export class HistoricalExecutionSimulator {
         continue;
       }
 
-      this.openPosition(result, executionKey, step.asOf);
+      // B3-H4: reject when free margin cannot cover the candidate.
+      const marginRejection = this.validateMarginCapacity(result);
+      if (marginRejection) {
+        this.orders.push(
+          rejectedOrder(result, executionKey, step.asOf, marginRejection)
+        );
+        continue;
+      }
+
+      this.openPosition(result, executionKey, step.asOf, effectiveFillPrice);
     }
   }
 
@@ -283,11 +433,16 @@ export class HistoricalExecutionSimulator {
   private openPosition(
     result: SymbolScanResult,
     executionKey: string,
-    at: number
+    at: number,
+    fillPrice: number
   ): void {
     const risk = result.riskDetail!;
     const signalId = result.signalId!;
     const side = result.biasDirection as HistoricalDirection;
+    // B3-C2: the planned entry is the strategy's frozen reference; the
+    // actual fill is the current market price. Stop and target remain tied
+    // to the plan; P&L is calculated from the real fill, so the backtest
+    // experiences the same slippage a live order would.
     const entry = risk.entryPrice!;
     const stopPips = risk.stopDistancePips!;
     const size = risk.positionSize!;
@@ -303,7 +458,7 @@ export class HistoricalExecutionSimulator {
       requestedAt: at,
       filledAt: at,
       requestedEntry: entry,
-      fillPrice: entry,
+      fillPrice: fillPrice,
       stopLoss: risk.stopLoss!,
       takeProfit: risk.takeProfit1 ?? null,
       positionSize: size,
@@ -321,8 +476,8 @@ export class HistoricalExecutionSimulator {
       signalId,
       symbol: result.symbol,
       side,
-      entryPrice: entry,
-      currentPrice: entry,
+      entryPrice: fillPrice,
+      currentPrice: fillPrice,
       stopLoss: risk.stopLoss!,
       takeProfit: risk.takeProfit1 ?? null,
       positionSize: size,
@@ -356,7 +511,7 @@ export class HistoricalExecutionSimulator {
     );
     if (!current) return;
 
-    const realizedPnL = calculatePnl({
+    const grossRealizedPnL = calculatePnl({
       side: current.side,
       entryPrice: current.entryPrice,
       exitPrice: decision.exitPrice,
@@ -364,6 +519,35 @@ export class HistoricalExecutionSimulator {
       positionSize: current.positionSize,
       pipValuePerLotAccountCurrency: current.pipValuePerLotAccountCurrency,
     });
+    // B3-C1: subtract the dataset spread from every round-trip P&L.
+    // A LONG enters at ask and exits at bid, a SHORT enters at bid and exits
+    // at ask; both pay exactly one full spread per round trip. Without this
+    // the backtest reports phantom profit equal to spread * pipValue * size
+    // per trade.
+    const spreadPips = this.applySpread
+      ? Math.max(0, this.dataset.symbols[current.symbol]?.spreadPips ?? 0)
+      : 0;
+    const spreadCost =
+      spreadPips *
+      current.pipValuePerLotAccountCurrency *
+      current.positionSize;
+
+    // B3-C3: commission per side per lot, charged on entry and exit.
+    const commissionCost =
+      this.commissionPerLotPerSide * current.positionSize * 2;
+
+    // B3-C3: swap. Count rollover crossings and apply the direction-specific
+    // per-lot-per-night cost. Positive values are costs (the common case).
+    const nights = this.countSwapNights(current.openedAt, closedAt);
+    const swapRatePerLotPerNight =
+      current.side === "LONG"
+        ? this.swapLongPerLotPerNight
+        : this.swapShortPerLotPerNight;
+    const swapCost =
+      swapRatePerLotPerNight * current.positionSize * nights;
+
+    const realizedPnL =
+      grossRealizedPnL - spreadCost - commissionCost - swapCost;
     const realizedR = calculateR(realizedPnL, current.riskAmount);
     const balanceBefore = this.balance();
 
@@ -434,6 +618,160 @@ export class HistoricalExecutionSimulator {
     } else {
       this.equityCurve.push(point);
       this.equityCurve.sort((a, b) => a.asOf - b.asOf);
+    }
+  }
+
+  /**
+   * B3-C2: close price of the most recent candle whose close time is at or
+   * before `asOf`. Mirrors what MT5 would quote when a live order is placed
+   * at that instant. Returns null when no eligible candle exists so the
+   * caller can reject instead of filling at a stale price.
+   */
+  private resolveCurrentMarketPrice(
+    symbol: string,
+    asOf: number
+  ): number | null {
+    const symbolData = this.dataset.symbols[symbol];
+    if (!symbolData) return null;
+    const candles = symbolData.candles[this.executionTimeframe];
+    if (!candles || candles.length === 0) return null;
+
+    let lo = 0;
+    let hi = candles.length - 1;
+    let best = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const closeAt = candleCloseTime(
+        this.executionTimeframe,
+        candles[mid].timestamp
+      );
+      if (closeAt <= asOf) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return best >= 0 ? candles[best].close : null;
+  }
+
+  /**
+   * B3-C3: number of times the daily rollover hour (UTC) is crossed between
+   * openedAt (exclusive) and closedAt (inclusive). Standard FX convention:
+   * a position held across 21:00 UTC pays one night of swap per crossing.
+   */
+  /**
+   * H4-2 / M4-1: count swap nights with explicit boundary semantics.
+   *
+   * Rollover instants are at k * MS_PER_DAY + rolloverHourUtc for all
+   * integers k (UTC). A rollover instant T is "crossed" by a position when
+   * openedAt < T < closedAt (strict both sides):
+   *   - opened exactly AT a rollover instant -> that rollover is skipped.
+   *   - closed exactly AT a rollover instant -> that rollover is skipped.
+   *
+   * Each crossed rollover counts as 1 night by default. When the rollover
+   * falls on `tripleSwapWeekday` (default Wednesday, standard FX weekend
+   * compensation), it counts as 3 nights.
+   */
+  private countSwapNights(
+    openedAt: number,
+    closedAt: number
+  ): number {
+    if (closedAt <= openedAt) return 0;
+    const MS_PER_DAY = 86_400_000;
+    const rolloverMs = this.rolloverHourUtc * 3_600_000;
+    const firstK = Math.floor((openedAt - rolloverMs) / MS_PER_DAY) + 1;
+    const lastK = Math.floor((closedAt - 1 - rolloverMs) / MS_PER_DAY);
+    let nights = 0;
+    for (let k = firstK; k <= lastK; k += 1) {
+      const rolloverAt = k * MS_PER_DAY + rolloverMs;
+      const day = new Date(rolloverAt).getUTCDay();
+      nights += day === this.tripleSwapWeekday ? 3 : 1;
+    }
+    return nights;
+  }
+
+  /**
+   * B3-H4: current used margin in account currency.
+   *
+   * Approximates notional as `positionSize * contractSize`, which assumes the
+   * instrument''s base currency is the account currency. For USD accounts
+   * trading USD-quoted majors this is exact; for crosses and JPY pairs it is
+   * conservative. The simulator does not have a full conversion table, so the
+   * approximation is deliberate and documented here.
+   */
+  private usedMargin(): number {
+    return this.positions
+      .filter((position) => position.status === "OPEN")
+      .reduce((sum, position) => {
+        const meta = this.dataset.symbols[position.symbol]?.metadata;
+        const contractSize = meta?.contractSize ?? 100_000;
+        return sum + (position.positionSize * contractSize) / this.leverage;
+      }, 0);
+  }
+
+  /**
+   * B3-H4: reject a candidate when free margin cannot cover its required
+   * margin. Returns a rejection reason string or null when the candidate
+   * passes.
+   */
+  private validateMarginCapacity(
+    result: SymbolScanResult
+  ): string | null {
+    if (this.leverage <= 0) return null;
+    const risk = result.riskDetail!;
+    const meta = this.dataset.symbols[result.symbol]?.metadata;
+    if (!meta) return "HISTORICAL_MARGIN_SYMBOL_MISSING";
+    const contractSize = meta.contractSize;
+    const requiredMargin =
+      (risk.positionSize! * contractSize) / this.leverage;
+    // H4-1: free margin must include unrealized PnL. Using balance alone
+    // overstates free margin when open positions are losing, which causes
+    // the backtest to open trades a real broker would reject.
+    const open = this.positions.filter((p) => p.status === "OPEN");
+    const unrealized = open.reduce((sum, p) => sum + p.unrealizedPnL, 0);
+    const freeMargin = this.balance() + unrealized - this.usedMargin();
+    if (freeMargin < requiredMargin) {
+      return "HISTORICAL_INSUFFICIENT_MARGIN";
+    }
+    return null;
+  }
+
+  /**
+   * B3-H4: forced liquidation pass. Runs after every advanceTo() so the
+   * margin level reflects the latest candle close. When the level drops
+   * below marginCallLevelPercent, closes the worst losing position at the
+   * current bar close and re-checks. Loops are bounded by the number of
+   * open positions to guarantee termination.
+   */
+  private enforceMarginCall(asOf: number): void {
+    if (this.leverage <= 0) return;
+    const maxIterations = this.positions.length + 1;
+    for (let i = 0; i < maxIterations; i += 1) {
+      const open = this.positions.filter(
+        (position) => position.status === "OPEN"
+      );
+      if (open.length === 0) return;
+      const used = this.usedMargin();
+      if (used <= 0) return;
+      const unrealized = open.reduce(
+        (sum, position) => sum + position.unrealizedPnL,
+        0
+      );
+      const equity = this.balance() + unrealized;
+      const marginLevel = (equity / used) * 100;
+      if (marginLevel >= this.marginCallLevelPercent) return;
+
+      const worst = open.reduce((a, b) =>
+        a.unrealizedPnL < b.unrealizedPnL ? a : b
+      );
+      const exitPrice =
+        worst.currentPrice > 0 ? worst.currentPrice : worst.entryPrice;
+      this.closePosition(
+        worst,
+        { exitPrice, reason: "MARGIN_CALL" },
+        asOf
+      );
     }
   }
 
@@ -683,19 +1021,48 @@ function evaluateHistoricalBarExit(
 
   if (stopTouched && targetTouched) {
     if (policy === "REJECT_AMBIGUOUS") {
-      return { exitPrice: position.stopLoss, reason: "AMBIGUOUS_BAR" };
+      return {
+        exitPrice: stopExitPrice(position, candle),
+        reason: "AMBIGUOUS_BAR",
+      };
     }
     if (policy === "TARGET_FIRST" && position.takeProfit !== null) {
       return { exitPrice: position.takeProfit, reason: "TAKE_PROFIT" };
     }
-    return { exitPrice: position.stopLoss, reason: "STOP_LOSS" };
+    return {
+      exitPrice: stopExitPrice(position, candle),
+      reason: "STOP_LOSS",
+    };
   }
 
   if (stopTouched) {
-    return { exitPrice: position.stopLoss, reason: "STOP_LOSS" };
+    return {
+      exitPrice: stopExitPrice(position, candle),
+      reason: "STOP_LOSS",
+    };
   }
 
   return position.takeProfit === null
     ? null
     : { exitPrice: position.takeProfit, reason: "TAKE_PROFIT" };
+}
+
+/**
+ * B3-H1: real stop fill price accounting for gaps.
+ *
+ * When a bar opens past the stop (down for LONG, up for SHORT), the exchange
+ * fills the order at the open, not at the stop price. Modelled conservatively:
+ * the trader receives the worse of the stop and the open, never the better.
+ *
+ * Without this correction a weekend or news gap silently becomes phantom
+ * profit equal to the gap distance on every stopped-out trade.
+ */
+function stopExitPrice(
+  position: HistoricalPosition,
+  candle: CanonicalCandle
+): number {
+  if (position.side === "LONG") {
+    return candle.open < position.stopLoss ? candle.open : position.stopLoss;
+  }
+  return candle.open > position.stopLoss ? candle.open : position.stopLoss;
 }

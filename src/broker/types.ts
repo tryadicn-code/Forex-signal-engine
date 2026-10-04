@@ -146,6 +146,15 @@ export interface BrokerExecutionRecord {
 export interface BrokerExecutionStoreState {
   schemaVersion: 1;
   protocol: "phase-10-broker-v1";
+  /**
+   * B2-H3: last accepted fencing token.
+   *
+   * Every live-execution write inside a lease carries the lease fencing
+   * token. The store rejects writes whose token is lower than this value,
+   * preventing a paused writer from clobbering state after a newer owner has
+   * taken the lease.
+   */
+  lastFencingToken?: number;
   controls: BrokerExecutionControls;
   records: BrokerExecutionRecord[];
 }

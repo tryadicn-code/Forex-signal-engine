@@ -288,11 +288,19 @@ export class Mt5MarketDataProvider
   ): ProviderResult<never> {
     const message = bridgeErrorMessage(body) ?? "MT5 bridge HTTP " + status + ".";
     if (status === 429) return this.failure("RATE_LIMIT", message);
-    if (status === 400 || status === 404) {
+    if (status === 400) {
+      // H5-B2: the bridge returns 400 for missing/invalid params as well as
+      // for unsupported symbols. Classify by message so downstream retry
+      // logic does not mislabel an invalid request as a missing symbol.
       const code: ProviderErrorCode = /timeframe/i.test(message)
         ? "TIMEFRAME_NOT_SUPPORTED"
-        : "SYMBOL_NOT_SUPPORTED";
+        : /symbol/i.test(message)
+          ? "SYMBOL_NOT_SUPPORTED"
+          : "MALFORMED_RESPONSE";
       return this.failure(code, message);
+    }
+    if (status === 404) {
+      return this.failure("SYMBOL_NOT_SUPPORTED", message);
     }
     if (status >= 500) {
       this.markDisconnected();

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PaperTradingOverlay } from "@/components/paper/paper-trading-overlay";
 import type { PaperDashboardData } from "@/paper/types";
+import { apiFetch, ApiError } from "@/lib/api-client";
 
 type PaperOverlayView = "portfolio" | "journal";
 type PaperOverlayWindow = Window & {
@@ -18,17 +19,19 @@ export function GlobalPaperTradingOverlay() {
   const [resetting, setResetting] = useState(false);
   const [settingInitialBalance, setSettingInitialBalance] = useState(false);
   const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const openPaperView = (nextView: PaperOverlayView = "portfolio") => {
       setView(nextView);
       setOpen(true);
 
-      void fetch("/api/paper", { method: "GET", cache: "no-store" })
-        .then((response) => response.ok ? response.json() : null)
-        .then((next) => {
-          if (next) setPaper(next as PaperDashboardData);
-        })
+      void apiFetch<PaperDashboardData>("/api/paper", {
+        method: "GET",
+        cache: "no-store",
+        requireSecret: false,
+      })
+        .then((next) => setPaper(next))
         .catch(() => {
           // Keep the last good paper snapshot if refresh fails.
         });
@@ -56,10 +59,23 @@ export function GlobalPaperTradingOverlay() {
     if (!window.confirm("Reset all paper orders, positions, journal, and restore the current initial balance?")) return;
 
     setResetting(true);
+    setError(null);
     try {
-      const response = await fetch("/api/paper", { method: "DELETE", cache: "no-store" });
-      if (!response.ok) return;
-      setPaper((await response.json()) as PaperDashboardData);
+      const next = await apiFetch<PaperDashboardData>("/api/paper", {
+        method: "DELETE",
+        cache: "no-store",
+      });
+      setPaper(next);
+    } catch (resetError) {
+      if (resetError instanceof ApiError && resetError.code === "UNAUTHORIZED") {
+        setError(
+          "Approval secret is required to reset the paper account. Set it from the dialog, then try again."
+        );
+      } else {
+        setError(
+          resetError instanceof Error ? resetError.message : String(resetError)
+        );
+      }
     } finally {
       setResetting(false);
     }
@@ -77,8 +93,9 @@ export function GlobalPaperTradingOverlay() {
     }
 
     setSettingInitialBalance(true);
+    setError(null);
     try {
-      const response = await fetch("/api/paper", {
+      const next = await apiFetch<PaperDashboardData>("/api/paper", {
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
@@ -87,8 +104,22 @@ export function GlobalPaperTradingOverlay() {
           initialBalance,
         }),
       });
-      if (!response.ok) return;
-      setPaper((await response.json()) as PaperDashboardData);
+      setPaper(next);
+    } catch (balanceError) {
+      if (
+        balanceError instanceof ApiError &&
+        balanceError.code === "UNAUTHORIZED"
+      ) {
+        setError(
+          "Approval secret is required to change the paper balance. Set it from the dialog, then try again."
+        );
+      } else {
+        setError(
+          balanceError instanceof Error
+            ? balanceError.message
+            : String(balanceError)
+        );
+      }
     } finally {
       setSettingInitialBalance(false);
     }
@@ -126,15 +157,25 @@ export function GlobalPaperTradingOverlay() {
     }
 
     setClosingPositionId(positionId);
+    setError(null);
     try {
-      const response = await fetch("/api/paper", {
+      const next = await apiFetch<PaperDashboardData>("/api/paper", {
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "close-position", positionId }),
       });
-      if (!response.ok) return;
-      setPaper((await response.json()) as PaperDashboardData);
+      setPaper(next);
+    } catch (closeError) {
+      if (closeError instanceof ApiError && closeError.code === "UNAUTHORIZED") {
+        setError(
+          "Approval secret is required to close a paper position. Set it from the dialog, then try again."
+        );
+      } else {
+        setError(
+          closeError instanceof Error ? closeError.message : String(closeError)
+        );
+      }
     } finally {
       setClosingPositionId(null);
     }
@@ -153,6 +194,7 @@ export function GlobalPaperTradingOverlay() {
       closingPositionId={closingPositionId}
       onSetInitialBalance={setInitialBalance}
       settingInitialBalance={settingInitialBalance}
+      externalError={error}
     />
   );
 }

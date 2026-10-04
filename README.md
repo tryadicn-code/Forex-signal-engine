@@ -121,3 +121,75 @@ execution safety and staged live operations. See
 [docs/PHASE-11.md](./docs/PHASE-11.md) and
 [docs/PHASE-11-NOTIFICATIONS.md](./docs/PHASE-11-NOTIFICATIONS.md) for realtime
 alerts and Telegram/WhatsApp setup.
+
+
+## Audit History
+
+The engine has been audited layer by layer. Fixes are grouped by the batch
+that introduced them; each batch is a separate commit that can be reverted
+independently.
+
+**Batch 1-2 â€” Core strategy, risk, execution**
+- Entry price resolves from the trigger bar close, not the latest bar.
+- Closed-only candle iteration in all four strategies.
+- Approval secret enforced on every broker control mutation.
+- Trigger slicing default flipped to keep every closed snapshot.
+
+**Batch 3 â€” Data integrity, bias, indicators**
+- ATR warmup and Wilder seed now share the same true-range set.
+- MACD is O(n) instead of O(n^2).
+- Bias label boundaries are symmetric around zero.
+- engineTimestamp() throws in deterministic mode when marketAsOf is missing.
+
+**Batch 4 â€” Backtest realism**
+- Margin capacity uses equity (balance + unrealized), not balance alone.
+- Swap charges 3x on the triple Wednesday rollover.
+- Purge and embargo in temporal and sequential validation.
+- Deflated Sharpe Ratio (Bailey & Lopez de Prado).
+- Probability of Backtest Overfitting via CSCV.
+
+**Batch 5 â€” Broker and providers**
+- Bridge extracts position_id from the MT5 order_send result.
+- Arm limits throw on out-of-bounds instead of silently clamping.
+- JSON parse errors include path, HTTP status, and a body snippet.
+- Bridge refuses ambiguous symbol prefix matches.
+- OANDA rejects non-positive candle limits.
+- Structured JSON logging in the MT5 bridge.
+
+**Batch 6 â€” Configuration**
+- Broker config falls back to safe defaults instead of crashing the process.
+- Integer environment variables throw on non-integer input.
+- .env.example covers every variable read by the bridge.
+
+$f = "README.md"
+$c = [System.IO.File]::ReadAllText($f)
+
+$old = @'
+**Batch 6 — Configuration**
+- Broker config falls back to safe defaults instead of crashing the process.
+- Integer environment variables throw on non-integer input.
+- .env.example covers every variable read by the bridge.
+'@
+
+$new = @'
+**Batch 6 — Configuration**
+- Broker config falls back to safe defaults instead of crashing the process.
+- Integer environment variables throw on non-integer input.
+- .env.example covers every variable read by the bridge.
+
+**Batch 7 — Signal lifecycle and paper trading**
+- INVALIDATED lifecycles spawn fresh occurrences instead of reviving under
+  the old signalId.
+- Transition history is capped at 200 entries per lifecycle.
+- Paper trading computes a per-position candle lookback, fixing silent
+  SL/TP misses on old positions.
+- transitionSignal contract documented; callers must attachIdentity.
+'@
+
+if (-not $c.Contains($old)) {
+  Write-Host "Anchor not found. Update README manual." -ForegroundColor Red
+} else {
+  $c = $c.Replace($old, $new)
+  [System.IO.File]::WriteAllText($f, $c, (New-Object System.Text.UTF8Encoding $false))
+  Write-Host "[OK] README updated" -ForegroundColor Green
+}

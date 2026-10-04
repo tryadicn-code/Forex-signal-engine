@@ -23,21 +23,35 @@ export function atr(candles: OHLCV[], period = 14): number[] {
   const n = candles.length;
   if (n === 0) return [];
   const out: number[] = new Array<number>(n);
-  let prev = candles[0].high - candles[0].low;
-  out[0] = prev;
-  for (let i = 1; i < n; i++) {
-    const tr = trueRange(candles, i);
-    if (i < period) {
-      let sum = 0;
-      for (let j = 0; j <= i; j++) sum += trueRange(candles, j);
-      prev = sum / (i + 1);
-    } else if (i === period) {
-      let sum = 0;
-      for (let j = 1; j <= period; j++) sum += trueRange(candles, j);
-      prev = sum / period;
-    } else {
-      prev = (prev * (period - 1) + tr) / period;
+  if (n === 1) {
+    out[0] = candles[0].high - candles[0].low;
+    return out;
+  }
+
+  out[0] = trueRange(candles, 0);
+
+  if (n <= period) {
+    let sum = trueRange(candles, 0);
+    for (let i = 1; i < n; i++) {
+      sum += trueRange(candles, i);
+      out[i] = sum / (i + 1);
     }
+    return out;
+  }
+
+  let warmupSum = trueRange(candles, 0);
+  for (let i = 1; i < period; i++) {
+    warmupSum += trueRange(candles, i);
+    out[i] = warmupSum / (i + 1);
+  }
+
+  let seedSum = 0;
+  for (let j = 1; j <= period; j++) seedSum += trueRange(candles, j);
+  let prev = seedSum / period;
+  out[period] = prev;
+
+  for (let i = period + 1; i < n; i++) {
+    prev = (prev * (period - 1) + trueRange(candles, i)) / period;
     out[i] = prev;
   }
   return out;
@@ -79,5 +93,7 @@ export function bollingerBandWidth(
   multiplier = 2
 ): number[] {
   const { middle, upper, lower } = bollingerBands(values, period, multiplier);
-  return middle.map((m, i) => (m === 0 ? 0 : (upper[i] - lower[i]) / m));
+  return middle.map((m, i) =>
+    Math.abs(m) < 1e-12 ? 0 : (upper[i] - lower[i]) / m
+  );
 }

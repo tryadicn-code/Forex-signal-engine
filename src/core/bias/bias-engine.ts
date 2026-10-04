@@ -119,9 +119,9 @@ function labelFromScore(score: number, config: EngineConfig): BiasLabel {
   const weak = config.bias.biasThreshold;
   if (score >= strong) return "STRONG_LONG";
   if (score >= weak) return "LONG";
-  if (score > -weak) return "NEUTRAL";
-  if (score > -strong) return "SHORT";
-  return "STRONG_SHORT";
+  if (score <= -strong) return "STRONG_SHORT";
+  if (score <= -weak) return "SHORT";
+  return "NEUTRAL";
 }
 
 /** Structure factor: trend direction scaled by structure strength, +/- BOS/CHOCH. */

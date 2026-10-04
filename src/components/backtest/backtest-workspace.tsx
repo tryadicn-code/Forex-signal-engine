@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { BacktestRunArtifact, BacktestRunListItem } from "@/replay/backtest-run-types";
 import type { HistoricalDatasetValidation } from "@/replay/import-types";
 import { ValidationWorkbench } from "@/components/backtest/validation-workbench";
+import { apiFetch, ApiError } from "@/lib/api-client";
 
 type ApiRunResponse =
   | { ok: true; artifact: BacktestRunArtifact }
@@ -85,20 +86,18 @@ export function BacktestWorkspace() {
       if (startDate) form.set("startAt", startDate);
       if (endDate) form.set("endAt", endDate);
 
-      const response = await fetch("/api/backtest/run", {
+      // apiFetch attaches the approval secret when available. A 4xx/5xx
+      // throws an ApiError whose .body still carries the structured payload
+      // so the validation issues survive the migration.
+      const payload = await apiFetch<ApiRunResponse>("/api/backtest/run", {
         method: "POST",
         body: form,
         cache: "no-store",
       });
-      const payload = (await response.json()) as ApiRunResponse;
 
-      if (!response.ok || !payload.ok) {
-        if (!payload.ok) {
-          setError(payload.error);
-          setValidation(payload.validation ?? null);
-        } else {
-          setError("Backtest request failed with HTTP " + response.status + ".");
-        }
+      if (!payload.ok) {
+        setError(payload.error);
+        setValidation(payload.validation ?? null);
         return;
       }
 
@@ -106,6 +105,22 @@ export function BacktestWorkspace() {
       setValidation(payload.artifact.validation);
       await refreshRecent();
     } catch (runError) {
+      if (runError instanceof ApiError) {
+        if (runError.code === "UNAUTHORIZED") {
+          setError(
+            "Approval secret is required to run a backtest. Set it from the dialog, then try again."
+          );
+          return;
+        }
+        const body = runError.body as ApiRunResponse | null;
+        if (body && body.ok === false) {
+          setError(body.error);
+          setValidation(body.validation ?? null);
+          return;
+        }
+        setError(runError.message);
+        return;
+      }
       setError(
         runError instanceof Error ? runError.message : String(runError)
       );

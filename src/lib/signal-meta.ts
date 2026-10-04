@@ -57,17 +57,17 @@ interface StateMeta {
 }
 
 export const SIGNAL_STATE_META: Record<SignalState, StateMeta> = {
-  EXECUTE: { label: "EXECUTE", glyph: "▶", tone: "bullish", order: 0 },
-  RISK_APPROVED: { label: "RISK APPROVED", glyph: "✓", tone: "info", order: 1 },
-  TRIGGERED: { label: "TRIGGERED", glyph: "⚡", tone: "info", order: 2 },
-  ARMED: { label: "ARMED", glyph: "◉", tone: "info", order: 3 },
-  SETUP: { label: "SETUP", glyph: "◆", tone: "neutral", order: 4 },
-  WATCH: { label: "WATCH", glyph: "◌", tone: "neutral", order: 5 },
-  DISCOVERED: { label: "DISCOVERED", glyph: "·", tone: "muted", order: 6 },
-  MANAGE: { label: "MANAGE", glyph: "…", tone: "neutral", order: 7 },
-  BLOCKED: { label: "BLOCKED", glyph: "✕", tone: "danger", order: 8 },
-  INVALIDATED: { label: "INVALIDATED", glyph: "✕", tone: "muted", order: 9 },
-  CLOSED: { label: "CLOSED", glyph: "■", tone: "muted", order: 10 },
+  EXECUTE: { label: "EXECUTE", glyph: "\u25B6", tone: "bullish", order: 0 },
+  RISK_APPROVED: { label: "RISK APPROVED", glyph: "\u2713", tone: "info", order: 1 },
+  TRIGGERED: { label: "TRIGGERED", glyph: "\u26A1", tone: "info", order: 2 },
+  ARMED: { label: "ARMED", glyph: "\u25C9", tone: "info", order: 3 },
+  SETUP: { label: "SETUP", glyph: "\u25C6", tone: "neutral", order: 4 },
+  WATCH: { label: "WATCH", glyph: "\u25CC", tone: "neutral", order: 5 },
+  DISCOVERED: { label: "DISCOVERED", glyph: "\u00B7", tone: "muted", order: 6 },
+  MANAGE: { label: "MANAGE", glyph: "\u2026", tone: "neutral", order: 7 },
+  BLOCKED: { label: "BLOCKED", glyph: "\u2715", tone: "danger", order: 8 },
+  INVALIDATED: { label: "INVALIDATED", glyph: "\u2715", tone: "muted", order: 9 },
+  CLOSED: { label: "CLOSED", glyph: "\u25A0", tone: "muted", order: 10 },
 };
 
 export function signalStateMeta(state: SignalState): StateMeta {
@@ -80,22 +80,22 @@ export function isTerminalState(state: SignalState | null | undefined): boolean 
 }
 
 export const DIRECTION_META: Record<Direction, { label: string; glyph: string; tone: Tone }> = {
-  LONG: { label: "LONG", glyph: "▲", tone: "bullish" },
-  SHORT: { label: "SHORT", glyph: "▼", tone: "bearish" },
-  NEUTRAL: { label: "NEUTRAL", glyph: "■", tone: "neutral" },
+  LONG: { label: "LONG", glyph: "\u25B2", tone: "bullish" },
+  SHORT: { label: "SHORT", glyph: "\u25BC", tone: "bearish" },
+  NEUTRAL: { label: "NEUTRAL", glyph: "\u25A0", tone: "neutral" },
 };
 
 export const DECISION_META: Record<ExecutionDecision, { label: string; glyph: string; tone: Tone }> = {
-  EXECUTE: { label: "EXECUTE", glyph: "▶", tone: "bullish" },
-  WAIT: { label: "WAIT", glyph: "◷", tone: "neutral" },
-  BLOCKED: { label: "BLOCKED", glyph: "✕", tone: "danger" },
-  INVALIDATED: { label: "INVALIDATED", glyph: "✕", tone: "muted" },
+  EXECUTE: { label: "EXECUTE", glyph: "\u25B6", tone: "bullish" },
+  WAIT: { label: "WAIT", glyph: "\u25F7", tone: "neutral" },
+  BLOCKED: { label: "BLOCKED", glyph: "\u2715", tone: "danger" },
+  INVALIDATED: { label: "INVALIDATED", glyph: "\u2715", tone: "muted" },
 };
 
 export const FRESHNESS_META: Record<FreshnessStatus, { label: string; glyph: string; tone: Tone }> = {
-  FRESH: { label: "FRESH", glyph: "●", tone: "bullish" },
-  DELAYED: { label: "DELAYED", glyph: "◔", tone: "warning" },
-  STALE: { label: "STALE", glyph: "◷", tone: "danger" },
+  FRESH: { label: "FRESH", glyph: "\u25CF", tone: "bullish" },
+  DELAYED: { label: "DELAYED", glyph: "\u25D4", tone: "warning" },
+  STALE: { label: "STALE", glyph: "\u25F7", tone: "danger" },
 };
 
 export const SETUP_STATE_META: Record<SetupState, { label: string; tone: Tone }> = {
@@ -185,7 +185,13 @@ export function rowAttentionRank(input: {
     WAIT: 6,
   };
   if (input.executionDecision) return decisionOrder[input.executionDecision];
-  if (input.signalState) return SIGNAL_STATE_META[input.signalState].order;
+  // L8A-G2-4: SIGNAL_STATE_META lookup can miss if signalState is not a valid
+  // enum value at runtime (e.g. persisted state from an older release). Fall
+  // back to the same neutral rank instead of throwing on undefined.order.
+  if (input.signalState) {
+    const meta = SIGNAL_STATE_META[input.signalState];
+    if (meta) return meta.order;
+  }
   return 11;
 }
 

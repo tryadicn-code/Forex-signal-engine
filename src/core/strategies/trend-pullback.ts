@@ -10,7 +10,8 @@ import { evaluateRisk } from "@/core/risk";
 import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
-import { last } from "@/core/indicators";
+
+import { resolveEntryPrice } from "@/core/strategies/entry-price";
 
 export const TREND_PULLBACK_STRATEGY_ID = "TREND_PULLBACK" as const;
 
@@ -170,8 +171,14 @@ export function analyzeTrendPullback(context: AnalysisContext): PipelineResult {
     pipSize,
     triggerAsOf
   );
+  // C2: scanner delivers closed-only snapshots. Only strip the last bar when
+  // the caller explicitly says it may still be forming (closedOnly === false).
+  const triggerCandles =
+    context.closedOnly === false
+      ? triggerTimeframe.snapshot.candles.slice(0, -1)
+      : triggerTimeframe.snapshot.candles;
   const trigger = evaluateTrigger(
-    triggerTimeframe.snapshot.candles,
+    triggerCandles,
     setup.data,
     triggerStructure.data,
     bias.data.direction,
@@ -182,9 +189,7 @@ export function analyzeTrendPullback(context: AnalysisContext): PipelineResult {
   // 6. Risk on the frozen entry candidate, and only then. While the trigger is
   // still WAITING there is nothing to size, so no provisional R:R leaks into
   // the execution decision as if it had been approved.
-  const entry =
-    last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
-    (setup.data.zoneHigh + setup.data.zoneLow) / 2;
+  const entry = resolveEntryPrice(triggerCandles, setup.data, trigger.data);
   const explicitTargets =
     context.targetLevels && context.targetLevels.length > 0
       ? context.targetLevels

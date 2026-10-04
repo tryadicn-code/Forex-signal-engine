@@ -17,6 +17,7 @@ import {
   type ScannerQuery,
   type ScannerSort,
 } from "@/lib/scanner-query";
+import { apiFetch, ApiError } from "@/lib/api-client";
 import type { DashboardData } from "@/types/dashboard";
 
 const DASHBOARD_READ_TIMEOUT_MS = 10_000;
@@ -32,33 +33,14 @@ async function requestDashboard(
   method: "GET" | "POST",
   timeoutMs: number
 ): Promise<DashboardData> {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch("/api/scanner", {
-      method,
-      cache: "no-store",
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Scanner ${method === "POST" ? "refresh" : "sync"} failed with HTTP ${response.status}.`
-      );
-    }
-
-    return (await response.json()) as DashboardData;
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error(
-        `Scanner ${method === "POST" ? "refresh" : "sync"} timed out.`
-      );
-    }
-    throw error;
-  } finally {
-    window.clearTimeout(timeout);
-  }
+  return apiFetch<DashboardData>("/api/scanner", {
+    method,
+    cache: "no-store",
+    timeoutMs,
+    // POST /api/scanner is protected by the broker approval secret; the GET
+    // path is public because the dashboard reads it on every page load.
+    requireSecret: method === "POST",
+  });
 }
 
 export function DashboardWorkspace({ initialData }: { initialData: DashboardData }) {
@@ -261,6 +243,14 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         setSelectedSymbol(null);
       }
     } catch (error) {
+      // A 401 means the operator has not configured the approval secret yet.
+      // Surface a clear message and let the dialog handle the fix.
+      if (error instanceof ApiError && error.code === "UNAUTHORIZED") {
+        setRequestError(
+          "Approval secret is required to refresh. Set it from the dialog, then try again."
+        );
+        return;
+      }
       // A browser/LAN connection can drop while the server scan continues.
       // Never retry POST automatically: recover the latest committed scanner
       // view with a read-only GET so a transport blip cannot duplicate a scan.
@@ -304,7 +294,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
                   Auto sync
                 </span>
                 <span className="font-mono tabular-nums text-emerald-300">
-                  {countdownSeconds ?? "—"}s
+                  {countdownSeconds ?? "\u2014"}s
                 </span>
               </div>
             ) : (
@@ -319,7 +309,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
               aria-label="Refresh scan"
               className="rounded-md border border-zinc-700 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-emerald-700/60 hover:text-emerald-300 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             >
-              {refreshing ? "Syncing…" : "Refresh"}
+              {refreshing ? "Syncing\u2026" : "Refresh"}
             </button>
           </div>
         </div>
@@ -336,11 +326,11 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             className="mt-2 flex items-center justify-between gap-3 rounded-md border border-amber-900/50 bg-amber-950/10 px-3 py-2 text-[11px] sm:text-xs"
           >
             <span className="min-w-0 truncate">
-              <strong className="text-amber-300">⚠ {runtimeIssueTitle}</strong>
-              <span className="text-zinc-600"> · </span>
+              <strong className="text-amber-300">{"\u26A0 "}{runtimeIssueTitle}</strong>
+              <span className="text-zinc-600">{" \u00B7 "}</span>
               <span className="text-zinc-500">{runtimeIssueDetail}</span>
             </span>
-            <span className="shrink-0 text-amber-300">System ›</span>
+            <span className="shrink-0 text-amber-300">System {"\u203A"}</span>
           </a>
         )}
       </section>
@@ -458,10 +448,10 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             ? (data.providerId ?? "live").toUpperCase()
             : "Mock") +
             " provider"}{" "}
-          · broker {data.broker?.mode ?? "OFF"}
+          {"\u00B7"} broker {data.broker?.mode ?? "OFF"}
         </span>
         <a href="/system" className="text-zinc-400 hover:text-zinc-200">
-          System & diagnostics ›
+          System & diagnostics {"\u203A"}
         </a>
       </footer>
     </div>

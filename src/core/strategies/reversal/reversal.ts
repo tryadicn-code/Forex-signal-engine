@@ -6,10 +6,12 @@ import { evaluateRisk } from "@/core/risk";
 import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
-import { last } from "@/core/indicators";
+
+import { resolveEntryPrice } from "@/core/strategies/entry-price";
 import { qualifyReversal } from "./qualification";
 import { analyzeReversalSetup } from "./setup";
 import { evaluateReversalTrigger } from "./trigger";
+import { modeAwareConfirmationAgeOverride } from "@/core/strategies/runtime-limits";
 
 export const REVERSAL_STRATEGY_ID = "REVERSAL" as const;
 
@@ -101,20 +103,27 @@ export function analyzeReversal(
     pipSize,
     triggerAsOf
   );
+  // C2: scanner delivers closed-only snapshots. Only strip the last bar when
+  // the caller explicitly says it may still be forming (closedOnly === false).
+  const triggerCandles =
+    context.closedOnly === false
+      ? triggerTimeframe.snapshot.candles.slice(0, -1)
+      : triggerTimeframe.snapshot.candles;
   const trigger = evaluateReversalTrigger({
-    candles: triggerTimeframe.snapshot.candles,
+    candles: triggerCandles,
     setup: setup.data,
     structure: triggerStructure.data,
     direction,
     qualification,
     coreConfigOverrides: context.configOverrides,
-    strategyConfig: context.strategyConfigOverrides?.reversal,
+    strategyConfig: {
+      ...context.strategyConfigOverrides?.reversal,
+      ...modeAwareConfirmationAgeOverride(context.execution?.mode),
+    },
     marketAsOf: triggerAsOf,
   });
 
-  const entry =
-    last(triggerTimeframe.snapshot.candles.map((c) => c.close)) ??
-    (setup.data.zoneLow + setup.data.zoneHigh) / 2;
+  const entry = resolveEntryPrice(triggerCandles, setup.data, trigger.data);
 
   const explicitTargets =
     context.targetLevels && context.targetLevels.length > 0

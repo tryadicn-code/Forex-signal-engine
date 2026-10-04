@@ -8,6 +8,13 @@ import {
   updatePersistedBacktestMetadata,
   updatePersistedBacktestReleaseReview,
 } from "@/server/backtest-access";
+import {
+  errorResponse,
+  isValidBacktestId,
+  okResponse,
+  requireBrokerSecret,
+  requireJsonBody,
+} from "@/server/api-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,25 +25,26 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    const artifact = await readPersistedBacktest(id);
-    if (!artifact) {
-      return NextResponse.json(
-        { ok: false, error: "Backtest report not found." },
-        { status: 404 }
+    // H8A-4: id is user input. Restrict the format before it reaches the
+    // access layer, which joins it into a filesystem path.
+    if (!isValidBacktestId(id)) {
+      return errorResponse(
+        new Error("Invalid backtest id."),
+        "Invalid backtest id.",
+        { expose: true, statusOverride: 400 }
       );
     }
-    return NextResponse.json({ ok: true, artifact });
+    const artifact = await readPersistedBacktest(id);
+    if (!artifact) {
+      return errorResponse(
+        new Error("Backtest report not found."),
+        "Backtest report not found.",
+        { statusOverride: 404 }
+      );
+    }
+    return okResponse({ ok: true, artifact });
   } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to read backtest report.",
-      },
-      { status: 400 }
-    );
+    return errorResponse(error, "Unable to read backtest report.");
   }
 }
 
@@ -46,7 +54,21 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    // C8A-3: this endpoint can PROMOTE a strategy into the release pipeline.
+    // It previously accepted unauthenticated PATCH requests, so anyone who
+    // could reach the server could promote, unpromote, or rewrite the review
+    // metadata of any backtest report. Authentication is mandatory.
+    requireBrokerSecret(request);
+    requireJsonBody(request);
+
     const { id } = await context.params;
+    if (!isValidBacktestId(id)) {
+      return errorResponse(
+        new Error("Invalid backtest id."),
+        "Invalid backtest id.",
+        { expose: true, statusOverride: 400 }
+      );
+    }
     const body = (await request.json()) as {
       label?: unknown;
       tags?: unknown;
@@ -162,16 +184,7 @@ export async function PATCH(
 
     return NextResponse.json({ ok: true, artifact });
   } catch (error) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unable to update backtest metadata.",
-      },
-      { status: 400 }
-    );
+    return errorResponse(error, "Unable to update backtest metadata.");
   }
 }
 

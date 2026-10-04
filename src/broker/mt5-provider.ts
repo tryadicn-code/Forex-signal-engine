@@ -50,10 +50,18 @@ export class Mt5BrokerProvider implements BrokerProvider {
   }
 
   async listOpenPositions(): Promise<BrokerPosition[]> {
-    const response = await this.request<{
-      positions: BrokerPosition[];
-    }>("/trade/positions", { method: "GET" });
-    return response.positions;
+    const response = await this.request<{ positions?: unknown }>(
+      "/trade/positions",
+      { method: "GET" }
+    );
+    // H5-B4: reject non-array payloads instead of letting undefined flow
+    // into intentLiveBlockers and fail with a confusing TypeError.
+    if (!Array.isArray(response.positions)) {
+      throw new Error(
+        "MT5 broker bridge returned a non-array positions payload at /trade/positions."
+      );
+    }
+    return response.positions as BrokerPosition[];
   }
 
   reconcile(
@@ -92,10 +100,25 @@ export class Mt5BrokerProvider implements BrokerProvider {
         throw new Error(
           "MT5 broker bridge HTTP " +
             response.status +
+            " at " +
+            path +
             (text ? ": " + text.slice(0, 500) : "")
         );
       }
-      return JSON.parse(text) as T;
+      try {
+        return JSON.parse(text) as T;
+      } catch (error) {
+        // H5-3: a non-JSON 200 response from a local AV or proxy used to
+        // surface as a bare SyntaxError. Surface the path, status, and a
+        // truncated body so the operator can see what actually happened.
+        const snippet = text.length > 200 ? text.slice(0, 200) + "..." : text;
+        throw new Error(
+          "MT5 broker bridge returned non-JSON at " + path +
+            " (HTTP " + response.status + "): " +
+            (error instanceof Error ? error.message : String(error)) +
+            ". Body: " + snippet
+        );
+      }
     } finally {
       clearTimeout(timer);
     }

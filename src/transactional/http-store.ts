@@ -232,16 +232,34 @@ export class HttpTransactionalStateStore
 
       const text = await response.text();
       if (!response.ok) {
+        // H8E-E1-2: include the RPC name, HTTP status, and a truncated body
+        // so operators can distinguish a rate limit from a 5xx from a 4xx.
+        const body = text ? ": " + text.slice(0, 500) : "";
         throw new Error(
-          "RPC " +
-            name +
-            " returned HTTP " +
-            response.status +
-            (text ? ": " + text.slice(0, 500) : "")
+          "RPC " + name + " returned HTTP " + response.status + body
         );
       }
       if (!text) return undefined as T;
-      return JSON.parse(text) as T;
+      try {
+        return JSON.parse(text) as T;
+      } catch (error) {
+        // H8E-E1-2: a non-JSON 200 response (proxy interstitial, misconfigured
+        // PostgREST, or an HTML error page) must surface with context instead
+        // of a bare SyntaxError. Mirrors the same fix applied to the broker
+        // client in batch 5 and the notification adapters in batch 8b.
+        const snippet =
+          text.length > 200 ? text.slice(0, 200) + "..." : text;
+        throw new Error(
+          "RPC " +
+            name +
+            " returned non-JSON (HTTP " +
+            response.status +
+            "): " +
+            (error instanceof Error ? error.message : String(error)) +
+            ". Body: " +
+            snippet
+        );
+      }
     } finally {
       clearTimeout(timer);
     }

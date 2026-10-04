@@ -6,6 +6,7 @@ import { STORAGE_PATHS } from "@/config/storage";
 import {
   JsonFileBrokerExecutionStore,
   TransactionalBrokerExecutionStore,
+  type BrokerExecutionStore,
 } from "@/broker/execution-store";
 import { BrokerExecutionService } from "@/broker/execution-service";
 import type {
@@ -23,48 +24,67 @@ import {
   transactionalStore,
 } from "@/transactional/runtime";
 
-const store = sharedTransactionalMode()
-  ? new TransactionalBrokerExecutionStore(transactionalStore())
-  : new JsonFileBrokerExecutionStore(STORAGE_PATHS.brokerExecution);
+type BrokerSingleton = {
+  store: BrokerExecutionStore;
+  service: BrokerExecutionService;
+};
 
-const service = new BrokerExecutionService({
-  store,
-  provider: runtimeBrokerProvider(),
-  config: BROKER_EXECUTION_CONFIG,
-  sharedTransactional: sharedTransactionalMode(),
-  lease: sharedTransactionalMode()
-    ? {
-        async acquire() {
-          const grant = await transactionalStore().acquireLease(
-            "broker-live-execution",
-            runtimeInstanceId(),
-            BROKER_EXECUTION_CONFIG.liveLeaseMs
-          );
-          if (!grant) return null;
-          return {
-            fencingToken: grant.fencingToken,
-            async release() {
-              await transactionalStore().releaseLease(grant);
-            },
-          };
-        },
-      }
-    : undefined,
-});
+const globalForBroker = globalThis as typeof globalThis & {
+  __fseBrokerSingleton?: BrokerSingleton;
+};
+
+function createBrokerSingleton(): BrokerSingleton {
+  const store = sharedTransactionalMode()
+    ? new TransactionalBrokerExecutionStore(transactionalStore())
+    : new JsonFileBrokerExecutionStore(STORAGE_PATHS.brokerExecution);
+
+  const service = new BrokerExecutionService({
+    store,
+    provider: runtimeBrokerProvider(),
+    config: BROKER_EXECUTION_CONFIG,
+    sharedTransactional: sharedTransactionalMode(),
+    lease: sharedTransactionalMode()
+      ? {
+          async acquire() {
+            const grant = await transactionalStore().acquireLease(
+              "broker-live-execution",
+              runtimeInstanceId(),
+              BROKER_EXECUTION_CONFIG.liveLeaseMs
+            );
+            if (!grant) return null;
+            return {
+              fencingToken: grant.fencingToken,
+              async release() {
+                await transactionalStore().releaseLease(grant);
+              },
+            };
+          },
+        }
+      : undefined,
+  });
+  return { store, service };
+}
+
+function brokerSingleton(): BrokerSingleton {
+  if (!globalForBroker.__fseBrokerSingleton) {
+    globalForBroker.__fseBrokerSingleton = createBrokerSingleton();
+  }
+  return globalForBroker.__fseBrokerSingleton;
+}
 
 export async function readBrokerExecutionDashboard(): Promise<BrokerExecutionDashboard> {
-  return service.dashboard();
+  return brokerSingleton().service.dashboard();
 }
 
 export async function readBrokerExecutionState(): Promise<BrokerExecutionStoreState> {
-  return store.read();
+  return brokerSingleton().store.read();
 }
 
 export async function processBrokerSnapshot(
   snapshot: ScannerSnapshot,
   release: ReleaseRuntimeState
 ): Promise<void> {
-  await service.processSnapshot(snapshot, release);
+  await brokerSingleton().service.processSnapshot(snapshot, release);
 }
 
 export async function setBrokerKillSwitch(input: {
@@ -72,7 +92,7 @@ export async function setBrokerKillSwitch(input: {
   changedBy: string;
   reason: string;
 }): Promise<BrokerExecutionStoreState> {
-  const state = await service.setKillSwitch(input);
+  const state = await brokerSingleton().service.setKillSwitch(input);
   await emitRuntimeTelemetry({
     category: "broker",
     name: input.engaged ? "kill-switch-engaged" : "kill-switch-disengaged",
@@ -92,7 +112,7 @@ export async function armBrokerLiveExecution(input: {
   durationMinutes?: number;
   maxOrders?: number;
 }): Promise<LiveExecutionArm> {
-  const arm = await service.armLive(input);
+  const arm = await brokerSingleton().service.armLive(input);
   await emitRuntimeTelemetry({
     category: "broker",
     name: "live-armed",
@@ -112,7 +132,7 @@ export async function disarmBrokerLiveExecution(input: {
   changedBy: string;
   reason: string;
 }): Promise<void> {
-  await service.disarmLive(input);
+  await brokerSingleton().service.disarmLive(input);
   await emitRuntimeTelemetry({
     category: "broker",
     name: "live-disarmed",
@@ -126,7 +146,7 @@ export async function disarmBrokerLiveExecution(input: {
 }
 
 export async function reconcileBrokerExecutions(): Promise<number> {
-  return service.reconcileUnresolved();
+  return brokerSingleton().service.reconcileUnresolved();
 }
 
 export function assertBrokerApprovalSecret(

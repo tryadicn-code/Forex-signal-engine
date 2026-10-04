@@ -127,6 +127,10 @@ export function transitionSignal(
       refusalReason: `Illegal transition ${current} -> ${target}.`,
     };
   }
+  // L7-1: signalId and symbol are placeholders here. Every caller must pass
+  // the result through attachIdentity() before persisting; otherwise the
+  // history record will carry empty identifiers. The type intentionally
+  // keeps them as strings (not optional) so the shape stays uniform.
   const transition: SignalStateTransition = {
     signalId: "",
     symbol: "",

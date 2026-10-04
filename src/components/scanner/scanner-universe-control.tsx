@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { apiFetch, ApiError } from "@/lib/api-client";
+import { requestApprovalSecretDialog } from "@/components/system/approval-secret-dialog";
 
 interface ScannerUniversePayload {
   selected: string[];
@@ -55,22 +57,20 @@ export function ScannerUniverseControl({
 
     let cancelled = false;
 
-    void fetch("/api/scanner/symbols", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Unable to load scanner pairs.");
-        const payload = (await response.json()) as unknown;
+    void apiFetch<unknown>("/api/scanner/symbols", {
+      cache: "no-store",
+      requireSecret: false,
+    })
+      .then((payload) => {
+        if (cancelled) return;
         if (!isScannerUniversePayload(payload)) {
           throw new Error("Scanner pair response was invalid.");
         }
-        return payload;
-      })
-      .then((next) => {
-        if (!cancelled) setData(next);
+        setData(payload);
       })
       .catch((cause) => {
-        if (!cancelled) {
-          setError(cause instanceof Error ? cause.message : String(cause));
-        }
+        if (cancelled) return;
+        setError(cause instanceof Error ? cause.message : String(cause));
       });
 
     return () => {
@@ -83,20 +83,12 @@ export function ScannerUniverseControl({
     setBusy(target);
     setError(null);
     try {
-      const response = await fetch("/api/scanner/symbols", {
+      const next = await apiFetch<unknown>("/api/scanner/symbols", {
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, symbol: target }),
       });
-      const next = (await response.json()) as
-        | ScannerUniversePayload
-        | { error?: string };
-      if (!response.ok) {
-        throw new Error(
-          "error" in next && next.error ? next.error : "Pair update failed."
-        );
-      }
       if (!isScannerUniversePayload(next)) {
         throw new Error("Scanner pair update returned an invalid response.");
       }
@@ -104,7 +96,16 @@ export function ScannerUniverseControl({
       setSymbol("");
       await onUniverseChanged();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      if (cause instanceof ApiError && cause.code === "UNAUTHORIZED") {
+        // apiFetch already dispatched the global dialog event; give the user
+        // an inline hint too so the modal is not missed.
+        setError(
+          "Approval secret is required. Set it from the dialog, then try again."
+        );
+        requestApprovalSecretDialog();
+      } else {
+        setError(cause instanceof Error ? cause.message : String(cause));
+      }
     } finally {
       setBusy(null);
     }
@@ -138,7 +139,7 @@ export function ScannerUniverseControl({
         </svg>
         <span>Pairs</span>
         <span className="min-w-[1.35rem] rounded bg-zinc-800 px-1 py-0.5 text-center font-mono text-[9px] leading-none text-zinc-300">
-          {data?.selected.length ?? count ?? "—"}
+          {data?.selected.length ?? count ?? "\u2014"}
         </span>
       </button>
 
@@ -228,7 +229,7 @@ export function ScannerUniverseControl({
                       aria-label={"Remove " + item}
                       className="px-1.5 text-zinc-600 hover:text-red-300 disabled:opacity-40"
                     >
-                      ×
+                      {"\u00D7"}
                     </button>
                   </span>
                 ))}

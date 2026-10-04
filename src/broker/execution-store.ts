@@ -10,13 +10,21 @@ import type {
 
 export interface BrokerExecutionStore {
   read(): Promise<BrokerExecutionStoreState>;
+  /**
+   * B2-H3: mutate state atomically.
+   *
+   * When `fencingToken` is supplied, the write is rejected if the token is
+   * lower than `state.lastFencingToken`. On success, `lastFencingToken` is
+   * updated to the supplied value.
+   */
   update<T>(
     mutate: (
       state: BrokerExecutionStoreState
     ) => Promise<{ next: BrokerExecutionStoreState; result: T }> | {
       next: BrokerExecutionStoreState;
       result: T;
-    }
+    },
+    fencingToken?: number
   ): Promise<T>;
 }
 
@@ -41,7 +49,8 @@ export class JsonFileBrokerExecutionStore
     ) => Promise<{ next: BrokerExecutionStoreState; result: T }> | {
       next: BrokerExecutionStoreState;
       result: T;
-    }
+    },
+    fencingToken?: number
   ): Promise<T> {
     const previous = this.queue;
     let release: () => void = () => undefined;
@@ -53,7 +62,18 @@ export class JsonFileBrokerExecutionStore
 
     try {
       const current = await this.read();
+      if (fencingToken !== undefined) {
+        const last = current.lastFencingToken ?? 0;
+        if (fencingToken < last) {
+          throw new Error(
+            "Stale fencing token: got " + fencingToken + ", last seen " + last + "."
+          );
+        }
+      }
       const mutation = await mutate(structuredClone(current));
+      if (fencingToken !== undefined) {
+        mutation.next = { ...mutation.next, lastFencingToken: fencingToken };
+      }
       validateBrokerState(mutation.next);
       await writeDurableJson(this.path, mutation.next);
       return mutation.result;
@@ -86,11 +106,31 @@ export class TransactionalBrokerExecutionStore
     ) => Promise<{ next: BrokerExecutionStoreState; result: T }> | {
       next: BrokerExecutionStoreState;
       result: T;
-    }
+    },
+    fencingToken?: number
   ): Promise<T> {
+    // B2-H3: check runs INSIDE the CAS retry loop. A concurrent writer that
+    // bumps lastFencingToken first makes this writer's CAS fail, re-running
+    // mutate against fresh state, where the token comparison then rejects
+    // the stale write.
     return this.repo.update(async (current) => {
       const state = current ?? initialBrokerState();
-      return mutate(structuredClone(state));
+      if (fencingToken !== undefined) {
+        const last = state.lastFencingToken ?? 0;
+        if (fencingToken < last) {
+          throw new Error(
+            "Stale fencing token: got " + fencingToken + ", last seen " + last + "."
+          );
+        }
+      }
+      const mutation = await mutate(structuredClone(state));
+      if (fencingToken !== undefined) {
+        return {
+          next: { ...mutation.next, lastFencingToken: fencingToken },
+          result: mutation.result,
+        };
+      }
+      return mutation;
     });
   }
 }

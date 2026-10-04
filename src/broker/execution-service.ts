@@ -38,6 +38,7 @@ export class BrokerExecutionService {
   constructor(private readonly options: BrokerExecutionServiceOptions) {}
 
   async dashboard(): Promise<BrokerExecutionDashboard> {
+    await this.normalizeStaleLiveSubmitting();
     const state = await this.normalizeExpiredArm();
     const brokerStatus = await this.safeStatus();
     const openPositions = brokerStatus.connected
@@ -141,12 +142,14 @@ export class BrokerExecutionService {
     const durationMinutes = clampInteger(
       input.durationMinutes ?? this.options.config.armMaxMinutes,
       1,
-      this.options.config.armMaxMinutes
+      this.options.config.armMaxMinutes,
+      "durationMinutes"
     );
     const maxOrders = clampInteger(
       input.maxOrders ?? this.options.config.armMaxOrders,
       1,
-      this.options.config.armMaxOrders
+      this.options.config.armMaxOrders,
+      "maxOrders"
     );
     const armedAt = Date.now();
     const arm: LiveExecutionArm = {
@@ -201,6 +204,8 @@ export class BrokerExecutionService {
     release: ReleaseRuntimeState
   ): Promise<void> {
     if (this.options.config.mode === "off") return;
+    await this.normalizeStaleLiveSubmitting();
+    await this.purgeExpiredRejections(this.options.config.rejectionTtlMs);
 
     const candidates = snapshot.results
       .filter(isExecutableCandidate)
@@ -381,12 +386,13 @@ export class BrokerExecutionService {
       if (freshBlockers.length > 0) {
         await this.recordLiveRejection(
           intent,
-          freshBlockers.join("; ")
+          freshBlockers.join("; "),
+          lease.fencingToken
         );
         return;
       }
 
-      const reserved = await this.reserveLiveAttempt(intent);
+      const reserved = await this.reserveLiveAttempt(intent, lease.fencingToken);
       if (!reserved) return;
 
       let preflight;
@@ -399,8 +405,10 @@ export class BrokerExecutionService {
           "Broker preflight failed safely before submission: " +
             errorMessage(error),
           null,
-          null
+          null,
+          lease.fencingToken
         );
+        await this.refundLiveAttempt();
         return;
       }
 
@@ -410,8 +418,10 @@ export class BrokerExecutionService {
           "LIVE_PREFLIGHT_REJECTED",
           preflight.message,
           preflight,
-          null
+          null,
+          lease.fencingToken
         );
+        await this.refundLiveAttempt();
         return;
       }
 
@@ -424,8 +434,10 @@ export class BrokerExecutionService {
           "LIVE_PREFLIGHT_REJECTED",
           "Broker volume normalization differs from the frozen execution intent.",
           preflight,
-          null
+          null,
+          lease.fencingToken
         );
+        await this.refundLiveAttempt();
         return;
       }
 
@@ -434,20 +446,31 @@ export class BrokerExecutionService {
         "LIVE_SUBMITTING",
         "Broker preflight passed; one live submission is in progress.",
         preflight,
-        null
+        null,
+        lease.fencingToken
       );
 
       try {
         const brokerResult =
           await this.options.provider.placeOrder(intent);
-        await this.markRecord(
-          intent.idempotencyKey,
+        const recordStatus: BrokerExecutionRecord["status"] =
           brokerResult.accepted
             ? "LIVE_ACCEPTED"
-            : "LIVE_REJECTED",
-          brokerResult.message,
+            : brokerResult.outcome === "UNKNOWN"
+              ? "RECONCILIATION_REQUIRED"
+              : "LIVE_REJECTED";
+        const recordMessage =
+          brokerResult.outcome === "UNKNOWN"
+            ? "Broker returned an uncertain transmission outcome. Automatic retry is forbidden: " +
+              brokerResult.message
+            : brokerResult.message;
+        await this.markRecord(
+          intent.idempotencyKey,
+          recordStatus,
+          recordMessage,
           preflight,
-          brokerResult
+          brokerResult,
+          lease.fencingToken
         );
       } catch (error) {
         await this.markRecord(
@@ -465,7 +488,8 @@ export class BrokerExecutionService {
   }
 
   private async reserveLiveAttempt(
-    intent: BrokerOrderIntent
+    intent: BrokerOrderIntent,
+    fencingToken?: number
   ): Promise<boolean> {
     return this.options.store.update((state) => {
       if (
@@ -528,12 +552,13 @@ export class BrokerExecutionService {
       };
       next.records = [...next.records, record].slice(-500);
       return { next, result: true };
-    });
+    }, fencingToken);
   }
 
   private async recordLiveRejection(
     intent: BrokerOrderIntent,
-    message: string
+    message: string,
+    fencingToken?: number
   ): Promise<void> {
     const now = Date.now();
     await this.options.store.update((state) => {
@@ -573,7 +598,7 @@ export class BrokerExecutionService {
         },
       ].slice(-500);
       return { next, result: null };
-    });
+    }, fencingToken);
   }
 
   private async markRecord(
@@ -581,7 +606,8 @@ export class BrokerExecutionService {
     status: BrokerExecutionRecord["status"],
     message: string,
     preflight: BrokerExecutionRecord["preflight"],
-    brokerResult: BrokerExecutionRecord["brokerResult"]
+    brokerResult: BrokerExecutionRecord["brokerResult"],
+    fencingToken?: number
   ): Promise<void> {
     await this.options.store.update((state) => {
       const next = structuredClone(state);
@@ -599,7 +625,7 @@ export class BrokerExecutionService {
       if (preflight) record.preflight = preflight;
       if (brokerResult) record.brokerResult = brokerResult;
       return { next, result: null };
-    });
+    }, fencingToken);
   }
 
   private async findByKey(
@@ -754,8 +780,96 @@ export class BrokerExecutionService {
         "An open broker position already exists for this symbol."
       );
     }
+    // B2-M6: require a take profit level for live execution unless explicitly
+    // disabled. A live position without a TP can hang indefinitely.
+    if (
+      this.options.config.requireTakeProfitForLive &&
+      intent.takeProfit === null
+    ) {
+      blockers.push(
+        "Live execution requires a take profit level (FSE_LIVE_REQUIRE_TAKE_PROFIT)."
+      );
+    }
 
     return blockers;
+  }
+
+  /**
+   * M1: refund one live-order slot when a preflight failure prevented the
+   * order from ever reaching the broker. Called on every pre-submit abort
+   * path. Safe no-op if the arm has already expired or been disarmed.
+   */
+  private async refundLiveAttempt(): Promise<void> {
+    await this.options.store.update((state) => {
+      const next = structuredClone(state);
+      const arm = next.controls.liveArm;
+      if (arm && arm.expiresAt > Date.now()) {
+        arm.remainingOrders += 1;
+      }
+      return { next, result: null };
+    });
+  }
+
+  /**
+   * M2: purge preflight rejections older than the TTL so a transient blocker
+   * does not permanently starve a signal. Only LIVE_PREFLIGHT_REJECTED
+   * records are eligible: those provably never reached the broker.
+   */
+  private async purgeExpiredRejections(
+    ttlMs: number
+  ): Promise<void> {
+    const now = Date.now();
+    await this.options.store.update((state) => {
+      const before = state.records.length;
+      const filtered = state.records.filter(
+        (r) =>
+          !(
+            r.status === "LIVE_PREFLIGHT_REJECTED" &&
+            now - r.createdAt > ttlMs
+          )
+      );
+      if (filtered.length === before) {
+        return { next: state, result: null };
+      }
+      const next = structuredClone(state);
+      next.records = filtered;
+      return { next, result: null };
+    });
+  }
+
+  /**
+   * B2-H1: auto-escalate stale LIVE_SUBMITTING records.
+   *
+   * A process kill between reserveLiveAttempt and markRecord leaves a record
+   * stuck at LIVE_SUBMITTING. Without this, the broker may have received the
+   * order while FSE never reconciles. Escalating to RECONCILIATION_REQUIRED
+   * blocks new live orders and forces operator review.
+   */
+  private async normalizeStaleLiveSubmitting(
+    maxAgeMs: number = 10 * 60_000
+  ): Promise<void> {
+    const now = Date.now();
+    await this.options.store.update((state) => {
+      const stale = state.records.filter(
+        (record) =>
+          record.status === "LIVE_SUBMITTING" &&
+          now - record.updatedAt > maxAgeMs
+      );
+      if (stale.length === 0) return { next: state, result: null };
+      const next = structuredClone(state);
+      for (const s of stale) {
+        const target = next.records.find((r) => r.id === s.id);
+        if (target) {
+          target.status = "RECONCILIATION_REQUIRED";
+          target.message =
+            "Stale LIVE_SUBMITTING record auto-escalated after " +
+            Math.round(maxAgeMs / 1000) +
+            "s without update.";
+          target.updatedAt = now;
+        }
+      }
+      return { next, result: null };
+    });
   }
 
   private async normalizeExpiredArm(): Promise<BrokerExecutionStoreState> {
@@ -939,15 +1053,29 @@ function normalizeReason(value: string): string {
   return reason;
 }
 
+/**
+ * H5-2: reject out-of-range integers instead of silently clamping.
+ *
+ * Silent clamping is dangerous for arm limits: an operator requesting a
+ * 60-minute window but silently getting 10 minutes may believe they have
+ * authority they do not actually have.
+ */
 function clampInteger(
   value: number,
   min: number,
-  max: number
+  max: number,
+  label: string
 ): number {
   if (!Number.isInteger(value)) {
-    throw new Error("Approval limits must be integers.");
+    throw new Error(label + " must be an integer, got " + value + ".");
   }
-  return Math.max(min, Math.min(max, value));
+  if (value < min) {
+    throw new Error(label + " " + value + " is below the minimum " + min + ".");
+  }
+  if (value > max) {
+    throw new Error(label + " " + value + " exceeds the maximum " + max + ".");
+  }
+  return value;
 }
 
 function shortHash(value: string): string {

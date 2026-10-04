@@ -75,3 +75,23 @@ export interface BacktestReproducibilityFingerprint {
   outcomes: string;
   combined: string;
 }
+
+
+/**
+ * Purge / embargo controls for train-test separation (audit H4-4).
+ *
+ * purge (default true):
+ *   Drop development trades whose outcome window (closedAt) overlaps the
+ *   validation start. A trade opened during development that only closes
+ *   inside the validation window leaks its price path into the test period,
+ *   inflating validation performance.
+ *
+ * embargoMs (default 0 = disabled):
+ *   Drop the first embargoMs of the validation window. Allows serial
+ *   correlation from the just-ended development window to decay before the
+ *   validation observations are counted.
+ */
+export interface PurgeEmbargoOptions {
+  purge?: boolean;
+  embargoMs?: number;
+}

@@ -3,7 +3,9 @@ import type {
   MarketSnapshot,
   ExecutionMode,
   RegimeLabel,
+  Timeframe,
 } from "@/types/market";
+import { intervalMs } from "@/market-data/timeframe";
 import type {
   BiasResultData,
   RiskResultData,
@@ -46,6 +48,17 @@ export interface ExecutionContext {
   dailyRiskLimitPercent?: number;
   /** When the signal was created, as UTC epoch milliseconds. */
   signalTimestamp?: number;
+  /** Signal TTL in trigger-timeframe bars (N1). */
+  signalTtlTriggerBars?: number;
+  /** Trigger timeframe for TTL conversion (N1). */
+  triggerTimeframe?: Timeframe;
+  /** Per-timeframe-role freshness (N4). */
+  marketDataFreshnessByRole?: {
+    macro?: "FRESH" | "DELAYED" | "STALE";
+    bias?: "FRESH" | "DELAYED" | "STALE";
+    setup?: "FRESH" | "DELAYED" | "STALE";
+    trigger?: "FRESH" | "DELAYED" | "STALE";
+  };
   /** D1 macro alignment relative to the H4 trading bias. */
   macroAlignment?: "ALIGNED" | "NEUTRAL" | "OPPOSED";
   /** Direction produced by the D1 macro context, when available. */
@@ -110,7 +123,9 @@ export const STALE_DATA_VETO: Veto = {
       return { triggered: false, skipped: true, reason: "No market snapshot supplied." };
     }
 
-    const scannerFreshness = context.execution?.marketDataFreshness;
+    const perRole = context.execution?.marketDataFreshnessByRole;
+    const scannerFreshness =
+      perRole?.trigger ?? context.execution?.marketDataFreshness;
     const scannerAge = context.execution?.marketDataAgeMs;
     if (scannerFreshness !== undefined) {
       if (scannerFreshness === "STALE") {
@@ -329,17 +344,25 @@ export const SIGNAL_EXPIRED_VETO: Veto = {
   label: "Signal expired",
   description: "Blocks execution when the signal is older than the configured maximum age.",
   evaluate(context) {
-    const maxAge = context.config.execution.maxSignalAgeMs;
     const signalAt = context.execution?.signalTimestamp;
-    const now = marketTime(context);
     if (signalAt === undefined) {
       return { triggered: false, skipped: true, reason: "No signal creation time supplied." };
     }
+    const baseMaxAge = context.config.execution.maxSignalAgeMs;
+    const ttlBars = context.execution?.signalTtlTriggerBars;
+    const triggerTf = context.execution?.triggerTimeframe;
+    const ttlMs =
+      ttlBars !== undefined && triggerTf !== undefined
+        ? ttlBars * intervalMs(triggerTf)
+        : undefined;
+    const maxAge = ttlMs !== undefined ? Math.min(baseMaxAge, ttlMs) : baseMaxAge;
+    const now = marketTime(context);
     const age = now - signalAt;
     if (age > maxAge) {
+      const source = ttlMs !== undefined && ttlMs < baseMaxAge ? "signal TTL" : "maxSignalAgeMs";
       return {
         triggered: true,
-        reason: `Signal is ${Math.round(age / 1000)}s old, exceeding the ${Math.round(maxAge / 1000)}s maximum.`,
+        reason: `Signal is ${Math.round(age / 1000)}s old, exceeding ${Math.round(maxAge / 1000)}s (${source}).`,
       };
     }
     return { triggered: false };

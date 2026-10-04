@@ -159,10 +159,16 @@ export class OandaMarketDataProvider
       return this.configurationFailure("OANDA_API_TOKEN is not configured.");
     }
 
-    const count = Math.min(
-      MAX_CANDLE_COUNT,
-      Math.max(request.limit + 5, request.limit)
-    );
+    // H5-B1: reject non-positive limits explicitly.
+    if (!Number.isInteger(request.limit) || request.limit < 1) {
+      return this.failure(
+        "MALFORMED_RESPONSE",
+        "getCandles limit must be a positive integer, got " +
+          request.limit +
+          "."
+      );
+    }
+    const count = Math.min(MAX_CANDLE_COUNT, request.limit + 5);
     const params = new URLSearchParams({
       price: "M",
       granularity: toOandaGranularity(request.timeframe),
