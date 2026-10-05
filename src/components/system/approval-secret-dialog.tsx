@@ -7,6 +7,7 @@ import {
   onApprovalSecretRequest,
   setApprovalSecret,
 } from "@/lib/api-client";
+import { ModalCloseButton } from "@/components/common/modal-close-button";
 
 /**
  * Global approval-secret dialog.
@@ -93,13 +94,7 @@ export function ApprovalSecretDialog() {
               on the server.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={close}
-            className="rounded-md border border-zinc-700 px-2.5 py-1.5 text-[10px] text-zinc-400"
-          >
-            Close
-          </button>
+          <ModalCloseButton onClick={close} />
         </div>
 
         {hasSecret && (

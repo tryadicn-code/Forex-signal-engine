@@ -6,6 +6,7 @@ import {
   type PaperPanelView,
 } from "@/components/paper/paper-trading-panel";
 import type { PaperDashboardData } from "@/paper/types";
+import { ModalCloseButton } from "@/components/common/modal-close-button";
 
 export function PaperTradingOverlay({
   open,
@@ -82,13 +83,7 @@ export function PaperTradingOverlay({
                 Simulated execution · no real funds
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-            >
-              Close
-            </button>
+            <ModalCloseButton onClick={onClose} />
           </div>
 
           <div
