@@ -26,10 +26,10 @@ export function MtfContext({ timeframes }: { timeframes: TimeframeSummary[] }) {
             <span className="font-mono text-sm font-semibold text-zinc-100">{tf.timeframe}</span>
             <FreshnessBadge status={tf.freshness} />
           </div>
-          <div className="mt-0.5 text-[10px] uppercase tracking-wide text-zinc-500">
+          <div className="mt-0.5 text-[11px] uppercase tracking-wide text-zinc-500">
             {TIMEFRAME_ROLE_LABEL[tf.role]}
           </div>
-          <div className="mt-1 font-mono text-[10px] text-zinc-600">
+          <div className="mt-1 font-mono text-[11px] text-zinc-600">
             {tf.closedCandles} closed · {formatTimeShort(tf.asOf)}
           </div>
         </div>

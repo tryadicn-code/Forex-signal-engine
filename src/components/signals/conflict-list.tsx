@@ -35,13 +35,13 @@ export function ConflictList({
               <span className="text-xs font-medium text-amber-200/90">{item.label}</span>
               {item.weight !== undefined && (
                 <span
-                  className="font-mono text-[10px] text-amber-600/80"
+                  className="font-mono text-[11px] text-amber-600/80"
                   title="Engine-assigned weight (0-100)"
                 >
                   w {formatScore(item.weight)}
                 </span>
               )}
-              <code className="ml-auto hidden font-mono text-[10px] text-amber-700/70 sm:inline">{item.code}</code>
+              <code className="ml-auto hidden font-mono text-[11px] text-amber-700/70 sm:inline">{item.code}</code>
             </div>
             {item.description && (
               <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/60">

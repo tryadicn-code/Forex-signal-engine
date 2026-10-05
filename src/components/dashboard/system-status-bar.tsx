@@ -18,25 +18,25 @@ export async function SystemStatusBar() {
   return (
     <div className="flex items-center gap-3">
       <div className="hidden items-center gap-1.5 sm:flex">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           Provider
         </span>
         <ProviderStateBadge state={providerState} />
       </div>
       <div className="hidden items-center gap-1.5 md:flex">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           Last scan
         </span>
         <span className="font-mono text-xs text-zinc-300">{formatTime(lastScan)}</span>
       </div>
       <div className="hidden items-center gap-1.5 md:flex">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           Scan time
         </span>
         <span className="font-mono text-xs text-zinc-300">{formatDuration(health?.durationMs)}</span>
       </div>
       <div className="hidden items-center gap-1.5 xl:flex">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           Strategy
         </span>
         <span

@@ -198,13 +198,13 @@ export function SignalDetailPanel({
               <SectionTitle id="explain-title">Explainability</SectionTitle>
               <div className="mt-2 grid gap-3 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                 <div>
-                  <h3 className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                  <h3 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                     Evidence
                   </h3>
                   <EvidenceList evidence={result.evidence} />
                 </div>
                 <div>
-                  <h3 className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                  <h3 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
                     Conflicts
                   </h3>
                   <ConflictList conflicts={result.conflicts} />
@@ -298,7 +298,7 @@ function PaperExecutionDetail({
               type="button"
               disabled={refreshing}
               onClick={() => void onRefresh()}
-              className="rounded-md border border-emerald-700/60 bg-emerald-950/20 px-2.5 py-1.5 text-[10px] font-medium text-emerald-300 hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+              className="rounded-md border border-emerald-700/60 bg-emerald-950/20 px-2.5 py-1.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             >
               {refreshing ? "Processing..." : "Refresh & process paper"}
             </button>
@@ -386,7 +386,7 @@ function ExecutionDetail({ result }: { result: SymbolScanResult }) {
 
       {detail.triggeredVetoes.length > 0 && (
         <div className="rounded border border-orange-700/40 bg-orange-950/20 px-2.5 py-2">
-          <div className="text-[10px] font-medium uppercase tracking-wider text-orange-300">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-orange-300">
             Hard vetoes
           </div>
           <ul className="mt-1 space-y-1 font-mono text-[11px] text-orange-200/80">
@@ -398,7 +398,7 @@ function ExecutionDetail({ result }: { result: SymbolScanResult }) {
       )}
 
       <div>
-        <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+        <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
           Engine reasons
         </div>
         {detail.reasons.length > 0 ? (
@@ -512,7 +512,7 @@ function SectionTitle({ id, children }: { id: string; children: React.ReactNode 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-[#0b0e14] px-2.5 py-2">
-      <dt className="text-[10px] uppercase tracking-wide text-zinc-600">{label}</dt>
+      <dt className="text-[11px] uppercase tracking-wide text-zinc-600">{label}</dt>
       <dd className="mt-0.5 font-mono text-xs tabular-nums text-zinc-200">{value}</dd>
     </div>
   );
@@ -521,7 +521,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function SmallDatum({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded border border-zinc-800 bg-zinc-900/30 px-2.5 py-2">
-      <dt className="text-[10px] uppercase tracking-wide text-zinc-600">{label}</dt>
+      <dt className="text-[11px] uppercase tracking-wide text-zinc-600">{label}</dt>
       <dd className="mt-0.5 break-words font-mono text-[11px] text-zinc-300">{value}</dd>
     </div>
   );

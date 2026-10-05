@@ -20,13 +20,13 @@ export function NotificationPanel({
     <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-sky-400/80">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-sky-400/80">
             Phase 11 · Realtime Alerts
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             Signal notification center
           </h2>
-          <p className="mt-0.5 text-[10px] text-zinc-600">
+          <p className="mt-0.5 text-[11px] text-zinc-600">
             Near-execute and lifecycle alerts are read-only consumers of engine output.
           </p>
         </div>
@@ -43,7 +43,7 @@ export function NotificationPanel({
       </header>
 
       {notifications.error && (
-        <div className="border-b border-amber-900/60 bg-amber-950/20 px-3 py-2 text-[9px] text-amber-300">
+        <div className="border-b border-amber-900/60 bg-amber-950/20 px-3 py-2 text-[11px] text-amber-300">
           Notification state warning: {notifications.error}
         </div>
       )}
@@ -89,11 +89,11 @@ export function NotificationPanel({
 
       <div className="grid gap-3 p-3 xl:grid-cols-[minmax(0,1fr)_330px]">
         <div>
-          <h3 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
             Recent alerts
           </h3>
           {notifications.recentEvents.length === 0 ? (
-            <p className="mt-2 rounded border border-zinc-800 bg-zinc-950/45 px-3 py-3 text-[9px] text-zinc-600">
+            <p className="mt-2 rounded border border-zinc-800 bg-zinc-950/45 px-3 py-3 text-[11px] text-zinc-600">
               No alert event has been recorded yet.
             </p>
           ) : (
@@ -109,7 +109,7 @@ export function NotificationPanel({
                   <span className="font-mono text-[11px] text-zinc-400">
                     {event.symbol} {event.direction}
                   </span>
-                  <span className="truncate text-[9px] text-zinc-600" title={event.message}>
+                  <span className="truncate text-[11px] text-zinc-600" title={event.message}>
                     {event.status} · {event.sentChannels.join(", ") || "not sent"}
                   </span>
                 </div>
@@ -125,7 +125,7 @@ export function NotificationPanel({
               className="rounded border border-zinc-800 bg-zinc-950/45 p-3"
             >
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                   {channel.channel}
                 </h3>
                 <span
@@ -145,7 +145,7 @@ export function NotificationPanel({
                       : "SETUP"}
                 </span>
               </div>
-              <p className="mt-1 text-[9px] leading-relaxed text-zinc-600">
+              <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
                 {channel.message}
               </p>
             </section>
@@ -162,7 +162,7 @@ function Fact({ label, value }: { label: string; value: string }) {
       <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
-      <dd className="mt-0.5 truncate font-mono text-[9px] text-zinc-300" title={value}>
+      <dd className="mt-0.5 truncate font-mono text-[11px] text-zinc-300" title={value}>
         {value}
       </dd>
     </div>

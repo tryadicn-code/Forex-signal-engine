@@ -40,13 +40,13 @@ export function RobustnessWorkbench({
     <section className="rounded border border-zinc-800 bg-zinc-950/25">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5">
         <div>
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-violet-400/80">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-violet-400/80">
             Phase 5.6
           </p>
           <h3 className="mt-0.5 text-xs font-semibold text-zinc-300">
             Robustness & out-of-sample
           </h3>
-          <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-500">
+          <p className="mt-0.5 max-w-3xl text-[11px] leading-relaxed text-zinc-500">
             Time-based holdout and expanding-window validation for the fixed strategy. No parameter optimization or strategy selection is performed here.
           </p>
         </div>
@@ -57,7 +57,7 @@ export function RobustnessWorkbench({
             <select
               value={splitRatio}
               onChange={(event) => setSplitRatio(Number(event.target.value))}
-              className="mt-1 block rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-[9px] text-zinc-400 outline-none focus:border-violet-800"
+              className="mt-1 block rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-[11px] text-zinc-400 outline-none focus:border-violet-800"
             >
               {SPLITS.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -71,7 +71,7 @@ export function RobustnessWorkbench({
             <select
               value={foldCount}
               onChange={(event) => setFoldCount(Number(event.target.value))}
-              className="mt-1 block rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-[9px] text-zinc-400 outline-none focus:border-violet-800"
+              className="mt-1 block rounded border border-zinc-800 bg-zinc-950 px-2 py-1 text-[11px] text-zinc-400 outline-none focus:border-violet-800"
             >
               {[2, 3, 4, 5, 6].map((value) => (
                 <option key={value} value={value}>
@@ -91,7 +91,7 @@ export function RobustnessWorkbench({
 
         <aside className="space-y-3">
           <section className="rounded border border-zinc-800 bg-zinc-950/60 p-3">
-            <h4 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-600">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-600">
               Sequential diagnostics
             </h4>
             <dl className="mt-2 grid grid-cols-2 gap-2">
@@ -146,10 +146,10 @@ export function RobustnessWorkbench({
           </section>
 
           <section className="rounded border border-zinc-800 bg-zinc-950/60 p-3">
-            <h4 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-600">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-600">
               Reproducibility fingerprint
             </h4>
-            <div className="mt-2 space-y-2 font-mono text-[9px]">
+            <div className="mt-2 space-y-2 font-mono text-[11px]">
               <Fingerprint label="Assumptions" value={fingerprint.assumptions} />
               <Fingerprint label="Outcomes" value={fingerprint.outcomes} />
               <Fingerprint label="Combined" value={fingerprint.combined} />
@@ -172,7 +172,7 @@ function TemporalHoldoutPanel({
   return (
     <section className="rounded border border-zinc-800 bg-zinc-950/40">
       <header className="border-b border-zinc-800 px-3 py-2">
-        <h4 className="text-[10px] font-semibold text-zinc-400">
+        <h4 className="text-[11px] font-semibold text-zinc-400">
           Temporal holdout
         </h4>
         <p className="mt-0.5 text-[11px] text-zinc-500">
@@ -180,7 +180,7 @@ function TemporalHoldoutPanel({
         </p>
       </header>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] text-left text-[9px]">
+        <table className="w-full min-w-[680px] text-left text-[11px]">
           <thead className="bg-zinc-950/60 text-zinc-500">
             <tr>
               <th className="px-3 py-2">Period</th>
@@ -227,7 +227,7 @@ function SequentialPanel({
   return (
     <section className="rounded border border-zinc-800 bg-zinc-950/40">
       <header className="border-b border-zinc-800 px-3 py-2">
-        <h4 className="text-[10px] font-semibold text-zinc-400">
+        <h4 className="text-[11px] font-semibold text-zinc-400">
           Expanding-window sequential validation
         </h4>
         <p className="mt-0.5 text-[11px] text-zinc-500">
@@ -235,7 +235,7 @@ function SequentialPanel({
         </p>
       </header>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-[9px]">
+        <table className="w-full min-w-[720px] text-left text-[11px]">
           <thead className="bg-zinc-950/60 text-zinc-500">
             <tr>
               <th className="px-3 py-2">Fold</th>
@@ -331,7 +331,7 @@ function Delta({ label, value }: { label: string; value: string }) {
       <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </div>
-      <div className="mt-0.5 font-mono text-[10px] font-semibold text-zinc-400">
+      <div className="mt-0.5 font-mono text-[11px] font-semibold text-zinc-400">
         {value}
       </div>
     </div>
@@ -344,7 +344,7 @@ function Diagnostic({ label, value }: { label: string; value: string }) {
       <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
-      <dd className="mt-0.5 font-mono text-[9px] text-zinc-400">{value}</dd>
+      <dd className="mt-0.5 font-mono text-[11px] text-zinc-400">{value}</dd>
     </div>
   );
 }

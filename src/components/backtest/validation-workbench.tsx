@@ -161,17 +161,17 @@ export function ValidationWorkbench({
     <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
             Phase 7
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             Validation workbench
           </h2>
-          <p className="mt-0.5 text-[10px] text-zinc-600">
+          <p className="mt-0.5 text-[11px] text-zinc-600">
             Review historical evidence alongside release-scoped forward Paper validation without changing strategy logic.
           </p>
         </div>
-        <span className="rounded border border-zinc-800 bg-zinc-950/40 px-2 py-1 font-mono text-[9px] text-zinc-500">
+        <span className="rounded border border-zinc-800 bg-zinc-950/40 px-2 py-1 font-mono text-[11px] text-zinc-500">
           {artifact.analytics.sampleSize} closed trades
         </span>
       </header>
@@ -186,7 +186,7 @@ export function ValidationWorkbench({
                 <h3 className="text-xs font-semibold text-zinc-300">
                   Segment explorer
                 </h3>
-                <p className="mt-0.5 text-[9px] text-zinc-500">
+                <p className="mt-0.5 text-[11px] text-zinc-500">
                   Sample size stays visible for every subgroup.
                 </p>
               </div>
@@ -195,7 +195,7 @@ export function ValidationWorkbench({
                 onChange={(event) =>
                   setSegment(event.target.value as HistoricalSegmentDimension)
                 }
-                className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-[10px] text-zinc-300 outline-none focus:border-emerald-800"
+                className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-[11px] text-zinc-300 outline-none focus:border-emerald-800"
               >
                 {SEGMENTS.map((item) => (
                   <option key={item} value={item}>
@@ -206,7 +206,7 @@ export function ValidationWorkbench({
             </header>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[650px] text-left text-[10px]">
+              <table className="w-full min-w-[650px] text-left text-[11px]">
                 <thead className="bg-zinc-950/60 text-zinc-600">
                   <tr>
                     <th className="px-3 py-2">{segmentDimensionLabel(segment)}</th>
@@ -295,12 +295,12 @@ export function ValidationWorkbench({
               <h3 className="text-xs font-semibold text-zinc-300">
                 Report identity
               </h3>
-              <p className="mt-0.5 text-[9px] text-zinc-500">
+              <p className="mt-0.5 text-[11px] text-zinc-500">
                 Labels and tags are organizational only.
               </p>
             </header>
             <div className="space-y-3 p-3">
-              <label className="block text-[9px] font-medium uppercase tracking-[0.1em] text-zinc-600">
+              <label className="block text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-600">
                 Label
                 <input
                   value={label}
@@ -310,7 +310,7 @@ export function ValidationWorkbench({
                   className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-xs normal-case tracking-normal text-zinc-300 outline-none focus:border-emerald-800"
                 />
               </label>
-              <label className="block text-[9px] font-medium uppercase tracking-[0.1em] text-zinc-600">
+              <label className="block text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-600">
                 Tags
                 <input
                   value={tagsInput}
@@ -318,18 +318,18 @@ export function ValidationWorkbench({
                   placeholder="baseline, mt5, conservative"
                   className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-xs normal-case tracking-normal text-zinc-300 outline-none focus:border-emerald-800"
                 />
-                <span className="mt-1 block text-[9px] font-normal normal-case tracking-normal text-zinc-500">
+                <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-zinc-500">
                   Comma separated · max 8 tags
                 </span>
               </label>
               {metadataError && (
-                <p className="text-[9px] text-red-300">{metadataError}</p>
+                <p className="text-[11px] text-red-300">{metadataError}</p>
               )}
               <button
                 type="button"
                 onClick={saveMetadata}
                 disabled={savingMetadata}
-                className="w-full rounded border border-zinc-700 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-300 hover:border-emerald-800 hover:text-emerald-300 disabled:opacity-50"
+                className="w-full rounded border border-zinc-700 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-300 hover:border-emerald-800 hover:text-emerald-300 disabled:opacity-50"
               >
                 {savingMetadata ? "Saving…" : "Save identity"}
               </button>
@@ -337,10 +337,10 @@ export function ValidationWorkbench({
           </section>
 
           <section className="mt-3 rounded border border-zinc-800 bg-zinc-950/25 p-3">
-            <h3 className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
               Comparability context
             </h3>
-            <dl className="mt-2 grid grid-cols-2 gap-2 text-[9px]">
+            <dl className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
               <Context label="Risk / trade" value={artifact.config.riskPercent + "%"} />
               <Context label="Spread" value={artifact.config.assumedSpreadPips + " pips"} />
               <Context label="Policy" value={artifact.config.intrabarConflictPolicy} />
@@ -348,7 +348,7 @@ export function ValidationWorkbench({
               <Context label="Start" value={shortDate(artifact.config.startAt)} />
               <Context label="End" value={shortDate(artifact.config.endAt)} />
             </dl>
-            <p className="mt-2 text-[9px] leading-relaxed text-zinc-500">
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
               Compare results only after checking that data source, coverage, spread, risk and same-bar policy are compatible.
             </p>
           </section>
@@ -366,7 +366,7 @@ function RDistribution({ artifact }: { artifact: BacktestRunArtifact }) {
     <section className="rounded border border-zinc-800 bg-zinc-950/25">
       <header className="border-b border-zinc-800 px-3 py-2">
         <h3 className="text-xs font-semibold text-zinc-300">R distribution</h3>
-        <p className="mt-0.5 text-[9px] text-zinc-500">
+        <p className="mt-0.5 text-[11px] text-zinc-500">
           Closed-trade outcome distribution; bins are mutually exclusive.
         </p>
       </header>
@@ -387,7 +387,7 @@ function RDistribution({ artifact }: { artifact: BacktestRunArtifact }) {
             <div className="mt-1 truncate text-center font-mono text-[11px] text-zinc-600">
               {bin.label}
             </div>
-            <div className="text-center font-mono text-[10px] font-semibold text-zinc-300">
+            <div className="text-center font-mono text-[11px] font-semibold text-zinc-300">
               {bin.count}
             </div>
           </div>
@@ -414,14 +414,14 @@ function MultiRunComparison({
         <h3 className="text-xs font-semibold text-zinc-300">
           Multi-run comparison
         </h3>
-        <p className="mt-0.5 text-[9px] text-zinc-500">
+        <p className="mt-0.5 text-[11px] text-zinc-500">
           Select up to 3 persisted runs. Metrics are shown side-by-side without scoring or ranking.
         </p>
       </header>
 
       <div className="flex gap-1.5 overflow-x-auto border-b border-zinc-800 p-2">
         {runs.length === 0 ? (
-          <span className="px-1 py-1 text-[9px] text-zinc-500">
+          <span className="px-1 py-1 text-[11px] text-zinc-500">
             No persisted runs yet.
           </span>
         ) : (
@@ -435,7 +435,7 @@ function MultiRunComparison({
                 disabled={disabled}
                 onClick={() => onToggle(run.id)}
                 className={
-                  "shrink-0 rounded border px-2 py-1.5 text-left text-[9px] transition-colors disabled:opacity-30 " +
+                  "shrink-0 rounded border px-2 py-1.5 text-left text-[11px] transition-colors disabled:opacity-30 " +
                   (selected
                     ? "border-cyan-800 bg-cyan-950/25 text-cyan-300"
                     : "border-zinc-800 text-zinc-500 hover:border-zinc-700")
@@ -454,12 +454,12 @@ function MultiRunComparison({
       </div>
 
       {selectedRuns.length === 0 ? (
-        <div className="px-3 py-5 text-center text-[10px] text-zinc-500">
+        <div className="px-3 py-5 text-center text-[11px] text-zinc-500">
           Select runs above to compare validation metrics.
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-[9px]">
+          <table className="w-full min-w-[720px] text-left text-[11px]">
             <thead className="bg-zinc-950/60 text-zinc-600">
               <tr>
                 <th className="px-3 py-2">Run</th>
@@ -531,7 +531,7 @@ function ForwardComparisonPanel({
           <h3 className="text-xs font-semibold text-zinc-300">
             Historical vs forward paper
           </h3>
-          <p className="mt-0.5 text-[9px] text-zinc-500">
+          <p className="mt-0.5 text-[11px] text-zinc-500">
             Reads the current Paper summary only when requested; no stores are merged.
           </p>
         </div>
@@ -539,21 +539,21 @@ function ForwardComparisonPanel({
           type="button"
           disabled={loading}
           onClick={() => void onCompare()}
-          className="rounded border border-zinc-700 px-2 py-1.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-zinc-400 hover:border-emerald-800 hover:text-emerald-300 disabled:opacity-50"
+          className="rounded border border-zinc-700 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400 hover:border-emerald-800 hover:text-emerald-300 disabled:opacity-50"
         >
           {loading ? "Reading…" : "Compare with Paper"}
         </button>
       </header>
 
-      {error && <div className="px-3 py-2 text-[9px] text-red-300">{error}</div>}
+      {error && <div className="px-3 py-2 text-[11px] text-red-300">{error}</div>}
 
       {!comparison ? (
-        <div className="px-3 py-5 text-center text-[10px] text-zinc-500">
+        <div className="px-3 py-5 text-center text-[11px] text-zinc-500">
           No forward comparison loaded.
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-[9px]">
+          <table className="w-full min-w-[560px] text-left text-[11px]">
             <thead className="bg-zinc-950/60 text-zinc-600">
               <tr>
                 <th className="px-3 py-2">Metric</th>
@@ -573,7 +573,7 @@ function ForwardComparisonPanel({
               ))}
             </tbody>
           </table>
-          <p className="border-t border-zinc-800 px-3 py-2 text-[9px] leading-relaxed text-zinc-500">
+          <p className="border-t border-zinc-800 px-3 py-2 text-[11px] leading-relaxed text-zinc-500">
             Delta is Paper minus Historical. It is descriptive only; different sample size, dates and market regimes can make direct interpretation unreliable.
           </p>
         </div>

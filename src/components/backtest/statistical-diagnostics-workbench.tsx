@@ -43,20 +43,20 @@ export function StatisticalDiagnosticsWorkbench({
     <section className="rounded border border-zinc-800 bg-zinc-950/25">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5">
         <div>
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-amber-400/80">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-amber-400/80">
             Phase 5.7
           </p>
           <h3 className="mt-0.5 text-xs font-semibold text-zinc-300">
             Statistical diagnostics
           </h3>
-          <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-500">
+          <p className="mt-0.5 max-w-3xl text-[11px] leading-relaxed text-zinc-500">
             Confidence intervals and deterministic resampling quantify uncertainty in the observed historical sample. They do not guarantee future performance.
           </p>
         </div>
         <button
           type="button"
           onClick={exportSummary}
-          className="rounded border border-zinc-700 px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-zinc-400 hover:border-amber-800 hover:text-amber-300"
+          className="rounded border border-zinc-700 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-400 hover:border-amber-800 hover:text-amber-300"
         >
           Export validation summary
         </button>
@@ -68,7 +68,7 @@ export function StatisticalDiagnosticsWorkbench({
             <div
               key={warning.code}
               className={
-                "rounded border px-2.5 py-2 text-[9px] leading-relaxed " +
+                "rounded border px-2.5 py-2 text-[11px] leading-relaxed " +
                 (warning.severity === "WARNING"
                   ? "border-amber-900/70 bg-amber-950/20 text-amber-300"
                   : "border-zinc-800 bg-zinc-950/40 text-zinc-500")
@@ -188,7 +188,7 @@ function DiagnosticCard({
   return (
     <article className="rounded border border-zinc-800 bg-zinc-950/60">
       <header className="border-b border-zinc-800 px-3 py-2">
-        <h4 className="text-[10px] font-semibold text-zinc-400">{title}</h4>
+        <h4 className="text-[11px] font-semibold text-zinc-400">{title}</h4>
         <p className="mt-0.5 text-[11px] text-zinc-500">{subtitle}</p>
         <div className="mt-2 font-mono text-lg font-semibold tabular-nums text-zinc-200">
           {primary}
@@ -203,7 +203,7 @@ function DiagnosticCard({
             <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
               {label}
             </dt>
-            <dd className="font-mono text-[9px] text-zinc-400">{value}</dd>
+            <dd className="font-mono text-[11px] text-zinc-400">{value}</dd>
           </div>
         ))}
       </dl>

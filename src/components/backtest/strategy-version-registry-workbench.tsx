@@ -223,13 +223,13 @@ export function StrategyVersionRegistryWorkbench({
     <section className="rounded border border-zinc-800 bg-zinc-950/25">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5">
         <div>
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-emerald-400/80">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-400/80">
             Phase 6.5 · Release Governance
           </p>
           <h3 className="mt-0.5 text-xs font-semibold text-zinc-300">
             Strategy version registry
           </h3>
-          <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-500">
+          <p className="mt-0.5 max-w-3xl text-[11px] leading-relaxed text-zinc-500">
             Immutable validated manifests with explicit supersession, controlled rollback and deprecation history.
           </p>
         </div>
@@ -240,7 +240,7 @@ export function StrategyVersionRegistryWorkbench({
 
       <div className="grid gap-3 p-3 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="rounded border border-zinc-800 bg-zinc-950/50 p-3">
-          <h4 className="text-[10px] font-semibold text-zinc-400">
+          <h4 className="text-[11px] font-semibold text-zinc-400">
             Register promoted strategy
           </h4>
           <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
@@ -310,7 +310,7 @@ export function StrategyVersionRegistryWorkbench({
             </Field>
 
             {!eligible && (
-              <div className="rounded border border-amber-900/60 bg-amber-950/20 px-2.5 py-2 text-[9px] leading-relaxed text-amber-300">
+              <div className="rounded border border-amber-900/60 bg-amber-950/20 px-2.5 py-2 text-[11px] leading-relaxed text-amber-300">
                 Current report is not eligible. Save a current Phase 5.8 manual PROMOTE review first.
               </div>
             )}
@@ -318,7 +318,7 @@ export function StrategyVersionRegistryWorkbench({
             {error && (
               <div
                 role="alert"
-                className="rounded border border-red-900/60 bg-red-950/20 px-2.5 py-2 text-[9px] leading-relaxed text-red-300"
+                className="rounded border border-red-900/60 bg-red-950/20 px-2.5 py-2 text-[11px] leading-relaxed text-red-300"
               >
                 {error}
               </div>
@@ -328,7 +328,7 @@ export function StrategyVersionRegistryWorkbench({
               type="button"
               disabled={!eligible || loading}
               onClick={register}
-              className="w-full rounded border border-emerald-800/70 bg-emerald-950/20 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-300 hover:bg-emerald-900/25 disabled:cursor-not-allowed disabled:opacity-40"
+              className="w-full rounded border border-emerald-800/70 bg-emerald-950/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-300 hover:bg-emerald-900/25 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {loading ? "Saving…" : "Register immutable version"}
             </button>
@@ -337,7 +337,7 @@ export function StrategyVersionRegistryWorkbench({
 
         <div className="min-w-0">
           {!registry || registry.entries.length === 0 ? (
-            <div className="rounded border border-zinc-800 bg-zinc-950/40 px-3 py-8 text-center text-[10px] text-zinc-500">
+            <div className="rounded border border-zinc-800 bg-zinc-950/40 px-3 py-8 text-center text-[11px] text-zinc-500">
               No strategy versions registered yet.
             </div>
           ) : (
@@ -382,7 +382,7 @@ export function StrategyVersionRegistryWorkbench({
 }
 
 const inputClass =
-  "mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-[10px] normal-case tracking-normal text-zinc-300 outline-none focus:border-emerald-800";
+  "mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-[11px] normal-case tracking-normal text-zinc-300 outline-none focus:border-emerald-800";
 
 function Field({
   label,
@@ -473,7 +473,7 @@ function VersionCard({
               {entry.currentStatus}
             </span>
           </div>
-          <h4 className="mt-1 text-[10px] font-medium text-zinc-400">
+          <h4 className="mt-1 text-[11px] font-medium text-zinc-400">
             {manifest.title}
           </h4>
           <p className="mt-0.5 font-mono text-[11px] text-zinc-500">
@@ -519,7 +519,7 @@ function VersionCard({
       </div>
 
       <details className="border-t border-zinc-800">
-        <summary className="cursor-pointer px-3 py-2 text-[9px] text-zinc-600">
+        <summary className="cursor-pointer px-3 py-2 text-[11px] text-zinc-600">
           Lifecycle & validation identity
         </summary>
         <div className="grid gap-3 border-t border-zinc-800 p-3 lg:grid-cols-2">
@@ -561,7 +561,7 @@ function VersionCard({
 
       {rollingBack && (
         <div className="space-y-2 border-t border-zinc-800 bg-sky-950/10 p-3">
-          <p className="text-[9px] text-sky-300">
+          <p className="text-[11px] text-sky-300">
             Controlled rollback reactivates this immutable SUPERSEDED manifest and supersedes the current ACTIVE release.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -602,7 +602,7 @@ function VersionCard({
 
       {deprecating && (
         <div className="space-y-2 border-t border-zinc-800 bg-amber-950/10 p-3">
-          <p className="text-[9px] text-amber-300">
+          <p className="text-[11px] text-amber-300">
             Deprecation is append-only and does not delete or alter this manifest.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">

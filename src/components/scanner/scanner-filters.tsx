@@ -238,7 +238,7 @@ export function ScannerFilters({
           </select>
 
           <div className="ml-auto flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-zinc-500">
+            <label className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-zinc-500">
               Sort
               <select
                 aria-label="Sort by"
@@ -288,7 +288,7 @@ export function ScannerFilters({
             />
           ))}
           <span
-            className="ml-auto font-mono text-[10px] text-zinc-600"
+            className="ml-auto font-mono text-[11px] text-zinc-600"
             aria-live="polite"
             title="Rows visible after filters"
           >
@@ -342,7 +342,7 @@ function FilterSelect({
 }) {
   return (
     <label className="space-y-1">
-      <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+      <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-600">
         {label}
       </span>
       <select

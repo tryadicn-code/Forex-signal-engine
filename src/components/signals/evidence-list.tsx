@@ -35,13 +35,13 @@ export function EvidenceList({
               <span className="text-xs font-medium text-zinc-200">{item.label}</span>
               {item.weight !== undefined && (
                 <span
-                  className="font-mono text-[10px] text-zinc-500"
+                  className="font-mono text-[11px] text-zinc-500"
                   title="Engine-assigned weight (0-100)"
                 >
                   w {formatScore(item.weight)}
                 </span>
               )}
-              <code className="ml-auto hidden font-mono text-[10px] text-zinc-600 sm:inline">{item.code}</code>
+              <code className="ml-auto hidden font-mono text-[11px] text-zinc-600 sm:inline">{item.code}</code>
             </div>
             {item.description && (
               <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">

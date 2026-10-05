@@ -174,7 +174,7 @@ export function BacktestWorkspace() {
     <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 pb-20 sm:p-4 md:pb-4">
       <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
         <header className="border-b border-zinc-800 px-3 py-3">
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
             Phase 5.9 · Strategy Version Registry
           </p>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
@@ -188,7 +188,7 @@ export function BacktestWorkspace() {
             </div>
             <Link
               href="/#overview"
-              className="rounded border border-zinc-700 px-2.5 py-1.5 text-[10px] font-medium text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+              className="rounded border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
             >
               ← Live scanner
             </Link>
@@ -214,12 +214,12 @@ export function BacktestWorkspace() {
                 <span className="block text-sm font-medium text-zinc-200">
                   Select MT5 CSV/TXT files
                 </span>
-                <span className="mt-1 block text-[10px] leading-relaxed text-zinc-600">
+                <span className="mt-1 block text-[11px] leading-relaxed text-zinc-600">
                   File name must include symbol + timeframe, e.g. EURUSD_D1.csv, EURUSD_H4.csv, EURUSD_H1.csv, EURUSD_M15.csv.
                 </span>
               </label>
 
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-zinc-500">
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500">
                 <span>{files.length} files</span>
                 <span>{formatBytes(totalBytes)}</span>
                 <span>D1 · H4 · H1 · M15 required per pair</span>
@@ -227,7 +227,7 @@ export function BacktestWorkspace() {
 
               {files.length > 0 && (
                 <div className="mt-2 max-h-28 overflow-auto rounded border border-zinc-800 bg-zinc-950/30 p-2">
-                  <div className="grid gap-1 font-mono text-[9px] text-zinc-500 sm:grid-cols-2">
+                  <div className="grid gap-1 font-mono text-[11px] text-zinc-500 sm:grid-cols-2">
                     {files.map((file) => (
                       <div key={file.name} className="truncate">
                         {file.name} · {formatBytes(file.size)}
@@ -373,7 +373,7 @@ export function BacktestWorkspace() {
               >
                 {running ? "Validating & replaying…" : "Validate & run backtest"}
               </button>
-              <p className="mt-1.5 text-[9px] text-zinc-600">
+              <p className="mt-1.5 text-[11px] text-zinc-600">
                 Synchronous safety limit: 50,000 M15 replay steps. Narrow the date range for larger datasets.
               </p>
             </div>
@@ -433,11 +433,11 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-500">
+    <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
       {label}
       {children}
       {hint && (
-        <span className="mt-1 block text-[9px] font-normal normal-case tracking-normal text-zinc-500">
+        <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-zinc-500">
           {hint}
         </span>
       )}
@@ -460,13 +460,13 @@ function ValidationPanel({
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
           <h2 className="text-sm font-semibold text-zinc-100">Dataset validation</h2>
-          <p className="mt-0.5 text-[10px] text-zinc-600">
+          <p className="mt-0.5 text-[11px] text-zinc-600">
             {validation.importedFileCount} files · {validation.importedSymbolCount} symbols · {validation.importedSeriesCount} series
           </p>
         </div>
         <span
           className={
-            "rounded border px-2 py-1 font-mono text-[9px] font-semibold " +
+            "rounded border px-2 py-1 font-mono text-[11px] font-semibold " +
             (validation.valid
               ? "border-emerald-800 bg-emerald-950/30 text-emerald-300"
               : "border-red-800 bg-red-950/30 text-red-300")
@@ -477,7 +477,7 @@ function ValidationPanel({
       </header>
 
       <div className="grid gap-3 p-3 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <dl className="grid grid-cols-2 gap-2 text-[10px]">
+        <dl className="grid grid-cols-2 gap-2 text-[11px]">
           <DataItem label="UTC offset" value={formatOffset(validation.sourceUtcOffsetMinutes)} />
           <DataItem label="Spread" value={validation.assumedSpreadPips + " pips"} />
           <DataItem label="Common start" value={formatUtc(validation.commonStartAt)} />
@@ -498,7 +498,7 @@ function ValidationPanel({
 
         <div className="min-w-0">
           <div className="overflow-x-auto rounded border border-zinc-800">
-            <table className="w-full min-w-[620px] text-left text-[10px]">
+            <table className="w-full min-w-[620px] text-left text-[11px]">
               <thead className="bg-zinc-950/70 text-zinc-600">
                 <tr>
                   <th className="px-2 py-1.5">Series</th>
@@ -529,7 +529,7 @@ function ValidationPanel({
 
           {validation.issues.length > 0 && (
             <details className="mt-2 rounded border border-zinc-800 bg-zinc-950/30">
-              <summary className="cursor-pointer px-2.5 py-2 text-[10px] font-medium text-zinc-400">
+              <summary className="cursor-pointer px-2.5 py-2 text-[11px] font-medium text-zinc-400">
                 Validation issues ({validation.issues.length})
               </summary>
               <div className="max-h-48 space-y-1 overflow-auto border-t border-zinc-800 p-2">
@@ -537,7 +537,7 @@ function ValidationPanel({
                   <div
                     key={issue.code + index}
                     className={
-                      "text-[9px] leading-relaxed " +
+                      "text-[11px] leading-relaxed " +
                       (issue.severity === "ERROR"
                         ? "text-red-300"
                         : issue.severity === "WARNING"
@@ -569,7 +569,7 @@ function BacktestResultHeader({
   return (
     <section className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-900/30 px-3 py-2.5">
       <div>
-        <p className="font-mono text-[9px] text-zinc-600">{artifact.id}</p>
+        <p className="font-mono text-[11px] text-zinc-600">{artifact.id}</p>
         <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
           {artifact.metadata?.label || "Validation report"}
         </h2>
@@ -585,14 +585,14 @@ function BacktestResultHeader({
             ))}
           </div>
         )}
-        <p className="mt-1 text-[10px] text-zinc-500">
+        <p className="mt-1 text-[11px] text-zinc-500">
           {artifact.validation.symbols.join(", ")} · {formatUtc(artifact.config.startAt)} → {formatUtc(artifact.config.endAt)} · {(artifact.durationMs / 1000).toFixed(1)}s
         </p>
       </div>
       <button
         type="button"
         onClick={onExport}
-        className="rounded border border-zinc-700 px-2.5 py-1.5 text-[10px] font-medium text-zinc-300 hover:border-emerald-800 hover:text-emerald-300"
+        className="rounded border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 hover:border-emerald-800 hover:text-emerald-300"
       >
         Export JSON
       </button>
@@ -617,7 +617,7 @@ function BacktestMetrics({ artifact }: { artifact: BacktestRunArtifact }) {
     <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-zinc-800 bg-zinc-800 sm:grid-cols-4 xl:grid-cols-8">
       {metrics.map(([label, value]) => (
         <div key={label} className="bg-[#0f131b] px-3 py-2.5">
-          <div className="text-[9px] uppercase tracking-[0.1em] text-zinc-600">
+          <div className="text-[11px] uppercase tracking-[0.1em] text-zinc-600">
             {label}
           </div>
           <div className="mt-1 font-mono text-sm font-semibold tabular-nums text-zinc-200">
@@ -667,11 +667,11 @@ function EquityCurve({ artifact }: { artifact: BacktestRunArtifact }) {
       <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2.5">
         <div>
           <h2 className="text-sm font-semibold text-zinc-100">Equity curve</h2>
-          <p className="mt-0.5 text-[10px] text-zinc-600">
+          <p className="mt-0.5 text-[11px] text-zinc-600">
             Mark-to-market replay equity · includes floating P/L
           </p>
         </div>
-        <span className="font-mono text-[10px] text-zinc-500">
+        <span className="font-mono text-[11px] text-zinc-500">
           {formatNumber(min, 2)} → {formatNumber(max, 2)}
         </span>
       </header>
@@ -720,13 +720,13 @@ function RecentRuns({
         <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
           Recent reports
         </h2>
-        <p className="mt-0.5 text-[9px] text-zinc-500">
+        <p className="mt-0.5 text-[11px] text-zinc-500">
           Persisted separately under .data/backtest-runs
         </p>
       </header>
       <div className="max-h-[430px] space-y-1.5 overflow-auto p-2">
         {runs.length === 0 ? (
-          <div className="px-2 py-6 text-center text-[10px] text-zinc-500">
+          <div className="px-2 py-6 text-center text-[11px] text-zinc-500">
             No persisted backtest reports yet.
           </div>
         ) : (
@@ -739,7 +739,7 @@ function RecentRuns({
               className="w-full rounded border border-zinc-800 bg-zinc-900/30 p-2 text-left hover:border-zinc-700 hover:bg-zinc-900/60 disabled:opacity-50"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-mono text-[10px] font-semibold text-zinc-300">
+                <span className="truncate font-mono text-[11px] font-semibold text-zinc-300">
                   {run.label || run.datasetId}
                 </span>
                 <div className="flex shrink-0 items-center gap-1">
@@ -748,7 +748,7 @@ function RecentRuns({
                       {run.releaseDecision}
                     </span>
                   )}
-                  <span className="font-mono text-[9px] text-zinc-600">
+                  <span className="font-mono text-[11px] text-zinc-600">
                     N {run.sampleSize}
                   </span>
                 </div>
@@ -765,7 +765,7 @@ function RecentRuns({
                   ))}
                 </div>
               )}
-              <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] text-zinc-600">
+              <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-zinc-600">
                 <span>{run.symbols.join(", ")}</span>
                 <span>{signedPercent(run.netReturnPercent)}</span>
                 <span>DD {formatPercent(run.maxDrawdownPercent)}</span>
@@ -786,7 +786,7 @@ function DataItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded border border-zinc-800 bg-zinc-950/30 px-2 py-1.5">
       <dt className="text-[11px] uppercase tracking-[0.1em] text-zinc-500">{label}</dt>
-      <dd className="mt-0.5 font-mono text-[10px] text-zinc-300">{value}</dd>
+      <dd className="mt-0.5 font-mono text-[11px] text-zinc-300">{value}</dd>
     </div>
   );
 }

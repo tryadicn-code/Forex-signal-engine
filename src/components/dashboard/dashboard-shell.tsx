@@ -37,7 +37,7 @@ export function DashboardShell({
           </Link>
 
           {statusLabel && (
-            <Badge tone="info" glyph="◷" className="hidden text-[9px] sm:inline-flex">
+            <Badge tone="info" glyph="◷" className="hidden text-[11px] sm:inline-flex">
               {statusLabel}
             </Badge>
           )}
@@ -46,7 +46,7 @@ export function DashboardShell({
             <Badge
               tone={releaseBlocked ? "danger" : strategyLabel === "UNVERSIONED" ? "warning" : "info"}
               glyph={releaseBlocked ? "!" : strategyLabel === "UNVERSIONED" ? "!" : "◆"}
-              className="hidden text-[9px] md:inline-flex"
+              className="hidden text-[11px] md:inline-flex"
             >
               {strategyLabel}
             </Badge>
@@ -55,7 +55,7 @@ export function DashboardShell({
 
         <div className="flex shrink-0 items-center gap-2">
           {providerId && liveMarketData && (
-            <span className="hidden font-mono text-[10px] text-zinc-600 sm:inline">
+            <span className="hidden font-mono text-[11px] text-zinc-600 sm:inline">
               {providerId.toUpperCase()}
             </span>
           )}
