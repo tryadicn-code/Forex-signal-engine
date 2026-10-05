@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Badge,
   DirectionBadge,
@@ -50,6 +50,33 @@ export function SignalDetailPanel({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [result, onClose]);
 
+  // UIUX-M-007: mobile bottom-sheet swipe-down. Drag is only detected when
+  // the touch starts within the drag-handle strip (top ~48px of the panel),
+  // so the scrolling body is never intercepted.
+  const [dragY, setDragY] = useState(0);
+  const dragStartRef = useRef<number | null>(null);
+  const dragYRef = useRef(0);
+
+  const onHandleTouchStart = (event: React.TouchEvent) => {
+    dragStartRef.current = event.touches[0]?.clientY ?? null;
+    dragYRef.current = 0;
+  };
+  const onHandleTouchMove = (event: React.TouchEvent) => {
+    if (dragStartRef.current === null) return;
+    const delta = (event.touches[0]?.clientY ?? 0) - dragStartRef.current;
+    if (delta > 0) {
+      dragYRef.current = delta;
+      setDragY(delta);
+    }
+  };
+  const onHandleTouchEnd = () => {
+    const finalDelta = dragYRef.current;
+    dragStartRef.current = null;
+    dragYRef.current = 0;
+    setDragY(0);
+    if (finalDelta > 80) onClose();
+  };
+
   if (!result) {
     return (
       <aside
@@ -75,12 +102,25 @@ export function SignalDetailPanel({
     <aside
       role="complementary"
       aria-label={detailLabel}
+      style={dragY > 0 ? { transform: `translateY(${dragY}px)` } : undefined}
       className={cn(
         "fixed inset-x-0 bottom-0 top-12 z-40 overflow-y-auto border-t border-zinc-700 bg-[#0b0e14] shadow-2xl",
         "xl:sticky xl:top-16 xl:z-0 xl:max-h-[calc(100vh-5rem)] xl:rounded xl:border xl:border-zinc-800 xl:bg-zinc-900/30 xl:shadow-none"
       )}
     >
-      <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-4 py-3 backdrop-blur xl:bg-zinc-900/95">
+      <div
+        className="sticky top-0 z-20 flex justify-center bg-[#0b0e14]/95 pb-1 pt-2 backdrop-blur xl:hidden"
+        onTouchStart={onHandleTouchStart}
+        onTouchMove={onHandleTouchMove}
+        onTouchEnd={onHandleTouchEnd}
+        onTouchCancel={onHandleTouchEnd}
+        role="button"
+        aria-label="Drag down to close"
+        style={{ touchAction: "none" }}
+      >
+        <div className="h-1 w-10 rounded-full bg-zinc-700" aria-hidden="true" />
+      </div>
+      <header className="sticky top-[1.5rem] z-10 flex items-start justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-4 py-3 backdrop-blur xl:top-0 xl:bg-zinc-900/95">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-mono text-base font-semibold tracking-wide text-zinc-100">

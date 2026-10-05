@@ -16,6 +16,17 @@ import {
 import { workstationStatus } from "@/lib/workstation-status";
 import { cn } from "@/lib/utils";
 
+/** UIUX-M-008: FX sessions run Sun 22:00 UTC .. Fri 21:00 UTC. */
+function isMarketClosed(ts: number): boolean {
+  const d = new Date(ts);
+  const day = d.getUTCDay();
+  const hour = d.getUTCHours();
+  if (day === 6) return true;
+  if (day === 0 && hour < 22) return true;
+  if (day === 5 && hour >= 21) return true;
+  return false;
+}
+
 export function ScannerCards({
   results,
   selectedSymbol,
@@ -106,8 +117,9 @@ function ScannerCard({
   const slVal = risk?.stopLoss ?? planned?.stop ?? null;
   const rrVal = result.riskReward ?? risk?.plannedRR ?? planned?.rr ?? null;
   const pips = potentialPips(result);
-  const bias = result.bias ? BIAS_DISPLAY[result.bias] : "—";
-
+  const bias = result.bias ? BIAS_DISPLAY[result.bias] : "\u2014";
+  const marketClosed =
+    result.updatedAt !== null && isMarketClosed(result.updatedAt);
   return (
     <li
       data-signal-symbol={result.symbol}
@@ -135,7 +147,7 @@ function ScannerCard({
             {result.symbol}
           </span>
           <DirectionBadge direction={result.biasDirection} className="text-[9px]" />
-          <FreshnessBadge status={result.freshness} className="text-[9px]" />
+          <FreshnessBadge status={result.freshness} className="text-[9px]" marketClosed={marketClosed} />
           <span
             className={cn(
               "rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums",

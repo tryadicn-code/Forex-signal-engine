@@ -17,6 +17,16 @@ import {
 } from "@/lib/workstation-status";
 import { cn } from "@/lib/utils";
 
+function isMarketClosed(ts: number): boolean {
+  const d = new Date(ts);
+  const day = d.getUTCDay();
+  const hour = d.getUTCHours();
+  if (day === 6) return true;
+  if (day === 0 && hour < 22) return true;
+  if (day === 5 && hour >= 21) return true;
+  return false;
+}
+
 export function ScannerTable({
   results,
   selectedSymbol,
@@ -110,7 +120,12 @@ export function ScannerTable({
                       </div>
                     </td>
                     <td className="px-2 py-2.5">
-                      <FreshnessBadge status={result.freshness} />
+                      <FreshnessBadge
+                        status={result.freshness}
+                        marketClosed={
+                          result.updatedAt !== null && isMarketClosed(result.updatedAt)
+                        }
+                      />
                     </td>
                   </>
                 )}

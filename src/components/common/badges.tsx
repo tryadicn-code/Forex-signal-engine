@@ -119,19 +119,35 @@ export function DirectionBadge({
   );
 }
 
+/**
+ * UIUX-M-008: when `marketClosed` is true and the data is merely DELAYED,
+ * render the badge in a muted tone so the scanner does not show a wall of
+ * amber warnings while the FX market is naturally closed. STALE always keeps
+ * its danger tone; the muted variant is only for the expected-delay case.
+ */
 export function FreshnessBadge({
   status,
   className,
+  marketClosed = false,
 }: {
   status: FreshnessStatus | null | undefined;
   className?: string;
+  marketClosed?: boolean;
 }) {
   if (!status) {
     return <Badge tone="muted" className={className}>No data</Badge>;
   }
   const meta = FRESHNESS_META[status];
+  const tone =
+    marketClosed && status === "DELAYED" ? "muted" : meta.tone;
+  const suffix = marketClosed && status === "DELAYED" ? " (market closed)" : "";
   return (
-    <Badge tone={meta.tone} glyph={meta.glyph} className={className} title={`Data freshness: ${status}`}>
+    <Badge
+      tone={tone}
+      glyph={meta.glyph}
+      className={className}
+      title={`Data freshness: ${status}${suffix}`}
+    >
       {meta.label}
     </Badge>
   );

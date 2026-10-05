@@ -347,6 +347,13 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           snapshot={data.snapshot}
           health={data.health}
           activeSignals={data.activeSignals}
+          onFilter={(state) => {
+            setQuery({ ...DEFAULT_QUERY, state });
+            const target = document.getElementById("scanner");
+            if (target && typeof target.scrollIntoView === "function") {
+              target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }}
         />
 
         {runtimeIssue && (
