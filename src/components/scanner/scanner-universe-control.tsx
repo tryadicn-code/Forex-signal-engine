@@ -129,7 +129,7 @@ export function ScannerUniverseControl({
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900/55 px-2.5 text-[10px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+        className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900/55 px-2.5 text-[11px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
         aria-label="Manage scanner pairs"
       >
         <svg
@@ -142,7 +142,7 @@ export function ScannerUniverseControl({
           <path d="M14.5 12.5v5M12 15h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         </svg>
         <span>Pairs</span>
-        <span className="min-w-[1.35rem] rounded bg-zinc-800 px-1 py-0.5 text-center font-mono text-[9px] leading-none text-zinc-300">
+        <span className="min-w-[1.35rem] rounded bg-zinc-800 px-1 py-0.5 text-center font-mono text-[11px] leading-none text-zinc-300">
           {data?.selected.length ?? count ?? "\u2014"}
         </span>
       </button>
@@ -201,7 +201,7 @@ export function ScannerUniverseControl({
             </div>
 
             {data && normalized.length > 0 && !data.supported.includes(normalized) && (
-              <p className="mt-2 text-[10px] text-amber-300">
+              <p className="mt-2 text-[11px] text-amber-300">
                 Pair belum tersedia di katalog aman scanner.
               </p>
             )}
@@ -213,14 +213,14 @@ export function ScannerUniverseControl({
             )}
 
             <div className="mt-4 border-t border-zinc-800 pt-3">
-              <div className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+              <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
                 Active universe
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {data?.selected.map((item) => (
                   <span
                     key={item}
-                    className="inline-flex items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 pl-2 py-1 font-mono text-[10px] text-zinc-300"
+                    className="inline-flex items-center gap-1 rounded-md border border-zinc-800 bg-zinc-900/60 pl-2 py-1 font-mono text-[11px] text-zinc-300"
                   >
                     {item}
                     <button
@@ -235,7 +235,7 @@ export function ScannerUniverseControl({
                   </span>
                 ))}
               </div>
-              <p className="mt-3 text-[10px] leading-relaxed text-zinc-600">
+              <p className="mt-3 text-[11px] leading-relaxed text-zinc-600">
                 Pair dengan posisi paper terbuka tidak dapat dihapus sampai posisi ditutup.
                 Pair tambahan memakai strategi dan threshold yang sama; validasi performanya
                 sebelum digunakan untuk eksekusi live.

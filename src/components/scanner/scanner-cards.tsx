@@ -146,11 +146,11 @@ function ScannerCard({
           <span className="font-mono text-base font-semibold tracking-wide text-zinc-100">
             {result.symbol}
           </span>
-          <DirectionBadge direction={result.biasDirection} className="text-[9px]" />
-          <FreshnessBadge status={result.freshness} className="text-[9px]" marketClosed={marketClosed} />
+          <DirectionBadge direction={result.biasDirection} className="text-[11px]" />
+          <FreshnessBadge status={result.freshness} className="text-[11px]" marketClosed={marketClosed} />
           <span
             className={cn(
-              "rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums",
+              "rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums",
               setupChipClass(result.setupScore)
             )}
             title="Setup score"
@@ -167,7 +167,7 @@ function ScannerCard({
             <div className="mt-2 truncate border-t border-zinc-800/70 pt-2 text-[11px] text-red-300">
               Data issue · {result.reason}
             </div>
-            <div className="mt-1 font-mono text-[10px] text-zinc-600">
+            <div className="mt-1 font-mono text-[11px] text-zinc-600">
               Engine status {result.status.replaceAll("_", " ")}
             </div>
           </>
@@ -213,7 +213,7 @@ function ScannerCard({
                 </div>
               )}
 
-            <div className="mt-1.5 flex items-center gap-2 text-[10px] leading-5">
+            <div className="mt-1.5 flex items-center gap-2 text-[11px] leading-5">
               <span className={cn("truncate font-medium", biasTone(result.bias))}>
                 {bias}
               </span>

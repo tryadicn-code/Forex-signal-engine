@@ -85,7 +85,7 @@ export function PaperTradingOverlay({
           <div className="flex items-center justify-between px-4 py-3">
             <div>
               <div className="text-sm font-semibold text-zinc-100">{title}</div>
-              <div className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-zinc-600">
+              <div className="mt-0.5 text-[11px] uppercase tracking-[0.14em] text-zinc-600">
                 Simulated execution · no real funds
               </div>
             </div>
@@ -103,7 +103,7 @@ export function PaperTradingOverlay({
               aria-selected={activeView === "portfolio"}
               onClick={() => setActiveView("portfolio")}
               className={
-                "border-r border-zinc-800 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors " +
+                "border-r border-zinc-800 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors " +
                 (activeView === "portfolio"
                   ? "bg-emerald-950/20 text-emerald-300"
                   : "text-zinc-600 hover:bg-zinc-900/60 hover:text-zinc-300")
@@ -117,7 +117,7 @@ export function PaperTradingOverlay({
               aria-selected={activeView === "journal"}
               onClick={() => setActiveView("journal")}
               className={
-                "px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors " +
+                "px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors " +
                 (activeView === "journal"
                   ? "bg-emerald-950/20 text-emerald-300"
                   : "text-zinc-600 hover:bg-zinc-900/60 hover:text-zinc-300")

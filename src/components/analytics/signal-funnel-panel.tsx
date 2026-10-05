@@ -109,7 +109,7 @@ export function SignalFunnelPanel({
           </div>
 
           <div className="overflow-hidden rounded-md border border-zinc-800/80">
-            <div className="grid grid-cols-[minmax(120px,1fr)_70px_80px_70px] border-b border-zinc-800 bg-zinc-950/40 px-3 py-2 text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+            <div className="grid grid-cols-[minmax(120px,1fr)_70px_80px_70px] border-b border-zinc-800 bg-zinc-950/40 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-zinc-600">
               <span>Stage</span>
               <span className="text-right">Passed</span>
               <span className="text-right">Conv.</span>
@@ -153,7 +153,7 @@ export function SignalFunnelPanel({
               <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 Top rejection reasons
               </h3>
-              <span className="text-[10px] text-zinc-600">share of rejections</span>
+              <span className="text-[11px] text-zinc-600">share of rejections</span>
             </div>
             {summary.rejectionReasons.length === 0 ? (
               <p className="py-3 text-xs text-zinc-600">No rejected observations in this window.</p>
@@ -165,13 +165,13 @@ export function SignalFunnelPanel({
                       <p className="truncate font-mono text-[11px] text-zinc-300">
                         {reason.code}
                       </p>
-                      <p className="text-[10px] text-zinc-600">
+                      <p className="text-[11px] text-zinc-600">
                         {STAGE_LABELS[reason.stage]}
                       </p>
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="font-mono text-xs tabular-nums text-zinc-200">{reason.count}</p>
-                      <p className="font-mono text-[10px] tabular-nums text-zinc-600">
+                      <p className="font-mono text-[11px] tabular-nums text-zinc-600">
                         {reason.percentage}%
                       </p>
                     </div>
@@ -198,7 +198,7 @@ export function SignalFunnelPanel({
                       <p className="truncate font-mono text-zinc-300">
                         {item.preferredStrategyId} → {item.selectedStrategyId}
                       </p>
-                      <p className="truncate text-[10px] text-zinc-600">
+                      <p className="truncate text-[11px] text-zinc-600">
                         {item.routingMode} · {item.executionRate}% exec
                       </p>
                     </div>
@@ -245,7 +245,7 @@ export function SignalFunnelPanel({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-zinc-800/80 bg-zinc-950/25 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-wide text-zinc-600">{label}</p>
+      <p className="text-[11px] uppercase tracking-wide text-zinc-600">{label}</p>
       <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-zinc-200">{value}</p>
     </div>
   );

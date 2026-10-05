@@ -112,7 +112,7 @@ export function PriceChart({
               ? formatPrice(symbol, data.candles[data.candles.length - 1].close)
               : "—"}
           </div>
-          <div className="text-[10px] uppercase tracking-wider text-zinc-600">
+          <div className="text-[11px] uppercase tracking-wider text-zinc-600">
             {timeframe} · closed candles
           </div>
         </div>
@@ -145,7 +145,7 @@ export function PriceChart({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-zinc-600">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-600">
         <span>
           {data ? Math.min(data.candles.length, visibleBars) : 0} visible · {data?.candles.length ?? 0} loaded
         </span>
@@ -338,7 +338,7 @@ function OhlcReadout({
     <div
       data-testid="chart-ohlc"
       aria-live="polite"
-      className="pointer-events-none absolute left-2 top-2 z-10 flex flex-wrap gap-x-2 gap-y-0.5 rounded border border-zinc-800/80 bg-[#090c11]/90 px-2 py-1 font-mono text-[9px] text-zinc-500 backdrop-blur sm:text-[10px]"
+      className="pointer-events-none absolute left-2 top-2 z-10 flex flex-wrap gap-x-2 gap-y-0.5 rounded border border-zinc-800/80 bg-[#090c11]/90 px-2 py-1 font-mono text-[11px] text-zinc-500 backdrop-blur sm:text-[11px]"
     >
       <span className="text-zinc-300">{chartTimeLabel(candle.timestamp, timeframe)}</span>
       <span>O <b className="font-medium text-zinc-300">{formatPrice(symbol, candle.open)}</b></span>

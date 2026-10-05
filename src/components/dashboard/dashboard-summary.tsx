@@ -62,7 +62,7 @@ function Kpi({
 
   const content = (
     <>
-      <div className="truncate text-[10px] font-medium text-zinc-500 sm:text-[11px]">
+      <div className="truncate text-[11px] font-medium text-zinc-500 sm:text-[11px]">
         {label}
       </div>
       <div className={`mt-0.5 font-mono text-lg font-semibold tabular-nums sm:text-xl ${valueClass}`}>
@@ -146,7 +146,7 @@ export function DashboardSummary({
       </div>
 
       {counts.engineExecute > counts.ready && (
-        <div className="border-t border-zinc-800 px-3 py-1.5 text-center text-[10px] text-amber-300">
+        <div className="border-t border-zinc-800 px-3 py-1.5 text-center text-[11px] text-amber-300">
           {counts.engineExecute - counts.ready} engine-ready awaiting lifecycle
         </div>
       )}

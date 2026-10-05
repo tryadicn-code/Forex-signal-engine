@@ -170,13 +170,13 @@ function ReleaseGateHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5">
       <div>
-        <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-sky-400/80">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-sky-400/80">
           Phase 5.8
         </p>
         <h3 className="mt-0.5 text-xs font-semibold text-zinc-300">
           Validation evidence & release gate
         </h3>
-        <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-500">
+        <p className="mt-0.5 max-w-3xl text-[11px] leading-relaxed text-zinc-500">
           Evidence status is descriptive. The stored release decision is entered manually by a reviewer.
         </p>
       </div>
@@ -230,11 +230,11 @@ function EvidenceMatrix({
               <span className="inline-flex rounded border border-zinc-800 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-zinc-400">
                 {item.status}
               </span>
-              <div className="mt-1 text-[9px] font-medium text-zinc-400">
+              <div className="mt-1 text-[11px] font-medium text-zinc-400">
                 {item.label}
               </div>
             </div>
-            <p className="text-[9px] leading-relaxed text-zinc-600">
+            <p className="text-[11px] leading-relaxed text-zinc-600">
               {item.detail}
             </p>
           </div>
@@ -242,7 +242,7 @@ function EvidenceMatrix({
       </div>
 
       {artifact.releaseReview && !current && (
-        <div className="rounded border border-red-900/70 bg-red-950/20 px-3 py-2 text-[9px] leading-relaxed text-red-300">
+        <div className="rounded border border-red-900/70 bg-red-950/20 px-3 py-2 text-[11px] leading-relaxed text-red-300">
           Stored review fingerprint no longer matches this report. Review again before relying on the stored decision.
         </div>
       )}
@@ -298,7 +298,7 @@ function ReviewForm({
   return (
     <aside className="rounded border border-zinc-800 bg-zinc-950/50">
       <header className="border-b border-zinc-800 px-3 py-2">
-        <h4 className="text-[10px] font-semibold text-zinc-400">
+        <h4 className="text-[11px] font-semibold text-zinc-400">
           Manual reviewer checklist
         </h4>
         <p className="mt-0.5 text-[11px] text-zinc-500">
@@ -343,7 +343,7 @@ function ReviewForm({
                 forwardPaper: event.target.value as ForwardEvidenceReviewState,
               })
             }
-            className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-[9px] text-zinc-400 outline-none focus:border-sky-800"
+            className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-[11px] text-zinc-400 outline-none focus:border-sky-800"
           >
             <option value="NOT_REVIEWED">NOT_REVIEWED</option>
             <option value="REVIEWED">REVIEWED</option>
@@ -361,7 +361,7 @@ function ReviewForm({
             maxLength={80}
             onChange={(event) => onReviewer(event.target.value)}
             placeholder="Name / reviewer id"
-            className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-[10px] normal-case tracking-normal text-zinc-300 outline-none focus:border-sky-800"
+            className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-[11px] normal-case tracking-normal text-zinc-300 outline-none focus:border-sky-800"
           />
         </label>
 
@@ -373,7 +373,7 @@ function ReviewForm({
             rows={4}
             onChange={(event) => onNote(event.target.value)}
             placeholder="Document concerns, caveats, reasons or next-stage conditions."
-            className="mt-1 w-full resize-y rounded border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-[10px] normal-case tracking-normal text-zinc-300 outline-none focus:border-sky-800"
+            className="mt-1 w-full resize-y rounded border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-[11px] normal-case tracking-normal text-zinc-300 outline-none focus:border-sky-800"
           />
         </label>
 
@@ -384,7 +384,7 @@ function ReviewForm({
             onChange={(event) =>
               onDecision(event.target.value as ReleaseDecision)
             }
-            className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-2 text-[10px] font-semibold text-zinc-300 outline-none focus:border-sky-800"
+            className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2 py-2 text-[11px] font-semibold text-zinc-300 outline-none focus:border-sky-800"
           >
             <option value="PENDING">PENDING</option>
             <option value="HOLD">HOLD</option>
@@ -395,7 +395,7 @@ function ReviewForm({
         {error && (
           <div
             role="alert"
-            className="rounded border border-red-900/70 bg-red-950/20 px-2.5 py-2 text-[9px] leading-relaxed text-red-300"
+            className="rounded border border-red-900/70 bg-red-950/20 px-2.5 py-2 text-[11px] leading-relaxed text-red-300"
           >
             {error}
           </div>
@@ -405,7 +405,7 @@ function ReviewForm({
           type="button"
           disabled={saving}
           onClick={() => void onSave()}
-          className="w-full rounded border border-sky-800/70 bg-sky-950/20 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-sky-300 hover:bg-sky-900/25 disabled:opacity-50"
+          className="w-full rounded border border-sky-800/70 bg-sky-950/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-sky-300 hover:bg-sky-900/25 disabled:opacity-50"
         >
           {saving ? "Saving review…" : "Save release review"}
         </button>
@@ -428,7 +428,7 @@ function ReviewCheck({
   onChange: () => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2 rounded border border-zinc-800 bg-zinc-950/45 px-2.5 py-2 text-[9px] text-zinc-500">
+    <label className="flex cursor-pointer items-start gap-2 rounded border border-zinc-800 bg-zinc-950/45 px-2.5 py-2 text-[11px] text-zinc-500">
       <input
         type="checkbox"
         checked={checked}

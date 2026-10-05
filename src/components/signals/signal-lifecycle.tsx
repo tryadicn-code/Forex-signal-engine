@@ -74,7 +74,7 @@ export function SignalLifecycle({ state }: { state: SignalState | null }) {
           <li key={step} className="flex items-center gap-1">
             <span
               className={cn(
-                "rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide",
+                "rounded border px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide",
                 isCurrent
                   ? "border-emerald-600/70 bg-emerald-600/15 text-emerald-300"
                   : reached
@@ -86,7 +86,7 @@ export function SignalLifecycle({ state }: { state: SignalState | null }) {
               {step}
             </span>
             {index < PROGRESSION.length - 1 && (
-              <span aria-hidden="true" className="text-[10px] text-zinc-500">
+              <span aria-hidden="true" className="text-[11px] text-zinc-500">
                 →
               </span>
             )}

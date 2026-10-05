@@ -319,7 +319,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           <div className="flex items-center justify-end gap-2 text-xs">
             {data.automation?.enabled ? (
               <div className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/50 px-2.5 py-1.5">
-                <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
                   Auto sync
                 </span>
                 <span className="font-mono tabular-nums text-emerald-300">
@@ -327,7 +327,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
                 </span>
               </div>
             ) : (
-              <span className="text-[10px] uppercase tracking-wide text-zinc-600">
+              <span className="text-[11px] uppercase tracking-wide text-zinc-600">
                 Auto sync off
               </span>
             )}

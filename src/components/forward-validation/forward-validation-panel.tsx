@@ -83,13 +83,13 @@ export function ForwardValidationPanel() {
     >
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
             Forward Validation
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             Runtime drift monitor
           </h2>
-          <p className="mt-0.5 text-[10px] text-zinc-600">
+          <p className="mt-0.5 text-[11px] text-zinc-600">
             Release-scoped Paper evidence vs the immutable historical validation reference.
           </p>
         </div>
@@ -115,21 +115,21 @@ export function ForwardValidationPanel() {
       </header>
 
       {error && (
-        <div className="border-b border-red-900/60 bg-red-950/20 px-3 py-2 text-[9px] text-red-300">
+        <div className="border-b border-red-900/60 bg-red-950/20 px-3 py-2 text-[11px] text-red-300">
           {error}
         </div>
       )}
 
       {!report ? (
-        <div className="px-3 py-5 text-center text-[10px] text-zinc-500">
+        <div className="px-3 py-5 text-center text-[11px] text-zinc-500">
           Loading forward validation evidence…
         </div>
       ) : report.status === "NO_ACTIVE_RELEASE" ? (
         <div className="px-3 py-5 text-center">
-          <div className="font-mono text-[10px] font-semibold text-amber-300">
+          <div className="font-mono text-[11px] font-semibold text-amber-300">
             NO ACTIVE RELEASE
           </div>
-          <p className="mx-auto mt-1 max-w-xl text-[9px] leading-relaxed text-zinc-600">
+          <p className="mx-auto mt-1 max-w-xl text-[11px] leading-relaxed text-zinc-600">
             {report.message}
           </p>
         </div>
@@ -185,7 +185,7 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
                 {item.status}
               </span>
               <div>
-                <div className="text-[9px] font-medium text-zinc-400">
+                <div className="text-[11px] font-medium text-zinc-400">
                   {item.label}
                 </div>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">
@@ -213,7 +213,7 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
 
         <aside className="space-y-2">
           <section className="rounded border border-zinc-800 bg-zinc-950/45 p-3">
-            <h3 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
               Evidence counts
             </h3>
             <dl className="mt-2 grid grid-cols-2 gap-2">
@@ -237,7 +237,7 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
           </section>
 
           <section className="rounded border border-zinc-800 bg-zinc-950/45 p-3">
-            <h3 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
               Operational sample
             </h3>
             <dl className="mt-2 grid grid-cols-2 gap-2">
@@ -287,7 +287,7 @@ function Fact({ label, value }: { label: string; value: string }) {
       <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
-      <dd className="mt-0.5 truncate font-mono text-[9px] text-zinc-300">
+      <dd className="mt-0.5 truncate font-mono text-[11px] text-zinc-300">
         {value}
       </dd>
     </div>

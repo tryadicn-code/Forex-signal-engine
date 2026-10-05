@@ -24,7 +24,7 @@ export function TransitionHistory({
       <table className="w-full border-collapse text-left font-mono text-[11px]">
         <caption className="sr-only">Signal state transitions, oldest first</caption>
         <thead>
-          <tr className="text-[10px] uppercase tracking-wider text-zinc-600">
+          <tr className="text-[11px] uppercase tracking-wider text-zinc-600">
             <th scope="col" className="py-1 pr-3 font-medium">Time</th>
             <th scope="col" className="py-1 pr-3 font-medium">From</th>
             <th scope="col" className="py-1 pr-3 font-medium">To</th>

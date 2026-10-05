@@ -68,13 +68,13 @@ export function ProductionHealthPanel() {
     <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-violet-400/80">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-violet-400/80">
             System Health
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             Alerts, execution safety & infrastructure
           </h2>
-          <p className="mt-0.5 text-[10px] text-zinc-600">
+          <p className="mt-0.5 text-[11px] text-zinc-600">
             Alerts, broker safety, shared state and deployment readiness.
           </p>
         </div>
@@ -89,13 +89,13 @@ export function ProductionHealthPanel() {
       </header>
 
       {error && (
-        <div className="border-b border-red-900/60 bg-red-950/20 px-3 py-2 text-[9px] text-red-300">
+        <div className="border-b border-red-900/60 bg-red-950/20 px-3 py-2 text-[11px] text-red-300">
           {error}
         </div>
       )}
 
       {!health ? (
-        <div className="px-3 py-5 text-center text-[10px] text-zinc-500">
+        <div className="px-3 py-5 text-center text-[11px] text-zinc-500">
           Reading production health…
         </div>
       ) : (
@@ -132,7 +132,7 @@ export function ProductionHealthPanel() {
                   >
                     {check.status}
                   </span>
-                  <span className="text-[9px] leading-relaxed text-zinc-500">
+                  <span className="text-[11px] leading-relaxed text-zinc-500">
                     {check.message}
                   </span>
                 </div>
@@ -141,7 +141,7 @@ export function ProductionHealthPanel() {
 
             <aside className="space-y-2">
               <section className="rounded border border-zinc-800 bg-zinc-950/45 p-3">
-                <h3 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                   Safety
                 </h3>
                 <dl className="mt-2 grid grid-cols-2 gap-2">
@@ -217,10 +217,10 @@ export function ProductionHealthPanel() {
               </section>
 
               <section className="rounded border border-zinc-800 bg-zinc-950/45 p-3">
-                <h3 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                   Persistence
                 </h3>
-                <div className="mt-2 text-[9px] text-zinc-600">
+                <div className="mt-2 text-[11px] text-zinc-600">
                   {health.persistence.length} inspected · {persistenceIssues.length} attention
                 </div>
                 {persistenceIssues.length > 0 && (
@@ -239,7 +239,7 @@ export function ProductionHealthPanel() {
               </section>
 
               {warnings.length === 0 && (
-                <p className="rounded border border-emerald-900/50 bg-emerald-950/15 px-3 py-2 text-[9px] leading-relaxed text-emerald-300/80">
+                <p className="rounded border border-emerald-900/50 bg-emerald-950/15 px-3 py-2 text-[11px] leading-relaxed text-emerald-300/80">
                   No readiness warnings are currently reported.
                 </p>
               )}
@@ -274,7 +274,7 @@ function Fact({
       <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
-      <dd className={"mt-0.5 truncate font-mono text-[9px] " + valueClass}>
+      <dd className={"mt-0.5 truncate font-mono text-[11px] " + valueClass}>
         {value}
       </dd>
     </div>

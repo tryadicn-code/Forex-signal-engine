@@ -72,7 +72,7 @@ export function SignalExecutiveSummary({
             />
             <div
               className={cn(
-                "mt-1.5 truncate text-[10px] sm:text-[11px]",
+                "mt-1.5 truncate text-[11px] sm:text-[11px]",
                 stage.state === "done" && "text-emerald-300",
                 stage.state === "current" && "text-amber-300",
                 stage.state === "blocked" && "text-red-300",
@@ -97,7 +97,7 @@ export function SignalExecutiveSummary({
         </p>
       )}
 
-      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-zinc-600">
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px] text-zinc-600">
         <span>Engine {result.executionDecision ?? "—"}</span>
         <span>Lifecycle {result.signalState ?? "—"}</span>
         <span>Setup {result.setupState ?? "—"}</span>
@@ -109,7 +109,7 @@ export function SignalExecutiveSummary({
           aria-label="Strategy routing"
           className="mt-3 rounded-md border border-zinc-800 bg-zinc-950/35 px-3 py-2.5"
         >
-          <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px]">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px]">
             <span className="text-zinc-500">
               Regime <strong className="font-medium text-zinc-300">{result.strategyRouting.regime}</strong>
             </span>
@@ -124,7 +124,7 @@ export function SignalExecutiveSummary({
             </span>
           </div>
           {result.strategyRouting.mode === "COMPATIBILITY_FALLBACK" && (
-            <p className="mt-1.5 text-[10px] leading-relaxed text-amber-300/80">
+            <p className="mt-1.5 text-[11px] leading-relaxed text-amber-300/80">
               {result.strategyRouting.reason}
             </p>
           )}

@@ -52,13 +52,13 @@ function metric(
 
   return (
     <div className="rounded-md border border-zinc-800 bg-zinc-900/35 px-2.5 py-2">
-      <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+      <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
         {label}
       </div>
       <div className={"mt-1 font-mono text-sm font-semibold tabular-nums " + valueClass}>
         {value}
       </div>
-      {note && <div className="mt-1 text-[10px] text-zinc-600">{note}</div>}
+      {note && <div className="mt-1 text-[11px] text-zinc-600">{note}</div>}
     </div>
   );
 }
@@ -108,7 +108,7 @@ export function PaperTradingPanel({
                 PAPER
               </span>
             </div>
-            <p className="mt-1 text-[10px] leading-snug text-zinc-500 sm:text-[11px]">
+            <p className="mt-1 text-[11px] leading-snug text-zinc-500 sm:text-[11px]">
               Simulation only · no broker orders or real funds.
             </p>
           </div>
@@ -116,7 +116,7 @@ export function PaperTradingPanel({
             type="button"
             disabled={resetting}
             onClick={() => void onReset()}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900/45 px-2.5 text-[10px] font-medium text-zinc-400 transition-colors hover:border-red-900/60 hover:bg-red-950/15 hover:text-red-300 disabled:opacity-50"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-red-900/60 bg-red-950/15 px-2.5 text-[11px] font-medium text-red-300 transition-colors hover:border-red-800/70 hover:bg-red-950/30 hover:text-red-200 disabled:opacity-50"
           >
             <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
               <path d="M15.5 6.5A6 6 0 1 0 16 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -171,7 +171,7 @@ export function PaperTradingPanel({
             <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
               Open positions
             </h3>
-            <span className="font-mono text-[10px] text-zinc-600">
+            <span className="font-mono text-[11px] text-zinc-600">
               max {paper.config.maxOpenPositions} · {paper.config.maxOpenPositionsPerSymbol}/symbol · currency cap {paper.config.maxDirectionalCurrencyExposure}
             </span>
           </div>
@@ -214,14 +214,14 @@ export function PaperTradingPanel({
                       {position.symbol}
                     </span>
                     {onOpenAnalysis && (
-                      <span className="text-[9px] font-medium text-zinc-600">
+                      <span className="text-[11px] font-medium text-zinc-600">
                         Analysis ›
                       </span>
                     )}
 
                     <span
                       className={
-                        "rounded border px-1.5 py-0.5 font-mono text-[9px] font-semibold " +
+                        "rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold " +
                         (position.side === "LONG"
                           ? "border-emerald-800/70 bg-emerald-950/20 text-emerald-300"
                           : "border-rose-800/70 bg-rose-950/20 text-rose-300")
@@ -230,7 +230,7 @@ export function PaperTradingPanel({
                       {position.side}
                     </span>
 
-                    <span className="rounded border border-sky-700/60 bg-sky-950/25 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-sky-300">
+                    <span className="rounded border border-sky-700/60 bg-sky-950/25 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-sky-300">
                       {position.positionSize.toFixed(2)} lot
                     </span>
 
@@ -255,7 +255,7 @@ export function PaperTradingPanel({
                             event.stopPropagation();
                             void onClosePosition(position.id);
                           }}
-                          className="rounded border border-zinc-700 px-2 py-1 text-[9px] font-medium text-zinc-400 hover:border-red-800/70 hover:bg-red-950/20 hover:text-red-300 disabled:opacity-40"
+                          className="rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-red-800/70 hover:bg-red-950/20 hover:text-red-300 disabled:opacity-40"
                         >
                           {closingPositionId === position.id ? "Closing…" : "Close"}
                         </button>
@@ -263,7 +263,7 @@ export function PaperTradingPanel({
                     </div>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-4 gap-2 text-[9px] sm:text-[10px]">
+                  <div className="mt-2 grid grid-cols-4 gap-2 text-[11px] sm:text-[11px]">
                     <InlineDatum
                       label="Entry"
                       value={formatPrice(position.symbol, position.entryPrice)}
@@ -351,17 +351,17 @@ export function PaperTradingPanel({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-zinc-100">{trade.symbol}</span>
-                    <span className="font-mono text-[10px] text-zinc-500">{trade.side}</span>
-                    <span className="rounded border border-zinc-800 px-1.5 py-0.5 font-mono text-[9px] text-zinc-500">
+                    <span className="font-mono text-[11px] text-zinc-500">{trade.side}</span>
+                    <span className="rounded border border-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500">
                       {trade.closeReason}
                     </span>
                   </div>
-                  <div className="mt-1 font-mono text-[10px] text-zinc-600">
+                  <div className="mt-1 font-mono text-[11px] text-zinc-600">
                     {formatPrice(trade.symbol, trade.entryPrice)} → {formatPrice(trade.symbol, trade.exitPrice)}
                     {" · "}
                     {formatDuration(trade.holdingDurationMs)}
                   </div>
-                  <div className="mt-1 font-mono text-[9px] text-zinc-500">
+                  <div className="mt-1 font-mono text-[11px] text-zinc-500">
                     MFE {(trade.maxFavorableR ?? 0) >= 0 ? "+" : ""}
                     {(trade.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
                     {(trade.maxAdverseR ?? 0).toFixed(2)}R
@@ -382,7 +382,7 @@ export function PaperTradingPanel({
                   </div>
                   <div
                     className={
-                      "font-mono text-[10px] " +
+                      "font-mono text-[11px] " +
                       (trade.realizedR > 0
                         ? "text-emerald-400"
                         : trade.realizedR < 0
@@ -428,7 +428,7 @@ function InitialBalanceControl({
     <div className="border-b border-zinc-800 px-3 py-2">
       <div className="flex min-h-8 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="shrink-0 text-[9px] font-medium uppercase tracking-[0.1em] text-zinc-600">
+          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.1em] text-zinc-600">
             Demo balance
           </span>
           <span className="h-3 w-px shrink-0 bg-zinc-800" aria-hidden="true" />
@@ -440,7 +440,7 @@ function InitialBalanceControl({
           type="button"
           aria-expanded={expanded}
           onClick={() => setExpanded((value) => !value)}
-          className="inline-flex h-10 shrink-0 items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900/40 px-2 text-[9px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+          className="inline-flex h-10 shrink-0 items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900/40 px-2 text-[11px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
         >
           <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3 w-3">
             <path d="m4 14.5-.5 2.5 2.5-.5L15 7.5 12.5 5 4 14.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
@@ -452,11 +452,11 @@ function InitialBalanceControl({
 
       {expanded && (
         <div className="mt-2 rounded-md border border-zinc-800 bg-zinc-950/45 p-2.5">
-          <p className="text-[9px] leading-relaxed text-amber-300/75">
+          <p className="text-[11px] leading-relaxed text-amber-300/75">
             Changing the demo balance resets positions, orders, journal, and performance.
           </p>
           <div className="mt-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-            <span className="font-mono text-[10px] text-zinc-500">{currency}</span>
+            <span className="font-mono text-[11px] text-zinc-500">{currency}</span>
             <input
               type="number"
               min="1"
@@ -474,7 +474,7 @@ function InitialBalanceControl({
               onClick={() => {
                 void onApply(parsedBalance).then(() => setExpanded(false));
               }}
-              className="h-10 rounded-md border border-emerald-800/70 bg-emerald-950/20 px-2.5 text-[9px] font-medium text-emerald-300 hover:bg-emerald-950/35 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-10 rounded-md border border-emerald-800/70 bg-emerald-950/20 px-2.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-950/35 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {applying ? "Applying..." : "Apply & Reset"}
             </button>

@@ -112,7 +112,7 @@ export function ApprovalSecretDialog() {
         <div className="mt-4 space-y-2">
           <label
             htmlFor="approval-secret-input"
-            className="block text-[10px] font-medium uppercase tracking-wider text-zinc-500"
+            className="block text-[11px] font-medium uppercase tracking-wider text-zinc-500"
           >
             Secret
           </label>

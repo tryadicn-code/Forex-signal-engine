@@ -115,7 +115,7 @@ export function ScannerTable({
                       <div className={cn("text-xs font-semibold", workstationToneClass(status.tone))}>
                         {status.headline}
                       </div>
-                      <div className="mt-0.5 font-mono text-[10px] text-zinc-600">
+                      <div className="mt-0.5 font-mono text-[11px] text-zinc-600">
                         {result.executionDecision ?? "—"} · {result.signalState ?? "—"}
                       </div>
                     </td>

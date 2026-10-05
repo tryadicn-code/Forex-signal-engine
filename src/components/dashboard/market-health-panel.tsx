@@ -97,18 +97,18 @@ export function MarketHealthPanel({
 
       <div className="space-y-3 px-3 py-3">
         <div className="hidden sm:block">
-          <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+          <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
             Provider timestamps
           </div>
           <dl className="grid gap-2 text-xs sm:grid-cols-2">
             <div className="rounded border border-zinc-800 bg-[#0b0e14] px-2.5 py-2">
-              <dt className="text-[10px] uppercase tracking-wide text-zinc-600">Last success</dt>
+              <dt className="text-[11px] uppercase tracking-wide text-zinc-600">Last success</dt>
               <dd className="mt-0.5 font-mono text-zinc-300">
                 {formatTime(provider?.lastSuccessAt)}
               </dd>
             </div>
             <div className="rounded border border-zinc-800 bg-[#0b0e14] px-2.5 py-2">
-              <dt className="text-[10px] uppercase tracking-wide text-zinc-600">Last failure</dt>
+              <dt className="text-[11px] uppercase tracking-wide text-zinc-600">Last failure</dt>
               <dd className="mt-0.5 font-mono text-zinc-300">
                 {formatTime(provider?.lastFailureAt)}
               </dd>
@@ -121,7 +121,7 @@ export function MarketHealthPanel({
             role="status"
             className="rounded-md border border-orange-800/40 bg-orange-950/15 px-2.5 py-2"
           >
-            <div className="text-[10px] font-medium uppercase tracking-wider text-orange-300">
+            <div className="text-[11px] font-medium uppercase tracking-wider text-orange-300">
               Isolated failures
             </div>
             <p className="mt-1 font-mono text-xs text-orange-200/80">
@@ -140,7 +140,7 @@ export function MarketHealthPanel({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-zinc-900/60 px-3 py-2">
-      <dt className="text-[10px] uppercase tracking-wider text-zinc-600">{label}</dt>
+      <dt className="text-[11px] uppercase tracking-wider text-zinc-600">{label}</dt>
       <dd className="mt-0.5 break-words font-mono text-[11px] text-zinc-300 sm:text-xs">
         {value}
       </dd>

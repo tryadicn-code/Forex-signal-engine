@@ -16,13 +16,13 @@ export function BrokerExecutionPanel({
     <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
       <header className="flex flex-wrap items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
         <div>
-          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-red-400/80">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-red-400/80">
             Broker Safety
           </p>
           <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
             {broker.mode} · {broker.providerId.toUpperCase()}
           </h2>
-          <p className="mt-0.5 text-[10px] text-zinc-600">
+          <p className="mt-0.5 text-[11px] text-zinc-600">
             Read-only execution status. Live approval controls stay server-side.
           </p>
         </div>
@@ -69,11 +69,11 @@ export function BrokerExecutionPanel({
 
       <div className="grid gap-3 p-3 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div>
-          <h3 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
             Recent execution records
           </h3>
           {recent.length === 0 ? (
-            <p className="mt-2 rounded border border-zinc-800 bg-zinc-950/45 px-3 py-3 text-[9px] text-zinc-600">
+            <p className="mt-2 rounded border border-zinc-800 bg-zinc-950/45 px-3 py-3 text-[11px] text-zinc-600">
               No execution record has been created.
             </p>
           ) : (
@@ -89,7 +89,7 @@ export function BrokerExecutionPanel({
                   <span className="font-mono text-[11px] text-zinc-400">
                     {record.symbol} {record.side}
                   </span>
-                  <span className="truncate text-[9px] text-zinc-600" title={record.message}>
+                  <span className="truncate text-[11px] text-zinc-600" title={record.message}>
                     {record.message}
                   </span>
                 </div>
@@ -100,15 +100,15 @@ export function BrokerExecutionPanel({
 
         <aside className="space-y-2">
           <section className="rounded border border-zinc-800 bg-zinc-950/45 p-3">
-            <h3 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
               Live blockers
             </h3>
             {broker.liveBlockers.length === 0 ? (
-              <p className="mt-2 text-[9px] leading-relaxed text-red-300">
+              <p className="mt-2 text-[11px] leading-relaxed text-red-300">
                 No live safety blocker is currently reported.
               </p>
             ) : (
-              <ul className="mt-2 space-y-1 text-[9px] leading-relaxed text-amber-300/80">
+              <ul className="mt-2 space-y-1 text-[11px] leading-relaxed text-amber-300/80">
                 {broker.liveBlockers.slice(0, 8).map((blocker) => (
                   <li key={blocker}>• {blocker}</li>
                 ))}
@@ -118,7 +118,7 @@ export function BrokerExecutionPanel({
 
           {arm && (
             <section className="rounded border border-zinc-800 bg-zinc-950/45 p-3">
-              <h3 className="text-[9px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
                 Active approval
               </h3>
               <dl className="mt-2 grid grid-cols-2 gap-2">
@@ -141,7 +141,7 @@ function Fact({ label, value }: { label: string; value: string }) {
       <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
-      <dd className="mt-0.5 truncate font-mono text-[9px] text-zinc-300" title={value}>
+      <dd className="mt-0.5 truncate font-mono text-[11px] text-zinc-300" title={value}>
         {value}
       </dd>
     </div>
