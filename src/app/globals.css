@@ -60,3 +60,43 @@ summary {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+
+/* === Design tokens (Phase D3) === */
+/*
+ * Additive design tokens. These do NOT override Tailwind defaults; they are
+ * additional utilities that future components should prefer over raw hex
+ * values and scattered z-index numbers.
+ *
+ * Rationale and full convention documented in docs/DESIGN-TOKENS.md.
+ */
+@theme {
+  /* -- Surface hierarchy ------------------------------------------------
+   * The four canonical dark surfaces. Prefer these over raw hex codes.
+   *   surface-0  page background
+   *   surface-1  card / panel background (subtle lift)
+   *   surface-2  raised surface (hover, active tile)
+   *   surface-3  highest contrast surface (modal body, dropdown)
+   */
+  --color-surface-0: #0b0e14;
+  --color-surface-1: #0f131b;
+  --color-surface-2: #18181b;
+  --color-surface-3: #1f1f23;
+
+  /* Overlay-specific surfaces */
+  --color-surface-modal: #0b0e14;
+  --color-surface-chart: #090c11;
+
+  /* -- Z-index scale ----------------------------------------------------
+   * Reserved layers. Never pick an arbitrary z-XX; use the closest
+   * semantic token below. Gaps of 10 leave room for one-off layers
+   * without renumbering.
+   */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-header: 30;
+  --z-nav: 40;
+  --z-sheet: 50;
+  --z-overlay: 60;
+  --z-dialog: 100;
+}
