@@ -33,18 +33,18 @@ Execution Engine
 
 | Layer               | Responsibility                                                        | Implemented |
 | ------------------- | --------------------------------------------------------------------- | :---------: |
-| **Market Data**     | Ingest and normalize provider feeds into `MarketDataSnapshot`.        |     no      |
-| **Market Structure**| Detect swing highs/lows, trend structure (HH/HL, LH/LL), S/R levels.   |     no      |
-| **Market Regime**   | Classify the market: trending, ranging, volatile, low liquidity.       |     no      |
-| **Bias Engine**     | Determine directional conviction (bullish/bearish/neutral) + strength. |     no      |
-| **Setup Engine**    | Validate that a tradeable pattern has formed; define entry + invalid.  |     no      |
-| **Trigger Engine**  | Confirm the entry trigger fired (the "when", not the "what").          |     no      |
-| **Risk Engine**     | Enforce risk guards: position sizing, stops, targets, exposure.        |     no      |
-| **Execution Engine**| Decide the outcome. **Never sends orders in Phase 1.**                 |    yes      |
+| **Market Data**     | Ingest and normalize provider feeds into `MarketDataSnapshot`.        |    yes     |
+| **Market Structure**| Detect swing highs/lows, trend structure (HH/HL, LH/LL), S/R levels.   |    yes     |
+| **Market Regime**   | Classify the market: trending, ranging, volatile, low liquidity.       |    yes     |
+| **Bias Engine**     | Determine directional conviction (bullish/bearish/neutral) + strength. |    yes     |
+| **Setup Engine**    | Validate that a tradeable pattern has formed; define entry + invalid.  |    yes     |
+| **Trigger Engine**  | Confirm the entry trigger fired (the "when", not the "what").          |    yes     |
+| **Risk Engine**     | Enforce risk guards: position sizing, stops, targets, exposure.        |    yes     |
+| **Execution Engine**| Decide the outcome (EXECUTE / WAIT / BLOCKED / INVALIDATED).           |    yes     |
 
-## Execution Engine (Phase 1)
+## Execution Engine
 
-The only trading logic implemented so far. It is a **pure decision gate**:
+A **pure decision gate** and the final stage of the pipeline:
 
 ```text
 decideExecution({ setupValid, triggerTriggered, riskCleared })
@@ -58,8 +58,9 @@ Priority order (deliberate and tested):
 3. **EXECUTE** - only when setup, trigger, and risk all agree.
 4. **WAIT** - the safe default whenever information is incomplete.
 
-The function has no side effects and never talks to a broker. Live trading is
-explicitly out of scope for now.
+The function has no side effects. Broker transmission is handled by the
+separately gated Phase 10 execution surface (`src/broker/`); this gate only
+decides what *should* happen.
 
 ## Separation of concerns
 

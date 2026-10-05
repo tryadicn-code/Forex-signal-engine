@@ -1,7 +1,7 @@
 # Design Tokens
 
 This document is the contract between the design decisions made in the
-mobile UI/UX audit (Phase Aâ€“D) and the code that consumes them.
+mobile UI/UX audit (Phase A–D) and the code that consumes them.
 
 All tokens live in `src/app/globals.css` under the `@theme` block marked
 `Design tokens (Phase D3)`. They are **additive**: Tailwind defaults are
@@ -53,13 +53,13 @@ Recommended scale:
 | --- | --- | --- |
 | Micro label (dense tables) | 11px | `text-[11px]` |
 | Label / caption | 12px | `text-xs` |
-| Body | 13â€“14px | `text-sm` |
-| Emphasis / metric | 15â€“16px | `text-base` |
+| Body | 13–14px | `text-sm` |
+| Emphasis / metric | 15–16px | `text-base` |
 | Heading | 18px | `text-lg` |
 
 ## Spacing
 
-No custom tokens. Use the Tailwind scale (`gap-1` â€¦ `gap-4`) and prefer
+No custom tokens. Use the Tailwind scale (`gap-1` … `gap-4`) and prefer
 the smaller end for dense mobile layouts.
 
 ## Border radius
