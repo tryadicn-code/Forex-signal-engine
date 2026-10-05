@@ -46,13 +46,13 @@ export function RobustnessWorkbench({
           <h3 className="mt-0.5 text-xs font-semibold text-zinc-300">
             Robustness & out-of-sample
           </h3>
-          <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-700">
+          <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-500">
             Time-based holdout and expanding-window validation for the fixed strategy. No parameter optimization or strategy selection is performed here.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <label className="text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+          <label className="text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
             IS / OOS
             <select
               value={splitRatio}
@@ -66,7 +66,7 @@ export function RobustnessWorkbench({
               ))}
             </select>
           </label>
-          <label className="text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+          <label className="text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
             Folds
             <select
               value={foldCount}
@@ -140,7 +140,7 @@ export function RobustnessWorkbench({
                 value={String(sequential.diagnostics.validationTradeCount)}
               />
             </dl>
-            <p className="mt-2 text-[11px] leading-relaxed text-zinc-700">
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
               These are descriptive stability diagnostics. Empty or small folds weaken the evidence and are kept visible instead of being silently excluded.
             </p>
           </section>
@@ -154,7 +154,7 @@ export function RobustnessWorkbench({
               <Fingerprint label="Outcomes" value={fingerprint.outcomes} />
               <Fingerprint label="Combined" value={fingerprint.combined} />
             </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-zinc-700">
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
               {fingerprint.protocolVersion} · {fingerprint.algorithm}. Deterministic comparison fingerprint only; not a cryptographic security hash.
             </p>
           </section>
@@ -175,13 +175,13 @@ function TemporalHoldoutPanel({
         <h4 className="text-[10px] font-semibold text-zinc-400">
           Temporal holdout
         </h4>
-        <p className="mt-0.5 text-[11px] text-zinc-700">
+        <p className="mt-0.5 text-[11px] text-zinc-500">
           Split at {formatUtc(holdout.splitAt)}. Trades are assigned by entry time, not close time.
         </p>
       </header>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[680px] text-left text-[9px]">
-          <thead className="bg-zinc-950/60 text-zinc-700">
+          <thead className="bg-zinc-950/60 text-zinc-500">
             <tr>
               <th className="px-3 py-2">Period</th>
               <th className="px-3 py-2">Window</th>
@@ -230,13 +230,13 @@ function SequentialPanel({
         <h4 className="text-[10px] font-semibold text-zinc-400">
           Expanding-window sequential validation
         </h4>
-        <p className="mt-0.5 text-[11px] text-zinc-700">
+        <p className="mt-0.5 text-[11px] text-zinc-500">
           Each fold expands development history, then measures the next untouched time window.
         </p>
       </header>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-[9px]">
-          <thead className="bg-zinc-950/60 text-zinc-700">
+          <thead className="bg-zinc-950/60 text-zinc-500">
             <tr>
               <th className="px-3 py-2">Fold</th>
               <th className="px-3 py-2">Validation window</th>
@@ -328,7 +328,7 @@ function PeriodRow({
 function Delta({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-zinc-950/50 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+      <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </div>
       <div className="mt-0.5 font-mono text-[10px] font-semibold text-zinc-400">
@@ -341,7 +341,7 @@ function Delta({ label, value }: { label: string; value: string }) {
 function Diagnostic({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5">
-      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
       <dd className="mt-0.5 font-mono text-[9px] text-zinc-400">{value}</dd>
@@ -352,7 +352,7 @@ function Diagnostic({ label, value }: { label: string; value: string }) {
 function Fingerprint({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+      <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </div>
       <div className="mt-0.5 break-all text-zinc-400">{value}</div>

@@ -95,7 +95,7 @@ export function ProductionHealthPanel() {
       )}
 
       {!health ? (
-        <div className="px-3 py-5 text-center text-[10px] text-zinc-700">
+        <div className="px-3 py-5 text-center text-[10px] text-zinc-500">
           Reading production health…
         </div>
       ) : (
@@ -271,7 +271,7 @@ function Fact({
 
   return (
     <div className="min-w-0 rounded border border-zinc-800 bg-zinc-950/55 px-2 py-1.5">
-      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
       <dd className={"mt-0.5 truncate font-mono text-[9px] " + valueClass}>

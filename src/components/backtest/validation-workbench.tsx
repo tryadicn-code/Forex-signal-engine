@@ -186,7 +186,7 @@ export function ValidationWorkbench({
                 <h3 className="text-xs font-semibold text-zinc-300">
                   Segment explorer
                 </h3>
-                <p className="mt-0.5 text-[9px] text-zinc-700">
+                <p className="mt-0.5 text-[9px] text-zinc-500">
                   Sample size stays visible for every subgroup.
                 </p>
               </div>
@@ -223,7 +223,7 @@ export function ValidationWorkbench({
                     <tr>
                       <td
                         colSpan={7}
-                        className="px-3 py-4 text-center text-zinc-700"
+                        className="px-3 py-4 text-center text-zinc-500"
                       >
                         No closed trades for this segment.
                       </td>
@@ -295,7 +295,7 @@ export function ValidationWorkbench({
               <h3 className="text-xs font-semibold text-zinc-300">
                 Report identity
               </h3>
-              <p className="mt-0.5 text-[9px] text-zinc-700">
+              <p className="mt-0.5 text-[9px] text-zinc-500">
                 Labels and tags are organizational only.
               </p>
             </header>
@@ -318,7 +318,7 @@ export function ValidationWorkbench({
                   placeholder="baseline, mt5, conservative"
                   className="mt-1 w-full rounded border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-xs normal-case tracking-normal text-zinc-300 outline-none focus:border-emerald-800"
                 />
-                <span className="mt-1 block text-[9px] font-normal normal-case tracking-normal text-zinc-700">
+                <span className="mt-1 block text-[9px] font-normal normal-case tracking-normal text-zinc-500">
                   Comma separated · max 8 tags
                 </span>
               </label>
@@ -348,7 +348,7 @@ export function ValidationWorkbench({
               <Context label="Start" value={shortDate(artifact.config.startAt)} />
               <Context label="End" value={shortDate(artifact.config.endAt)} />
             </dl>
-            <p className="mt-2 text-[9px] leading-relaxed text-zinc-700">
+            <p className="mt-2 text-[9px] leading-relaxed text-zinc-500">
               Compare results only after checking that data source, coverage, spread, risk and same-bar policy are compatible.
             </p>
           </section>
@@ -366,7 +366,7 @@ function RDistribution({ artifact }: { artifact: BacktestRunArtifact }) {
     <section className="rounded border border-zinc-800 bg-zinc-950/25">
       <header className="border-b border-zinc-800 px-3 py-2">
         <h3 className="text-xs font-semibold text-zinc-300">R distribution</h3>
-        <p className="mt-0.5 text-[9px] text-zinc-700">
+        <p className="mt-0.5 text-[9px] text-zinc-500">
           Closed-trade outcome distribution; bins are mutually exclusive.
         </p>
       </header>
@@ -414,14 +414,14 @@ function MultiRunComparison({
         <h3 className="text-xs font-semibold text-zinc-300">
           Multi-run comparison
         </h3>
-        <p className="mt-0.5 text-[9px] text-zinc-700">
+        <p className="mt-0.5 text-[9px] text-zinc-500">
           Select up to 3 persisted runs. Metrics are shown side-by-side without scoring or ranking.
         </p>
       </header>
 
       <div className="flex gap-1.5 overflow-x-auto border-b border-zinc-800 p-2">
         {runs.length === 0 ? (
-          <span className="px-1 py-1 text-[9px] text-zinc-700">
+          <span className="px-1 py-1 text-[9px] text-zinc-500">
             No persisted runs yet.
           </span>
         ) : (
@@ -454,7 +454,7 @@ function MultiRunComparison({
       </div>
 
       {selectedRuns.length === 0 ? (
-        <div className="px-3 py-5 text-center text-[10px] text-zinc-700">
+        <div className="px-3 py-5 text-center text-[10px] text-zinc-500">
           Select runs above to compare validation metrics.
         </div>
       ) : (
@@ -531,7 +531,7 @@ function ForwardComparisonPanel({
           <h3 className="text-xs font-semibold text-zinc-300">
             Historical vs forward paper
           </h3>
-          <p className="mt-0.5 text-[9px] text-zinc-700">
+          <p className="mt-0.5 text-[9px] text-zinc-500">
             Reads the current Paper summary only when requested; no stores are merged.
           </p>
         </div>
@@ -548,7 +548,7 @@ function ForwardComparisonPanel({
       {error && <div className="px-3 py-2 text-[9px] text-red-300">{error}</div>}
 
       {!comparison ? (
-        <div className="px-3 py-5 text-center text-[10px] text-zinc-700">
+        <div className="px-3 py-5 text-center text-[10px] text-zinc-500">
           No forward comparison loaded.
         </div>
       ) : (
@@ -573,7 +573,7 @@ function ForwardComparisonPanel({
               ))}
             </tbody>
           </table>
-          <p className="border-t border-zinc-800 px-3 py-2 text-[9px] leading-relaxed text-zinc-700">
+          <p className="border-t border-zinc-800 px-3 py-2 text-[9px] leading-relaxed text-zinc-500">
             Delta is Paper minus Historical. It is descriptive only; different sample size, dates and market regimes can make direct interpretation unreliable.
           </p>
         </div>
@@ -585,7 +585,7 @@ function ForwardComparisonPanel({
 function Context({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5">
-      <dt className="uppercase tracking-[0.08em] text-zinc-700">{label}</dt>
+      <dt className="uppercase tracking-[0.08em] text-zinc-500">{label}</dt>
       <dd className="mt-0.5 truncate font-mono text-zinc-400">{value}</dd>
     </div>
   );

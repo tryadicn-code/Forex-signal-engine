@@ -116,7 +116,7 @@ export function PaperTradingPanel({
             type="button"
             disabled={resetting}
             onClick={() => void onReset()}
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900/45 px-2.5 text-[10px] font-medium text-zinc-400 transition-colors hover:border-red-900/60 hover:bg-red-950/15 hover:text-red-300 disabled:opacity-50"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900/45 px-2.5 text-[10px] font-medium text-zinc-400 transition-colors hover:border-red-900/60 hover:bg-red-950/15 hover:text-red-300 disabled:opacity-50"
           >
             <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
               <path d="M15.5 6.5A6 6 0 1 0 16 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -361,7 +361,7 @@ export function PaperTradingPanel({
                     {" · "}
                     {formatDuration(trade.holdingDurationMs)}
                   </div>
-                  <div className="mt-1 font-mono text-[9px] text-zinc-700">
+                  <div className="mt-1 font-mono text-[9px] text-zinc-500">
                     MFE {(trade.maxFavorableR ?? 0) >= 0 ? "+" : ""}
                     {(trade.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
                     {(trade.maxAdverseR ?? 0).toFixed(2)}R
@@ -440,7 +440,7 @@ function InitialBalanceControl({
           type="button"
           aria-expanded={expanded}
           onClick={() => setExpanded((value) => !value)}
-          className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900/40 px-2 text-[9px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+          className="inline-flex h-10 shrink-0 items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900/40 px-2 text-[9px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
         >
           <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3 w-3">
             <path d="m4 14.5-.5 2.5 2.5-.5L15 7.5 12.5 5 4 14.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
@@ -465,7 +465,7 @@ function InitialBalanceControl({
               inputMode="decimal"
               value={balanceInput}
               onChange={(event) => setBalanceInput(event.target.value)}
-              className="h-8 min-w-0 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 font-mono text-[11px] text-zinc-100 outline-none focus:border-emerald-700"
+              className="h-10 min-w-0 rounded-md border border-zinc-700 bg-zinc-950 px-2.5 font-mono text-[11px] text-zinc-100 outline-none focus:border-emerald-700"
               aria-label="Initial paper balance"
             />
             <button
@@ -474,7 +474,7 @@ function InitialBalanceControl({
               onClick={() => {
                 void onApply(parsedBalance).then(() => setExpanded(false));
               }}
-              className="h-8 rounded-md border border-emerald-800/70 bg-emerald-950/20 px-2.5 text-[9px] font-medium text-emerald-300 hover:bg-emerald-950/35 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-10 rounded-md border border-emerald-800/70 bg-emerald-950/20 px-2.5 text-[9px] font-medium text-emerald-300 hover:bg-emerald-950/35 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {applying ? "Applying..." : "Apply & Reset"}
             </button>

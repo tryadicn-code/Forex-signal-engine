@@ -229,7 +229,7 @@ export function StrategyVersionRegistryWorkbench({
           <h3 className="mt-0.5 text-xs font-semibold text-zinc-300">
             Strategy version registry
           </h3>
-          <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-700">
+          <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-500">
             Immutable validated manifests with explicit supersession, controlled rollback and deprecation history.
           </p>
         </div>
@@ -243,7 +243,7 @@ export function StrategyVersionRegistryWorkbench({
           <h4 className="text-[10px] font-semibold text-zinc-400">
             Register promoted strategy
           </h4>
-          <p className="mt-1 text-[11px] leading-relaxed text-zinc-700">
+          <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
             Registration freezes the current strategy/scanner baseline together with its validation and release-gate evidence.
           </p>
 
@@ -337,7 +337,7 @@ export function StrategyVersionRegistryWorkbench({
 
         <div className="min-w-0">
           {!registry || registry.entries.length === 0 ? (
-            <div className="rounded border border-zinc-800 bg-zinc-950/40 px-3 py-8 text-center text-[10px] text-zinc-700">
+            <div className="rounded border border-zinc-800 bg-zinc-950/40 px-3 py-8 text-center text-[10px] text-zinc-500">
               No strategy versions registered yet.
             </div>
           ) : (
@@ -394,11 +394,11 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+    <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
       {label}
       {children}
       {hint && (
-        <span className="mt-1 block font-normal normal-case tracking-normal text-zinc-700">
+        <span className="mt-1 block font-normal normal-case tracking-normal text-zinc-500">
           {hint}
         </span>
       )}
@@ -476,7 +476,7 @@ function VersionCard({
           <h4 className="mt-1 text-[10px] font-medium text-zinc-400">
             {manifest.title}
           </h4>
-          <p className="mt-0.5 font-mono text-[11px] text-zinc-700">
+          <p className="mt-0.5 font-mono text-[11px] text-zinc-500">
             FP {manifest.manifestFingerprint} · report {manifest.sourceReportId}
           </p>
         </div>
@@ -536,7 +536,7 @@ function VersionCard({
                 {shortUtc(event.changedAt)}
                 {" · "}
                 {event.changedBy}
-                <div className="mt-0.5 text-zinc-700">{event.reason}</div>
+                <div className="mt-0.5 text-zinc-500">{event.reason}</div>
               </div>
             ))}
           </div>
@@ -647,7 +647,7 @@ function VersionCard({
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded border border-zinc-800 bg-zinc-950/60 px-2 py-1.5">
-      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
       <dd className="mt-0.5 truncate font-mono text-[11px] text-zinc-400">

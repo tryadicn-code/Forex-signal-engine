@@ -121,7 +121,7 @@ export function ForwardValidationPanel() {
       )}
 
       {!report ? (
-        <div className="px-3 py-5 text-center text-[10px] text-zinc-700">
+        <div className="px-3 py-5 text-center text-[10px] text-zinc-500">
           Loading forward validation evidence…
         </div>
       ) : report.status === "NO_ACTIVE_RELEASE" ? (
@@ -188,7 +188,7 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
                 <div className="text-[9px] font-medium text-zinc-400">
                   {item.label}
                 </div>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-700">
+                <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-500">
                   {item.detail}
                 </p>
               </div>
@@ -265,13 +265,13 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
           </section>
 
           <section className="rounded border border-zinc-800 bg-zinc-950/45 px-3 py-2">
-            <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+            <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
               Manifest fingerprint
             </div>
             <div className="mt-1 break-all font-mono text-[11px] text-zinc-500">
               {report.release.manifestFingerprint}
             </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-zinc-700">
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
               Drift indicators use the recent monitoring window; cumulative forward metrics remain in the exported report. Phase 7 never changes parameters, promotes a version, or triggers rollback automatically.
             </p>
           </section>
@@ -284,7 +284,7 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded border border-zinc-800 bg-zinc-950/55 px-2 py-1.5">
-      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
       <dd className="mt-0.5 truncate font-mono text-[9px] text-zinc-300">
