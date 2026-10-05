@@ -474,7 +474,7 @@ export function assertQuantitativeReleaseGate(
 }
 
 function formatMetricForGate(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return "â€”";
+  if (value === null || !Number.isFinite(value)) return "--";
   return value.toFixed(2);
 }
 
