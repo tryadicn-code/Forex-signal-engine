@@ -486,6 +486,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             ? (data.providerId ?? "live").toUpperCase()
             : "Mock") +
             " provider"}{" "}
+          {"\u00B7"} broker {data.broker?.mode ?? "OFF"}
         </span>
         <a href="/system" className="text-zinc-400 hover:text-zinc-200">
           System & diagnostics {"\u203A"}

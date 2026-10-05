@@ -3,16 +3,9 @@ import { ForwardValidationPanel } from "@/components/forward-validation/forward-
 import { ProductionHealthPanel } from "@/components/production/production-health-panel";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { TransitionHistory } from "@/components/signals/transition-history";
-import type { BrokerExecutionDashboard } from "@/broker/types";
 import type { DashboardData } from "@/types/dashboard";
 
-export function SystemWorkspace({
-  data,
-  broker,
-}: {
-  data: DashboardData;
-  broker: BrokerExecutionDashboard;
-}) {
+export function SystemWorkspace({ data }: { data: DashboardData }) {
   return (
     <div className="mx-auto w-full max-w-[1500px] space-y-4 p-3 sm:p-4 lg:p-5">
       <header className="mb-1">
@@ -40,7 +33,7 @@ export function SystemWorkspace({
       )}
 
       <ProductionHealthPanel />
-      <BrokerExecutionPanel broker={broker} />
+      <BrokerExecutionPanel broker={data.broker} />
       <NotificationPanel notifications={data.notifications} />
       <ForwardValidationPanel />
 

@@ -1,15 +1,11 @@
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { SystemWorkspace } from "@/components/system/system-workspace";
 import { readDashboard } from "@/server/scanner-access";
-import { readBrokerExecutionDashboard } from "@/server/broker-execution-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function SystemPage() {
-  const [data, broker] = await Promise.all([
-    readDashboard(),
-    readBrokerExecutionDashboard(),
-  ]);
+  const data = await readDashboard();
 
   return (
     <DashboardShell
@@ -25,7 +21,7 @@ export default async function SystemPage() {
       }
       releaseBlocked={data.releaseRuntime?.status === "BLOCKED"}
     >
-      <SystemWorkspace data={data} broker={broker} />
+      <SystemWorkspace data={data} />
     </DashboardShell>
   );
 }

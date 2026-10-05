@@ -49,7 +49,10 @@ import {
   transactionalStore,
 } from "@/transactional/runtime";
 import { TRANSACTIONAL_CONFIG } from "@/config/transactional";
-import { processBrokerSnapshot } from "@/server/broker-execution-access";
+import {
+  processBrokerSnapshot,
+  readBrokerExecutionDashboard,
+} from "@/server/broker-execution-access";
 import {
   processNotificationSnapshot,
   readNotificationDashboard,
@@ -151,6 +154,7 @@ async function dashboardView(
     providerId: runtimeProviderId(),
     liveMarketData: runtimeUsesLiveMarketData(),
     paper: await readPaperDashboard(),
+    broker: await readBrokerExecutionDashboard(),
     notifications: await readNotificationDashboard(),
     signalFunnel: signalFunnel.analytics,
     signalFunnelError: signalFunnel.persistenceError,
