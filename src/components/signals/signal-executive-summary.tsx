@@ -8,11 +8,13 @@ import {
   workstationToneClass,
 } from "@/lib/workstation-status";
 import { cn } from "@/lib/utils";
-
+import type { PaperDashboardData } from "@/paper/types";
 export function SignalExecutiveSummary({
   result,
+  paper,
 }: {
   result: SymbolScanResult;
+  paper?: PaperDashboardData;
 }) {
   const status = workstationStatus(result);
   const stages = workstationStages(result);
@@ -57,6 +59,8 @@ export function SignalExecutiveSummary({
           </div>
         </div>
       </div>
+
+      <OperationalSummary result={result} paper={paper} />
 
       <div className="mt-4 grid grid-cols-5 gap-1">
         {stages.map((stage) => (
@@ -139,6 +143,104 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div className="bg-[#0b0e14] px-3 py-2.5">
       <dt className="text-[11px] text-zinc-600">{label}</dt>
       <dd className="mt-1 font-mono text-xs tabular-nums text-zinc-200">{value}</dd>
+    </div>
+  );
+}
+
+function OperationalSummary({
+  result,
+  paper,
+}: {
+  result: SymbolScanResult;
+  paper?: PaperDashboardData;
+}) {
+  const NA = "\u2014";
+  const signalState = result.signalState ?? NA;
+  const engineDecision = result.executionDecision ?? NA;
+
+  const order = result.signalId
+    ? paper?.recentOrders.find((item) => item.signalId === result.signalId) ?? null
+    : null;
+  const position = result.signalId
+    ? paper?.openPositions.find((item) => item.signalId === result.signalId) ?? null
+    : null;
+  const trade = result.signalId
+    ? paper?.recentTrades.find((item) => item.signalId === result.signalId) ?? null
+    : null;
+
+  let paperLabel = "NO ACTION";
+  let paperTone = "text-zinc-500";
+  if (!result.signalId) {
+    paperLabel = "NOT APPLICABLE";
+  } else if (position) {
+    paperLabel = "OPEN";
+    paperTone = "text-emerald-300";
+  } else if (trade) {
+    paperLabel = "CLOSED";
+    paperTone = trade.realizedPnL >= 0 ? "text-emerald-300" : "text-red-300";
+  } else if (order?.status === "FILLED") {
+    paperLabel = "FILLED";
+    paperTone = "text-sky-300";
+  } else if (order?.status === "REJECTED") {
+    paperLabel = "REJECTED";
+    paperTone = "text-amber-300";
+  } else if (order) {
+    paperLabel = order.status;
+    paperTone = "text-amber-300";
+  } else if (
+    result.executionDecision === "EXECUTE" &&
+    result.signalState === "EXECUTE"
+  ) {
+    paperLabel = "PENDING";
+    paperTone = "text-amber-300";
+  }
+
+  return (
+    <div
+      aria-label="Operational summary"
+      className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-zinc-800 bg-zinc-800 sm:grid-cols-4"
+    >
+      <SummaryCell label="Signal" value={signalState} />
+      <SummaryCell label="Engine" value={engineDecision} />
+      <SummaryCell label="Paper" value={paperLabel} valueClassName={paperTone} />
+      <a
+        href="/system"
+        className="bg-[#0b0e14] px-3 py-2.5 transition-colors hover:bg-zinc-900/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+      >
+        <span className="text-[11px] uppercase tracking-wide text-zinc-600">
+          Broker
+        </span>
+        <span className="mt-1 block font-mono text-xs text-sky-300">
+          Open System {"\u203A"}
+        </span>
+      </a>
+    </div>
+  );
+}
+
+function SummaryCell({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="bg-[#0b0e14] px-3 py-2.5">
+      <div className="text-[11px] uppercase tracking-wide text-zinc-600">
+        {label}
+      </div>
+      <div
+        className={cn(
+          "mt-1 truncate font-mono text-xs text-zinc-200",
+          valueClassName
+        )}
+        title={value}
+      >
+        {value}
+      </div>
     </div>
   );
 }

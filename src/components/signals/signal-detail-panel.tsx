@@ -146,7 +146,7 @@ export function SignalDetailPanel({
               </div>
             </section>
 
-            <SignalExecutiveSummary result={result} />
+            <SignalExecutiveSummary result={result} paper={paper} />
 
             <PaperExecutionDetail
               result={result}
