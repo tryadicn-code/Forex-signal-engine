@@ -58,19 +58,6 @@ export async function recordSignalFunnelObservations(
   }
 }
 
-/**
- * Wipe the durable signal funnel store. Used by the manual reset control on
- * the dashboard. Returns the (now empty) store state.
- *
- * The in-memory analytics repository owned by the scanner service is not
- * touched here; it lives only for the process lifetime and does not affect
- * the dashboard view, which always reads from the durable store.
- */
-export async function resetSignalFunnelStore(): Promise<void> {
-  await store.clear();
-  setPersistenceError(null);
-}
-
 export async function readSignalFunnelDashboard(
   asOf = Date.now()
 ): Promise<SignalFunnelDashboardView> {

@@ -104,7 +104,7 @@ export function PaperTradingPanel({
               <h2 id="paper-portfolio-title" className="text-[15px] font-semibold leading-tight text-zinc-100 sm:text-base">
                 Paper portfolio
               </h2>
-              <span className="rounded-full border border-amber-700/50 bg-amber-950/15 px-1.5 py-0.5 font-mono text-[8px] font-semibold tracking-[0.08em] text-amber-300">
+              <span className="rounded-full border border-amber-700/50 bg-amber-950/15 px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-[0.08em] text-amber-300">
                 PAPER
               </span>
             </div>
@@ -284,7 +284,7 @@ export function PaperTradingPanel({
                     />
                   </div>
 
-                  <div className="mt-1.5 font-mono text-[8px] text-zinc-600">
+                  <div className="mt-1.5 font-mono text-[11px] text-zinc-600">
                     MFE {(position.maxFavorableR ?? 0) >= 0 ? "+" : ""}
                     {(position.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
                     {(position.maxAdverseR ?? 0).toFixed(2)}R · RR{" "}

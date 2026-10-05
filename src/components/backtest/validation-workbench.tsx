@@ -384,7 +384,7 @@ function RDistribution({ artifact }: { artifact: BacktestRunArtifact }) {
                 }}
               />
             </div>
-            <div className="mt-1 truncate text-center font-mono text-[8px] text-zinc-600">
+            <div className="mt-1 truncate text-center font-mono text-[11px] text-zinc-600">
               {bin.label}
             </div>
             <div className="text-center font-mono text-[10px] font-semibold text-zinc-300">
@@ -444,7 +444,7 @@ function MultiRunComparison({
                 <span className="block max-w-36 truncate font-semibold">
                   {run.label || run.datasetId}
                 </span>
-                <span className="mt-0.5 block font-mono text-[8px] opacity-70">
+                <span className="mt-0.5 block font-mono text-[11px] opacity-70">
                   N {run.sampleSize} · {signedPercent(run.netReturnPercent)}
                 </span>
               </button>

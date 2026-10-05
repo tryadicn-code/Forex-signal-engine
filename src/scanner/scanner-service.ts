@@ -23,12 +23,13 @@
  * for operational health (latency, provider status), never for market decisions.
  */
 
-import type { MarketSnapshot, Timeframe } from "@/types/market";
+import type { MarketSnapshot, Timeframe, Direction } from "@/types/market";
 import type { CanonicalCandle, NewsRiskContext } from "@/types/market-data";
 import type { PipelineResult, RoutedAnalysisResult } from "@/core/orchestrator";
 import { analyzeMarketWithRouting } from "@/core/orchestrator";
 import type { StrategyRoutingDecision } from "@/core/strategies/router";
-import type { Evidence, Conflict } from "@/types/engine";
+import type { Evidence, Conflict, SetupResultData } from "@/types/engine";
+import { resolveConfig } from "@/core/config/engine-config";
 import { resolveScannerConfig } from "@/config/scanner";
 import type { DeepPartial } from "@/core/config/engine-config";
 import type { ScannerConfig } from "@/config/scanner";
@@ -676,6 +677,11 @@ export class ScannerService {
             reasons: pipeline.execution.data.reasons,
           }
         : null,
+      plannedLevels: computePlannedLevels(
+        setup,
+        pipeline.bias.data.direction,
+        resolveConfig(this.config.engineConfig).risk.minRR,
+      ),
       riskDetail: pipeline.risk?.data
         ? {
             approved: pipeline.risk.data.approved,
@@ -734,6 +740,46 @@ export class ScannerService {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function computePlannedLevels(
+  setup: SetupResultData,
+  direction: Direction,
+  minRR: number,
+): import("@/scanner/scanner-result").PlannedLevels | null {
+  if (setup.state !== "SETUP" && setup.state !== "ARMED") return null;
+  if (direction !== "LONG" && direction !== "SHORT") return null;
+  if (
+    !Number.isFinite(setup.zoneLow) ||
+    !Number.isFinite(setup.zoneHigh) ||
+    !Number.isFinite(setup.invalidationLevel)
+  ) {
+    return null;
+  }
+  if (setup.zoneLow <= 0 || setup.zoneHigh <= 0) return null;
+  if (setup.zoneHigh < setup.zoneLow) return null;
+
+  const entry = (setup.zoneLow + setup.zoneHigh) / 2;
+  const stop = setup.invalidationLevel;
+  const long = direction === "LONG";
+  if (long && stop >= entry) return null;
+  if (!long && stop <= entry) return null;
+
+  const stopDistance = Math.abs(entry - stop);
+  if (!(stopDistance > 0)) return null;
+
+  const takeProfit = entry + (long ? 1 : -1) * stopDistance * minRR;
+
+  return {
+    direction,
+    entry,
+    stop,
+    takeProfit,
+    rr: minRR,
+    zoneLow: setup.zoneLow,
+    zoneHigh: setup.zoneHigh,
+    source: setup.zoneSource,
+  };
+}
 
 function toSnapshot(
   symbol: string,

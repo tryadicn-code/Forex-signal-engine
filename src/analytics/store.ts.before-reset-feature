@@ -19,11 +19,6 @@ export interface SignalFunnelStore {
     observations: SignalFunnelObservation[],
     referenceAt: number
   ): Promise<SignalFunnelStoreState>;
-  /**
-   * Wipe every stored observation. Used by the manual reset control on the
-   * Signal Funnel dashboard. Idempotent: calling it on an empty store is safe.
-   */
-  clear(): Promise<SignalFunnelStoreState>;
 }
 
 export class JsonFileSignalFunnelStore implements SignalFunnelStore {
@@ -49,14 +44,6 @@ export class JsonFileSignalFunnelStore implements SignalFunnelStore {
       );
       await writeDurableJson(this.path, next);
       return next;
-    });
-  }
-
-  async clear(): Promise<SignalFunnelStoreState> {
-    return this.serialize(async () => {
-      const empty = emptySignalFunnelStoreState();
-      await writeDurableJson(this.path, empty);
-      return empty;
     });
   }
 

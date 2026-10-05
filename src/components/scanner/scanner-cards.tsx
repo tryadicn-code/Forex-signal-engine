@@ -99,6 +99,12 @@ function ScannerCard({
   const status = workstationStatus(result);
   const failed = result.status !== "ANALYSED";
   const risk = result.riskDetail;
+  const planned = result.plannedLevels ?? null;
+  const isPlanned = !risk && planned !== null;
+  const entryVal = risk?.entryPrice ?? planned?.entry ?? null;
+  const tpVal = risk?.takeProfit1 ?? planned?.takeProfit ?? null;
+  const slVal = risk?.stopLoss ?? planned?.stop ?? null;
+  const rrVal = result.riskReward ?? risk?.plannedRR ?? planned?.rr ?? null;
   const pips = potentialPips(result);
   const bias = result.bias ? BIAS_DISPLAY[result.bias] : "—";
 
@@ -155,18 +161,18 @@ function ScannerCard({
           </>
         ) : (
           <>
-            <div className="mt-2 grid grid-cols-[1fr_1.35fr_1fr_auto] items-center gap-x-2 border-t border-zinc-800/70 pt-2 text-[9px] sm:gap-x-3 sm:text-[10px]">
+            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-zinc-800/70 pt-2 text-[11px] sm:grid-cols-4">
               <span className="min-w-0 whitespace-nowrap text-left text-zinc-500">
                 Entry{" "}
                 <span className="font-mono tabular-nums text-zinc-300">
-                  {formatPrice(result.symbol, risk?.entryPrice ?? null)}
+                  {formatPrice(result.symbol, entryVal)}
                 </span>
               </span>
 
-              <span className="min-w-0 truncate whitespace-nowrap text-center text-zinc-500">
+              <span className="min-w-0 whitespace-nowrap text-right text-zinc-500 sm:text-center">
                 TP{" "}
                 <span className="font-mono tabular-nums text-emerald-300">
-                  {formatPrice(result.symbol, risk?.takeProfit1 ?? null)}
+                  {formatPrice(result.symbol, tpVal)}
                 </span>
                 {pips !== null && (
                   <span className="font-mono tabular-nums text-emerald-300">
@@ -175,20 +181,25 @@ function ScannerCard({
                 )}
               </span>
 
-              <span className="min-w-0 whitespace-nowrap text-center text-zinc-500">
+              <span className="min-w-0 whitespace-nowrap text-left text-zinc-500 sm:text-center">
                 SL{" "}
                 <span className="font-mono tabular-nums text-red-300">
-                  {formatPrice(result.symbol, risk?.stopLoss ?? null)}
+                  {formatPrice(result.symbol, slVal)}
                 </span>
               </span>
 
               <span className="min-w-0 whitespace-nowrap text-right text-zinc-500">
                 R:R{" "}
                 <span className="font-mono tabular-nums text-zinc-300">
-                  {formatRatio(result.riskReward)}
+                  {formatRatio(rrVal)}
                 </span>
               </span>
             </div>
+            {isPlanned && (
+                <div className="mt-1 text-[11px] text-zinc-600">
+                  Planned levels {"\u2014"} trigger pending
+                </div>
+              )}
 
             <div className="mt-1.5 flex items-center gap-2 text-[10px] leading-5">
               <span className={cn("truncate font-medium", biasTone(result.bias))}>

@@ -82,7 +82,7 @@ export function ProductionHealthPanel() {
           type="button"
           disabled={loading}
           onClick={() => void refresh()}
-          className="rounded border border-zinc-800 px-2 py-1 text-[8px] text-zinc-500 hover:border-violet-800 hover:text-violet-300 disabled:opacity-40"
+          className="rounded border border-zinc-800 px-2 py-1 text-[11px] text-zinc-500 hover:border-violet-800 hover:text-violet-300 disabled:opacity-40"
         >
           {loading ? "Checking…" : "Refresh"}
         </button>
@@ -126,7 +126,7 @@ export function ProductionHealthPanel() {
                 >
                   <span
                     className={
-                      "w-fit rounded border px-1.5 py-0.5 font-mono text-[8px] font-semibold " +
+                      "w-fit rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold " +
                       checkTone(check.status)
                     }
                   >
@@ -228,7 +228,7 @@ export function ProductionHealthPanel() {
                     {persistenceIssues.slice(0, 4).map((item) => (
                       <div
                         key={item.path}
-                        className="truncate font-mono text-[8px] text-amber-300/80"
+                        className="truncate font-mono text-[11px] text-amber-300/80"
                         title={item.path + " · " + item.message}
                       >
                         {item.state} · {basename(item.path)}
@@ -271,7 +271,7 @@ function Fact({
 
   return (
     <div className="min-w-0 rounded border border-zinc-800 bg-zinc-950/55 px-2 py-1.5">
-      <dt className="text-[7px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
         {label}
       </dt>
       <dd className={"mt-0.5 truncate font-mono text-[9px] " + valueClass}>

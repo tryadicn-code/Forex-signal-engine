@@ -49,7 +49,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [sort, setSort] = useState<ScannerSort>(DEFAULT_SORT);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [resettingFunnel, setResettingFunnel] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [clockNow, setClockNow] = useState<number | null>(null);
   const restoredSelectionRef = useRef(false);
@@ -273,34 +272,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       setRefreshing(false);
     }
   };
-  const resetFunnel = async () => {
-    if (resettingFunnel) return;
-    const confirmed = window.confirm(
-      "Reset signal funnel? Semua observasi yang tersimpan akan dihapus permanen. Tindakan ini tidak dapat dibatalkan."
-    );
-    if (!confirmed) return;
-
-    setResettingFunnel(true);
-    setRequestError(null);
-    try {
-      await apiFetch("/api/analytics/signal-funnel", { method: "DELETE" });
-      // Refresh dashboard view only â€” do NOT trigger a new scan.
-      const next = await requestDashboard("GET", DASHBOARD_READ_TIMEOUT_MS);
-      setData(next);
-    } catch (error) {
-      if (error instanceof ApiError && error.code === "UNAUTHORIZED") {
-        setRequestError(
-          "Approval secret is required to reset the signal funnel. Set it from the dialog, then try again."
-        );
-      } else {
-        setRequestError(
-          error instanceof Error ? error.message : String(error)
-        );
-      }
-    } finally {
-      setResettingFunnel(false);
-    }
-  };
 
   const errorMessage = requestError ?? data.scanError;
   const runtimeIssue =
@@ -467,8 +438,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       <SignalFunnelPanel
         analytics={data.signalFunnel}
         persistenceError={data.signalFunnelError}
-        onReset={resetFunnel}
-        resetting={resettingFunnel}
       />
 
       <MarketHealthPanel snapshot={data.snapshot} health={data.health} />

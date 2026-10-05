@@ -152,6 +152,11 @@ export async function reconcileBrokerExecutions(): Promise<number> {
 export function assertBrokerApprovalSecret(
   provided: string | null
 ): void {
+  // DEV-ONLY bypass. Mirrors the check in api-guard so routes that call this
+  // function directly (e.g. broker control) also honor the dev flag.
+  if ((process.env.FSE_DEV_DISABLE_AUTH ?? "").trim().toLowerCase() === "true") {
+    return;
+  }
   const expected = BROKER_EXECUTION_CONFIG.approvalSecret;
   if (!expected) {
     throw new Error(

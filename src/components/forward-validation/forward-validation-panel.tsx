@@ -98,7 +98,7 @@ export function ForwardValidationPanel() {
             <button
               type="button"
               onClick={exportReport}
-              className="rounded border border-zinc-800 px-2 py-1 text-[8px] text-zinc-500 hover:border-cyan-800 hover:text-cyan-300"
+              className="rounded border border-zinc-800 px-2 py-1 text-[11px] text-zinc-500 hover:border-cyan-800 hover:text-cyan-300"
             >
               Export JSON
             </button>
@@ -107,7 +107,7 @@ export function ForwardValidationPanel() {
             type="button"
             disabled={loading}
             onClick={() => void refresh()}
-            className="rounded border border-zinc-800 px-2 py-1 text-[8px] text-zinc-500 hover:border-cyan-800 hover:text-cyan-300 disabled:opacity-40"
+            className="rounded border border-zinc-800 px-2 py-1 text-[11px] text-zinc-500 hover:border-cyan-800 hover:text-cyan-300 disabled:opacity-40"
           >
             {loading ? "Reading…" : "Refresh"}
           </button>
@@ -178,7 +178,7 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
             >
               <span
                 className={
-                  "w-fit rounded border px-1.5 py-0.5 font-mono text-[8px] font-semibold " +
+                  "w-fit rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold " +
                   indicatorTone(item.status)
                 }
               >
@@ -188,11 +188,11 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
                 <div className="text-[9px] font-medium text-zinc-400">
                   {item.label}
                 </div>
-                <p className="mt-0.5 text-[8px] leading-relaxed text-zinc-700">
+                <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-700">
                   {item.detail}
                 </p>
               </div>
-              <div className="font-mono text-[8px] text-zinc-600">
+              <div className="font-mono text-[11px] text-zinc-600">
                 <div>FWD {formatValue(item.forwardValue, item.unit)}</div>
                 {(item.referenceLow !== null ||
                   item.referenceHigh !== null) && (
@@ -265,13 +265,13 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
           </section>
 
           <section className="rounded border border-zinc-800 bg-zinc-950/45 px-3 py-2">
-            <div className="text-[8px] uppercase tracking-[0.08em] text-zinc-700">
+            <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
               Manifest fingerprint
             </div>
-            <div className="mt-1 break-all font-mono text-[8px] text-zinc-500">
+            <div className="mt-1 break-all font-mono text-[11px] text-zinc-500">
               {report.release.manifestFingerprint}
             </div>
-            <p className="mt-2 text-[8px] leading-relaxed text-zinc-700">
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-700">
               Drift indicators use the recent monitoring window; cumulative forward metrics remain in the exported report. Phase 7 never changes parameters, promotes a version, or triggers rollback automatically.
             </p>
           </section>
@@ -284,7 +284,7 @@ function ForwardReport({ report }: { report: ForwardValidationReport }) {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded border border-zinc-800 bg-zinc-950/55 px-2 py-1.5">
-      <dt className="text-[7px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
         {label}
       </dt>
       <dd className="mt-0.5 truncate font-mono text-[9px] text-zinc-300">
