@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { requestApprovalSecretDialog } from "@/components/system/approval-secret-dialog";
+import { ModalCloseButton } from "@/components/common/modal-close-button";
 
 interface ScannerUniversePayload {
   selected: string[];
@@ -163,13 +164,7 @@ export function ScannerUniverseControl({
                   Add a supported FX pair to the live scanner universe.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-md border border-zinc-700 px-2.5 py-1.5 text-[10px] text-zinc-400"
-              >
-                Close
-              </button>
+              <ModalCloseButton onClick={() => setOpen(false)} />
             </div>
 
             <div className="mt-4 flex gap-2">

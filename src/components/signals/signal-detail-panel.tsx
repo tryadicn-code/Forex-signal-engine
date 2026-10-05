@@ -23,6 +23,7 @@ import type { SymbolScanResult } from "@/scanner/scanner-result";
 import type { SignalStateTransition } from "@/types/market-data";
 import type { PaperDashboardData } from "@/paper/types";
 import { cn } from "@/lib/utils";
+import { ModalCloseButton } from "@/components/common/modal-close-button";
 
 export function SignalDetailPanel({
   result,
@@ -131,14 +132,7 @@ export function SignalDetailPanel({
           </div>
           <p className="mt-1 text-xs leading-relaxed text-zinc-500">{result.reason}</p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close signal detail"
-          className="shrink-0 rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-        >
-          Close
-        </button>
+        <ModalCloseButton onClick={onClose} label="Close signal detail" />
       </header>
 
       <div className="space-y-4 p-3 sm:p-4">
