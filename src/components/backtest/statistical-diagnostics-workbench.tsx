@@ -49,7 +49,7 @@ export function StatisticalDiagnosticsWorkbench({
           <h3 className="mt-0.5 text-xs font-semibold text-zinc-300">
             Statistical diagnostics
           </h3>
-          <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-700">
+          <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-500">
             Confidence intervals and deterministic resampling quantify uncertainty in the observed historical sample. They do not guarantee future performance.
           </p>
         </div>
@@ -83,7 +83,7 @@ export function StatisticalDiagnosticsWorkbench({
               </span>
             </div>
           ))}
-          <p className="text-[11px] leading-relaxed text-zinc-700">
+          <p className="text-[11px] leading-relaxed text-zinc-500">
             Sample thresholds are workflow warnings for review consistency, not universal statistical standards.
           </p>
         </div>
@@ -165,7 +165,7 @@ export function StatisticalDiagnosticsWorkbench({
         />
       </div>
 
-      <div className="border-t border-zinc-800 px-3 py-2 text-[11px] leading-relaxed text-zinc-700">
+      <div className="border-t border-zinc-800 px-3 py-2 text-[11px] leading-relaxed text-zinc-500">
         Phase 5.7 is descriptive validation only. Bootstrap and Monte Carlo reuse the observed historical outcomes and cannot correct regime mismatch, data bias, execution-model error, or strategy-selection bias.
       </div>
     </section>
@@ -189,7 +189,7 @@ function DiagnosticCard({
     <article className="rounded border border-zinc-800 bg-zinc-950/60">
       <header className="border-b border-zinc-800 px-3 py-2">
         <h4 className="text-[10px] font-semibold text-zinc-400">{title}</h4>
-        <p className="mt-0.5 text-[11px] text-zinc-700">{subtitle}</p>
+        <p className="mt-0.5 text-[11px] text-zinc-500">{subtitle}</p>
         <div className="mt-2 font-mono text-lg font-semibold tabular-nums text-zinc-200">
           {primary}
         </div>
@@ -200,14 +200,14 @@ function DiagnosticCard({
             key={label}
             className="flex items-center justify-between gap-3 px-3 py-1.5"
           >
-            <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+            <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
               {label}
             </dt>
             <dd className="font-mono text-[9px] text-zinc-400">{value}</dd>
           </div>
         ))}
       </dl>
-      <p className="border-t border-zinc-800 px-3 py-2 text-[11px] leading-relaxed text-zinc-700">
+      <p className="border-t border-zinc-800 px-3 py-2 text-[11px] leading-relaxed text-zinc-500">
         {note}
       </p>
     </article>

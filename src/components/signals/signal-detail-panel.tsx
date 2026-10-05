@@ -85,7 +85,7 @@ export function SignalDetailPanel({
         className="hidden rounded border border-zinc-800 bg-zinc-900/30 p-6 xl:block"
       >
         <div className="flex min-h-72 flex-col items-center justify-center text-center">
-          <span aria-hidden="true" className="text-2xl text-zinc-700">◇</span>
+          <span aria-hidden="true" className="text-2xl text-zinc-500">◇</span>
           <h2 className="mt-2 text-sm font-semibold text-zinc-300">Select a symbol</h2>
           <p className="mt-1 max-w-xs text-xs leading-relaxed text-zinc-600">
             Choose a scanner row to inspect the engine evidence, conflicts, lifecycle,

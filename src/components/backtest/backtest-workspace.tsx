@@ -437,7 +437,7 @@ function Field({
       {label}
       {children}
       {hint && (
-        <span className="mt-1 block text-[9px] font-normal normal-case tracking-normal text-zinc-700">
+        <span className="mt-1 block text-[9px] font-normal normal-case tracking-normal text-zinc-500">
           {hint}
         </span>
       )}
@@ -720,13 +720,13 @@ function RecentRuns({
         <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
           Recent reports
         </h2>
-        <p className="mt-0.5 text-[9px] text-zinc-700">
+        <p className="mt-0.5 text-[9px] text-zinc-500">
           Persisted separately under .data/backtest-runs
         </p>
       </header>
       <div className="max-h-[430px] space-y-1.5 overflow-auto p-2">
         {runs.length === 0 ? (
-          <div className="px-2 py-6 text-center text-[10px] text-zinc-700">
+          <div className="px-2 py-6 text-center text-[10px] text-zinc-500">
             No persisted backtest reports yet.
           </div>
         ) : (
@@ -771,7 +771,7 @@ function RecentRuns({
                 <span>DD {formatPercent(run.maxDrawdownPercent)}</span>
                 <span>E[R] {formatSigned(run.expectancyR, 2)}</span>
               </div>
-              <div className="mt-1 font-mono text-[11px] text-zinc-700">
+              <div className="mt-1 font-mono text-[11px] text-zinc-500">
                 {loadingRunId === run.id ? "Loading…" : formatUtc(run.completedAt)}
               </div>
             </button>
@@ -785,7 +785,7 @@ function RecentRuns({
 function DataItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded border border-zinc-800 bg-zinc-950/30 px-2 py-1.5">
-      <dt className="text-[11px] uppercase tracking-[0.1em] text-zinc-700">{label}</dt>
+      <dt className="text-[11px] uppercase tracking-[0.1em] text-zinc-500">{label}</dt>
       <dd className="mt-0.5 font-mono text-[10px] text-zinc-300">{value}</dd>
     </div>
   );

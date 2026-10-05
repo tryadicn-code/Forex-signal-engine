@@ -126,7 +126,7 @@ export function ScannerUniverseControl({
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900/55 px-2.5 text-[10px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+        className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-900/55 px-2.5 text-[10px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-800/70 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
         aria-label="Manage scanner pairs"
       >
         <svg

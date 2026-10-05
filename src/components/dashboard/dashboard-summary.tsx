@@ -139,9 +139,9 @@ export function DashboardSummary({
 
       <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-zinc-800 px-3 py-2 text-[11px] text-zinc-500 sm:text-xs">
         <span><span className="font-mono text-zinc-300">{counts.scanned}</span> pairs</span>
-        <span aria-hidden="true" className="text-zinc-700">·</span>
+        <span aria-hidden="true" className="text-zinc-500">·</span>
         <span><span className="font-mono text-zinc-300">{activeSignals.length}</span> active</span>
-        <span aria-hidden="true" className="text-zinc-700">·</span>
+        <span aria-hidden="true" className="text-zinc-500">·</span>
         <span>Last scan <span className="font-mono tabular-nums text-zinc-300">{formatTime(health?.lastScanCompletedAt)}</span></span>
       </div>
 

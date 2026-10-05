@@ -138,7 +138,7 @@ export function BrokerExecutionPanel({
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded border border-zinc-800 bg-zinc-950/55 px-2 py-1.5">
-      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </dt>
       <dd className="mt-0.5 truncate font-mono text-[9px] text-zinc-300" title={value}>

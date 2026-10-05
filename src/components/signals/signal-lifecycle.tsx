@@ -86,7 +86,7 @@ export function SignalLifecycle({ state }: { state: SignalState | null }) {
               {step}
             </span>
             {index < PROGRESSION.length - 1 && (
-              <span aria-hidden="true" className="text-[10px] text-zinc-700">
+              <span aria-hidden="true" className="text-[10px] text-zinc-500">
                 →
               </span>
             )}

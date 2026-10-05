@@ -176,7 +176,7 @@ function ReleaseGateHeader({
         <h3 className="mt-0.5 text-xs font-semibold text-zinc-300">
           Validation evidence & release gate
         </h3>
-        <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-700">
+        <p className="mt-0.5 max-w-3xl text-[9px] leading-relaxed text-zinc-500">
           Evidence status is descriptive. The stored release decision is entered manually by a reviewer.
         </p>
       </div>
@@ -223,7 +223,7 @@ function EvidenceMatrix({
             key={item.id}
             className="grid gap-2 border-t border-zinc-800 bg-zinc-950/40 px-3 py-2 first:border-t-0 sm:grid-cols-[130px_150px_minmax(0,1fr)] sm:items-center"
           >
-            <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+            <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-500">
               {item.category}
             </div>
             <div>
@@ -253,7 +253,7 @@ function EvidenceMatrix({
 function Count({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded border border-zinc-800 bg-zinc-950/50 px-2.5 py-2">
-      <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
+      <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </div>
       <div className="mt-0.5 font-mono text-sm font-semibold text-zinc-300">
@@ -301,7 +301,7 @@ function ReviewForm({
         <h4 className="text-[10px] font-semibold text-zinc-400">
           Manual reviewer checklist
         </h4>
-        <p className="mt-0.5 text-[11px] text-zinc-700">
+        <p className="mt-0.5 text-[11px] text-zinc-500">
           A checked item means it was reviewed, not that the evidence was favorable.
         </p>
       </header>
@@ -333,7 +333,7 @@ function ReviewForm({
           onChange={() => toggle("statisticsReviewed")}
         />
 
-        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
           Forward Paper evidence
           <select
             value={checklist.forwardPaper}
@@ -349,12 +349,12 @@ function ReviewForm({
             <option value="REVIEWED">REVIEWED</option>
             <option value="WAIVED">WAIVED</option>
           </select>
-          <span className="mt-1 block font-normal normal-case tracking-normal text-zinc-700">
+          <span className="mt-1 block font-normal normal-case tracking-normal text-zinc-500">
             REVIEWED requires a captured Paper comparison. WAIVED records an explicit reviewer choice to proceed without one.
           </span>
         </label>
 
-        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
           Reviewer
           <input
             value={reviewer}
@@ -365,7 +365,7 @@ function ReviewForm({
           />
         </label>
 
-        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
           Reviewer note
           <textarea
             value={note}
@@ -377,7 +377,7 @@ function ReviewForm({
           />
         </label>
 
-        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
           Reviewer decision
           <select
             value={decision}
@@ -410,7 +410,7 @@ function ReviewForm({
           {saving ? "Saving review…" : "Save release review"}
         </button>
 
-        <p className="text-[11px] leading-relaxed text-zinc-700">
+        <p className="text-[11px] leading-relaxed text-zinc-500">
           PROMOTE requires all core checklist items and Forward Paper marked REVIEWED or WAIVED. Evidence warnings remain visible and do not become an automatic decision.
         </p>
       </div>
