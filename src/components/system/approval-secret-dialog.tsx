@@ -8,6 +8,7 @@ import {
   setApprovalSecret,
 } from "@/lib/api-client";
 import { ModalCloseButton } from "@/components/common/modal-close-button";
+import { useFocusTrap } from "@/components/common/use-focus-trap";
 
 /**
  * Global approval-secret dialog.
@@ -67,6 +68,8 @@ export function ApprovalSecretDialog() {
     };
   }, []);
 
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
+
   if (!open) return null;
 
   return (
@@ -79,7 +82,10 @@ export function ApprovalSecretDialog() {
         if (event.currentTarget === event.target) close();
       }}
     >
-      <div className="w-full max-w-md rounded-t-2xl border border-zinc-800 bg-[#0b0e14] p-5 shadow-2xl sm:rounded-2xl">
+      <div
+        ref={trapRef}
+        className="w-full max-w-md rounded-t-2xl border border-zinc-800 bg-[#0b0e14] p-5 shadow-2xl sm:rounded-2xl"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h3 className="text-sm font-semibold text-zinc-100">
