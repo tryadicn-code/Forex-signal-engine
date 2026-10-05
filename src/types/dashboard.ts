@@ -9,6 +9,18 @@ import type { SignalFunnelDashboard } from "@/analytics/signal-funnel";
 /**
  * Serializable application-facing payload for the dashboard.
  */
+export type DownstreamStageStatus =
+  | { ok: true }
+  | { ok: false; error: string }
+  | { ok: "skipped"; because: string };
+
+export interface DownstreamStatus {
+  forwardValidation: DownstreamStageStatus;
+  paper: DownstreamStageStatus;
+  notification: DownstreamStageStatus;
+  broker: DownstreamStageStatus;
+}
+
 export interface DashboardData {
   snapshot: ScannerSnapshot | null;
   health: ScannerHealth | null;
@@ -17,7 +29,8 @@ export interface DashboardData {
   recentTransitions: SignalStateTransition[];
   signalHistory: Record<string, SignalStateTransition[]>;
   scanError: string | null;
-  /** Runtime market-data provider id. Optional for test fixtures/backward compatibility. */
+  /** Phase 12.2 downstream pipeline stage outcome. */
+  downstreamStatus?: DownstreamStatus;  /** Runtime market-data provider id. Optional for test fixtures/backward compatibility. */
   providerId?: string;
   /** True only when the runtime provider is not the deterministic mock. */
   liveMarketData?: boolean;

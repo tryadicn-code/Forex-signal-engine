@@ -18,7 +18,7 @@ import {
   type ScannerSort,
 } from "@/lib/scanner-query";
 import { apiFetch, ApiError } from "@/lib/api-client";
-import type { DashboardData } from "@/types/dashboard";
+import type { DashboardData, DownstreamStatus } from "@/types/dashboard";
 
 const DASHBOARD_READ_TIMEOUT_MS = 10_000;
 const SCANNER_REFRESH_TIMEOUT_MS = 90_000;
@@ -381,6 +381,10 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         </div>
       )}
 
+      {data.downstreamStatus && (
+        <DownstreamStatusBanner status={data.downstreamStatus} />
+      )}
+
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] 2xl:grid-cols-[minmax(0,2.1fr)_minmax(400px,1fr)]">
         <section
           id="scanner"
@@ -491,6 +495,40 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           System & diagnostics {"\u203A"}
         </a>
       </footer>
+    </div>
+  );
+}
+function DownstreamStatusBanner({ status }: { status: DownstreamStatus }) {
+  const stages: Array<{ key: keyof DownstreamStatus; label: string }> = [
+    { key: "forwardValidation", label: "Forward validation" },
+    { key: "paper", label: "Paper" },
+    { key: "notification", label: "Notification" },
+    { key: "broker", label: "Broker" },
+  ];
+  const problems = stages.filter(({ key }) => status[key].ok !== true);
+  if (problems.length === 0) return null;
+
+  return (
+    <div
+      role="status"
+      className="rounded-lg border border-amber-900/50 bg-amber-950/15 px-3 py-2.5 text-xs"
+    >
+      <div className="font-semibold text-amber-300">
+        Scan succeeded; downstream pipeline issue:
+      </div>
+      <ul className="mt-1 space-y-0.5">
+        {problems.map(({ key, label }) => {
+          const s = status[key];
+          if (s.ok === true) return null;
+          const detail = s.ok === false ? s.error : s.because;
+          const kind = s.ok === false ? "ERROR" : "SKIPPED";
+          return (
+            <li key={key} className="text-amber-200/80">
+              <span className="font-medium">{label}:</span> {kind} — {detail}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

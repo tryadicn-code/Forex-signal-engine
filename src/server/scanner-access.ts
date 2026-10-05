@@ -11,7 +11,7 @@ import "server-only";
 import { ScannerApi } from "@/scanner/scanner-api";
 import type { ScannerSnapshot } from "@/scanner/scanner-result";
 import { isTerminalState } from "@/lib/signal-meta";
-import type { DashboardData } from "@/types/dashboard";
+import type { DashboardData, DownstreamStatus } from "@/types/dashboard";
 import { resolveRuntimeSymbols } from "@/providers/market-data/runtime-provider";
 import {
   primeRuntimeConversionRates,
@@ -34,6 +34,7 @@ import {
 } from "@/server/release-runtime-access";
 import type { ReleaseRuntimeResolution } from "@/runtime/release-runtime-types";
 import type { DeepPartial } from "@/core/config/engine-config";
+import type { PaperDashboardData } from "@/paper/types";
 import { DEFAULT_SYMBOL_UNIVERSE, type ScannerConfig } from "@/config/scanner";
 import { readScannerUniverse } from "@/server/scanner-universe-access";
 import {
@@ -62,10 +63,39 @@ import {
 export const DEFAULT_SCAN_ASOF = runtimeDefaultAsOf();
 const RECENT_TRANSITIONS = 12;
 
+type ScanOutcome = {
+  scanError: string | null;
+  downstream: DownstreamStatus;
+};
+
+function skippedDownstream(reason: string): DownstreamStatus {
+  return {
+    forwardValidation: { ok: "skipped", because: reason },
+    paper: { ok: "skipped", because: reason },
+    notification: { ok: "skipped", because: reason },
+    broker: { ok: "skipped", because: reason },
+  };
+}
+
+function okDownstream(): DownstreamStatus {
+  return {
+    forwardValidation: { ok: true },
+    paper: { ok: true },
+    notification: { ok: true },
+    broker: { ok: true },
+  };
+}
+
+function stageError(error: unknown): { ok: false; error: string } {
+  return {
+    ok: false,
+    error: error instanceof Error ? error.message : String(error),
+  };
+}
 type ScannerRuntimeGlobal = typeof globalThis & {
   __fseScannerApi?: ScannerApi;
   __fseScannerReleaseIdentity?: string;
-  __fseScanInFlight?: Promise<string | null>;
+  __fseScanInFlight?: Promise<ScanOutcome>;
   __fseScanInFlightIdentity?: string;
   __fseScanStartedAt?: number;
   __fseAutoScanTimer?: ReturnType<typeof setInterval>;
@@ -126,7 +156,8 @@ async function scannerForRelease(
 async function dashboardView(
   inst: ScannerApi | null,
   scanError: string | null,
-  release: ReleaseRuntimeResolution
+  release: ReleaseRuntimeResolution,
+  downstreamStatus?: DownstreamStatus,
 ): Promise<DashboardData> {
   const allSignals = inst?.getAllSignals() ?? [];
   const signalHistory: DashboardData["signalHistory"] = {};
@@ -148,7 +179,7 @@ async function dashboardView(
     recentTransitions: inst?.getRecentTransitions(RECENT_TRANSITIONS) ?? [],
     signalHistory,
     scanError,
-    providerId: runtimeProviderId(),
+    downstreamStatus,    providerId: runtimeProviderId(),
     liveMarketData: runtimeUsesLiveMarketData(),
     paper: await readPaperDashboard(),
     notifications: await readNotificationDashboard(),
@@ -175,7 +206,7 @@ async function runScanner(
   inst: ScannerApi,
   asOf: number,
   release: ReleaseRuntimeResolution
-): Promise<string | null> {
+): Promise<ScanOutcome> {
   const runtime = globalThis as ScannerRuntimeGlobal;
   const expectedIdentity = releaseRuntimeIdentity(release);
 
@@ -190,68 +221,169 @@ async function runScanner(
     ? await acquireScannerLease()
     : null;
   if (sharedTransactionalMode() && !lease) {
-    return "Another runtime instance currently owns the distributed scanner lease.";
+    return {
+      scanError:
+        "Another runtime instance currently owns the distributed scanner lease.",
+      downstream: skippedDownstream("scanner lease not held"),
+    };
   }
 
   const startedAt = Date.now();
-  const work = (async (): Promise<string | null> => {
+  const work = (async (): Promise<ScanOutcome> => {
     let analyticsPersistence: Promise<void> = Promise.resolve();
 
     try {
-      inst.setRuntimeAccountBalance(await paperBalance());
-      await primeRuntimeConversionRates(asOf, inst.config.account.currency);
-      const snapshot = await inst.runScan(asOf);
+      let snapshot: ScannerSnapshot;
+      let currentRelease: ReleaseRuntimeResolution;
 
-      // Start observability persistence immediately, but do not put its I/O on
-      // the Paper/Broker critical path. The promise is joined in finally.
-      analyticsPersistence = persistSignalFunnelSafely(inst, snapshot);
-
-      // Re-resolve governance before creating Paper orders. A registry change
-      // during analysis invalidates this scan for execution purposes.
-      const currentRelease = await resolveRuntimeRelease();
-      if (
-        !currentRelease.state.canScan ||
-        releaseRuntimeIdentity(currentRelease) !== expectedIdentity
-      ) {
-        return "Strategy release changed during scan; Paper execution was not applied. Refresh to run under the current release.";
-      }
-
-      if (
-        currentRelease.state.status === "ACTIVE" &&
-        !currentRelease.state.pinned
-      ) {
-        return "ACTIVE release predates complete multi-strategy governance; Paper, forward-validation, alerts, and broker execution were not applied. Register a newly validated release first.";
-      }
-
-      // A long analysis cycle must prove it still owns the shared lease before
-      // mutating Paper or forward evidence. The fencing token prevents an
-      // expired owner from releasing or completing work owned by a successor.
-      if (lease) {
-        const renewed = await transactionalStore().renewLease(
-          lease,
-          TRANSACTIONAL_CONFIG.leaseTtlMs
+      try {
+        inst.setRuntimeAccountBalance(await paperBalance());
+        await primeRuntimeConversionRates(
+          asOf,
+          inst.config.account.currency
         );
-        if (!renewed) {
-          return "Distributed scanner lease expired during analysis; Paper execution was not applied.";
+        snapshot = await inst.runScan(asOf);
+        analyticsPersistence = persistSignalFunnelSafely(inst, snapshot);
+
+        currentRelease = await resolveRuntimeRelease();
+        if (
+          !currentRelease.state.canScan ||
+          releaseRuntimeIdentity(currentRelease) !== expectedIdentity
+        ) {
+          return {
+            scanError:
+              "Strategy release changed during scan; Paper execution was not applied. Refresh to run under the current release.",
+            downstream: skippedDownstream(
+              "strategy release changed during scan"
+            ),
+          };
         }
+
+        if (
+          currentRelease.state.status === "ACTIVE" &&
+          !currentRelease.state.pinned
+        ) {
+          return {
+            scanError:
+              "ACTIVE release predates complete multi-strategy governance; Paper, forward-validation, alerts, and broker execution were not applied. Register a newly validated release first.",
+            downstream: skippedDownstream("release not pinned"),
+          };
+        }
+
+        if (lease) {
+          const renewed = await transactionalStore().renewLease(
+            lease,
+            TRANSACTIONAL_CONFIG.leaseTtlMs
+          );
+          if (!renewed) {
+            return {
+              scanError:
+                "Distributed scanner lease expired during analysis; Paper execution was not applied.",
+              downstream: skippedDownstream("scanner lease expired"),
+            };
+          }
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+        await emitRuntimeTelemetry({
+          category: "scanner",
+          name: "cycle",
+          level: "ERROR",
+          durationMs: Date.now() - startedAt,
+          attributes: {
+            error: message.slice(0, 500),
+            release: release.state.version ?? "unversioned",
+          },
+        });
+        return {
+          scanError: message,
+          downstream: skippedDownstream("scan phase failed"),
+        };
       }
 
-      await assertForwardValidationPersistenceHealthy();
-      const paper = await processPaperSnapshot(
-        snapshot,
-        currentRelease.state
-      );
-      await recordForwardValidationObservation(
-        snapshot,
-        paper,
-        currentRelease.state
-      );
+      const downstream = okDownstream();
+
+      try {
+        await assertForwardValidationPersistenceHealthy();
+      } catch (error) {
+        downstream.forwardValidation = stageError(error);
+        const reason = "forward-validation preflight failed";
+        downstream.paper = { ok: "skipped", because: reason };
+        downstream.notification = { ok: "skipped", because: reason };
+        downstream.broker = { ok: "skipped", because: reason };
+        await emitRuntimeTelemetry({
+          category: "scanner",
+          name: "forward-validation-preflight",
+          level: "ERROR",
+          durationMs: null,
+          attributes: {
+            error: (
+              error instanceof Error ? error.message : String(error)
+            ).slice(0, 500),
+          },
+        });
+        return { scanError: null, downstream };
+      }
+
+      let paper: PaperDashboardData;
+      try {
+        paper = await processPaperSnapshot(
+          snapshot,
+          currentRelease.state
+        );
+      } catch (error) {
+        downstream.paper = stageError(error);
+        const reason = "paper processing failed";
+        downstream.forwardValidation = { ok: "skipped", because: reason };
+        downstream.notification = { ok: "skipped", because: reason };
+        downstream.broker = { ok: "skipped", because: reason };
+        await emitRuntimeTelemetry({
+          category: "scanner",
+          name: "paper-processing",
+          level: "ERROR",
+          durationMs: null,
+          attributes: {
+            error: (
+              error instanceof Error ? error.message : String(error)
+            ).slice(0, 500),
+          },
+        });
+        return { scanError: null, downstream };
+      }
+
+      try {
+        await recordForwardValidationObservation(
+          snapshot,
+          paper,
+          currentRelease.state
+        );
+      } catch (error) {
+        downstream.forwardValidation = stageError(error);
+        const reason = "forward-validation observation failed";
+        downstream.notification = { ok: "skipped", because: reason };
+        downstream.broker = { ok: "skipped", because: reason };
+        await emitRuntimeTelemetry({
+          category: "scanner",
+          name: "forward-validation-observation",
+          level: "ERROR",
+          durationMs: null,
+          attributes: {
+            error: (
+              error instanceof Error ? error.message : String(error)
+            ).slice(0, 500),
+          },
+        });
+        return { scanError: null, downstream };
+      }
+
       try {
         await processNotificationSnapshot(
           snapshot,
           currentRelease.state
         );
       } catch (notificationError) {
+        downstream.notification = stageError(notificationError);
         await emitRuntimeTelemetry({
           category: "notifications",
           name: "scan-alert-failure",
@@ -265,10 +397,24 @@ async function runScanner(
           },
         });
       }
-      await processBrokerSnapshot(
-        snapshot,
-        currentRelease.state
-      );
+
+      try {
+        await processBrokerSnapshot(snapshot, currentRelease.state);
+      } catch (error) {
+        downstream.broker = stageError(error);
+        await emitRuntimeTelemetry({
+          category: "broker",
+          name: "scan-broker-processing",
+          level: "ERROR",
+          durationMs: null,
+          attributes: {
+            error: (
+              error instanceof Error ? error.message : String(error)
+            ).slice(0, 500),
+          },
+        });
+      }
+
       await emitRuntimeTelemetry({
         category: "scanner",
         name: "cycle",
@@ -281,20 +427,8 @@ async function runScanner(
           symbolsFailed: snapshot.symbolsFailed,
         },
       });
-      return null;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await emitRuntimeTelemetry({
-        category: "scanner",
-        name: "cycle",
-        level: "ERROR",
-        durationMs: Date.now() - startedAt,
-        attributes: {
-          error: message.slice(0, 500),
-          release: release.state.version ?? "unversioned",
-        },
-      });
-      return message;
+
+      return { scanError: null, downstream };
     } finally {
       await analyticsPersistence;
     }
@@ -315,7 +449,6 @@ async function runScanner(
     }
   }
 }
-
 async function persistSignalFunnelSafely(
   inst: ScannerApi,
   snapshot: ScannerSnapshot
@@ -405,13 +538,16 @@ export async function readDashboard(
   }
 
   let scanError: string | null = null;
+  let downstreamStatus: DownstreamStatus | undefined;
   if (!inst.getLatestSnapshot()) {
-    scanError = await runScanner(inst, asOf, release);
+    const outcome = await runScanner(inst, asOf, release);
+    scanError = outcome.scanError;
+    downstreamStatus = outcome.downstream;
   }
 
   const currentRelease = await resolveRuntimeRelease();
   const currentInst = await scannerForRelease(currentRelease);
-  return dashboardView(currentInst, scanError, currentRelease);
+  return dashboardView(currentInst, scanError, currentRelease, downstreamStatus);
 }
 
 export async function refreshScanner(
@@ -443,7 +579,9 @@ export async function refreshScanner(
     );
   }
 
-  const scanError = await runScanner(inst, asOf, release);
+  const outcome = await runScanner(inst, asOf, release);
+  const scanError = outcome.scanError;
+  const downstreamStatus = outcome.downstream;
 
   if (
     DEFAULT_PAPER_TRADING_CONFIG.autoScanEnabled &&
@@ -459,7 +597,7 @@ export async function refreshScanner(
 
   const currentRelease = await resolveRuntimeRelease();
   const currentInst = await scannerForRelease(currentRelease);
-  return dashboardView(currentInst, scanError, currentRelease);
+  return dashboardView(currentInst, scanError, currentRelease, downstreamStatus);
 }
 
 export async function listUniverse(): Promise<string[]> {
