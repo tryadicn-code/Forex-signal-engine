@@ -83,7 +83,7 @@ export function ScannerFilters({
               }
               placeholder="Search pair"
               aria-label="Search symbols"
-              className="h-9 w-full rounded-md border border-zinc-700 bg-[#0b0e14] pl-8 pr-3 font-mono text-xs text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
+              className="h-11 w-full rounded-md border border-zinc-700 bg-[#0b0e14] pl-9 pr-3 font-mono text-[11px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
             />
           </label>
           <button
@@ -92,7 +92,7 @@ export function ScannerFilters({
             aria-controls="mobile-scanner-filters"
             onClick={() => setMobileFiltersOpen((open) => !open)}
             className={cn(
-              "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
+              "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border px-3 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
               mobileFiltersOpen || advancedCount > 0
                 ? "border-emerald-700/60 bg-emerald-950/20 text-emerald-300"
                 : "border-zinc-700 bg-zinc-900 text-zinc-300"
@@ -105,7 +105,7 @@ export function ScannerFilters({
           </button>
         </div>
 
-        <div className="-mx-0.5 flex gap-1.5 overflow-x-auto px-0.5 pb-0.5 scrollbar-none">
+        <div className="-mx-0.5 flex gap-2 overflow-x-auto px-0.5 pb-1 scrollbar-none">
           {MOBILE_STATE_FILTERS.map((chip) => (
             <StateChip
               key={chip}
@@ -318,7 +318,7 @@ function StateChip({
       onClick={onClick}
       className={cn(
         "shrink-0 rounded-full border font-mono font-medium uppercase tracking-[0.08em] transition-colors",
-        mobile ? "h-7 px-2.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
+        mobile ? "h-11 min-h-[44px] px-3 text-[11px]" : "px-2 py-0.5 text-[11px]",
         active
           ? "border-emerald-600/60 bg-emerald-600/15 text-emerald-300"
           : "border-zinc-700 text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-200"

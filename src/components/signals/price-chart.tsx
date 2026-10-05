@@ -195,8 +195,8 @@ function CandlesSvg({
           model.candles.length +
           " closed candles"
         }
-        className="block h-auto min-h-64 w-full touch-pan-y select-none"
-        preserveAspectRatio="none"
+        className="block h-56 w-full touch-pan-y select-none sm:h-72 lg:h-80"
+        preserveAspectRatio="xMidYMid meet"
       >
         <rect width={WIDTH} height={HEIGHT} fill="#090c11" />
 
