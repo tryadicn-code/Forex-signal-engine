@@ -44,8 +44,8 @@ export function DashboardShell({
 
           {strategyLabel && !statusLabel && (
             <Badge
-              tone={releaseBlocked ? "danger" : strategyLabel === "UNVERSIONED" ? "warning" : "info"}
-              glyph={releaseBlocked ? "!" : strategyLabel === "UNVERSIONED" ? "!" : "◆"}
+              tone={releaseBlocked ? "danger" : strategyLabel === "UNVERSIONED" ? "muted" : "info"}
+              glyph={releaseBlocked ? "!" : strategyLabel === "UNVERSIONED" ? "\u25CB" : "\u25C6"}
               className="hidden text-[11px] md:inline-flex"
             >
               {strategyLabel}
