@@ -299,3 +299,135 @@ class ThrowingProvider extends MockMarketDataProvider {
     throw new Error("provider exploded");
   }
 }
+// ---------------------------------------------------------------------------
+// TRD-005 — bounded concurrent scanning
+// ---------------------------------------------------------------------------
+
+class SlowTrackingProvider extends MockMarketDataProvider {
+  public inFlight = 0;
+  public maxInFlight = 0;
+  public delays: Record<string, number> = {};
+
+  async getCandles(
+    request: import("@/providers/market-data/provider").CandleRequest
+  ) {
+    this.inFlight += 1;
+    this.maxInFlight = Math.max(this.maxInFlight, this.inFlight);
+    try {
+      const delay = this.delays[request.symbol] ?? 0;
+      if (delay > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, delay));
+      }
+      return await super.getCandles(request);
+    } finally {
+      this.inFlight -= 1;
+    }
+  }
+}
+
+function concurrentService(input: {
+  symbols: string[];
+  scenarios?: Record<string, MockSymbolScenario>;
+  scanConcurrency?: number;
+  delays?: Record<string, number>;
+}) {
+  const provider = new SlowTrackingProvider({
+    scenarios: input.scenarios ?? {},
+  });
+  if (input.delays) provider.delays = input.delays;
+  const scanner = new ScannerService(
+    {
+      symbols: input.symbols,
+      ...(input.scanConcurrency === undefined
+        ? {}
+        : { scanConcurrency: input.scanConcurrency }),
+    },
+    {
+      marketData: provider,
+      conversionResolver: new TableAccountConversionResolver(provider.getRates()),
+      repositories: createInMemoryRepositories(),
+    }
+  );
+  return { scanner, provider };
+}
+
+describe("TRD-005 bounded scan concurrency", () => {
+  it("caps concurrent provider requests at scanConcurrency", async () => {
+    const symbols = ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD"];
+    const scenarios = Object.fromEntries(
+      symbols.map((s) => [s, { direction: "UP" } as MockSymbolScenario])
+    );
+    const delays = Object.fromEntries(symbols.map((s) => [s, 12]));
+    const { scanner, provider } = concurrentService({
+      symbols,
+      scenarios,
+      scanConcurrency: 3,
+      delays,
+    });
+
+    await scanner.scanOnce(T0);
+
+    expect(provider.maxInFlight).toBeLessThanOrEqual(3);
+    expect(provider.maxInFlight).toBeGreaterThan(1);
+  });
+
+  it("preserves symbol order in results regardless of completion order", async () => {
+    const symbols = ["EURUSD", "GBPUSD", "USDJPY"];
+    const scenarios = {
+      EURUSD: { direction: "UP" } as MockSymbolScenario,
+      GBPUSD: { direction: "UP" } as MockSymbolScenario,
+      USDJPY: { direction: "UP" } as MockSymbolScenario,
+    };
+    const { scanner } = concurrentService({
+      symbols,
+      scenarios,
+      scanConcurrency: 3,
+      delays: { EURUSD: 30, GBPUSD: 1, USDJPY: 1 },
+    });
+
+    const snapshot = await scanner.scanOnce(T0);
+
+    expect(snapshot.results.map((r) => r.symbol)).toEqual(symbols);
+  });
+
+  it("falls back to sequential execution when scanConcurrency is 1", async () => {
+    const symbols = ["EURUSD", "GBPUSD", "USDJPY"];
+    const scenarios = Object.fromEntries(
+      symbols.map((s) => [s, { direction: "UP" } as MockSymbolScenario])
+    );
+    const { scanner, provider } = concurrentService({
+      symbols,
+      scenarios,
+      scanConcurrency: 1,
+      delays: { EURUSD: 8, GBPUSD: 8, USDJPY: 8 },
+    });
+
+    await scanner.scanOnce(T0);
+
+    expect(provider.maxInFlight).toBe(1);
+  });
+
+  it("keeps per-symbol failure isolation under concurrency", async () => {
+    const symbols = ["EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD"];
+    const scenarios: Record<string, MockSymbolScenario> = {
+      EURUSD: { direction: "UP" },
+      GBPUSD: { direction: "DOWN" },
+      USDJPY: { direction: "UP", fail: true },
+      USDCHF: { direction: "UP" },
+      AUDUSD: { direction: "UP" },
+    };
+    const { scanner } = concurrentService({
+      symbols,
+      scenarios,
+      scanConcurrency: 3,
+    });
+
+    const snapshot = await scanner.scanOnce(T0);
+
+    expect(snapshot.symbolsSuccessful).toBe(4);
+    expect(snapshot.symbolsFailed).toBe(1);
+    const failed = snapshot.results.find((r) => r.symbol === "USDJPY");
+    expect(failed?.status).not.toBe("ANALYSED");
+    expect(snapshot.results.map((r) => r.symbol)).toEqual(symbols);
+  });
+});

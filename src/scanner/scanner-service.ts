@@ -175,25 +175,36 @@ export class ScannerService {
    */
   async scanOnce(asOf: number): Promise<ScannerSnapshot> {
     const startedAt = asOf;
-    const results: SymbolScanResult[] = [];
-    const transitionsToAppend: SignalStateTransition[] = [];
-    const funnelObservations: SignalFunnelObservation[] = [];
+    const symbols = this.symbols;
+    const results = new Array<SymbolScanResult>(symbols.length);
+    const transitionsByIndex = new Array<SignalStateTransition[]>(symbols.length);
+    const funnelByIndex = new Array<SignalFunnelObservation[]>(symbols.length);
 
-    for (const symbol of this.symbols) {
-      try {
-        const analysis = await this.scanSymbol(symbol, asOf);
-        results.push(analysis.result);
-        transitionsToAppend.push(...analysis.transitions);
-        funnelObservations.push(analysis.funnelObservation);
-      } catch (error) {
-        // Last-resort guard: a symbol must never take the cycle down with it.
-        const failure = this.unexpectedFailure(symbol, asOf, error);
-        results.push(failure);
-        funnelObservations.push(
-          buildSignalFunnelObservation(failure, null, asOf)
-        );
+    await this.runWithConcurrency(
+      symbols,
+      this.config.scanConcurrency,
+      async (symbol, index) => {
+        try {
+          const analysis = await this.scanSymbol(symbol, asOf);
+          results[index] = analysis.result;
+          transitionsByIndex[index] = analysis.transitions;
+          funnelByIndex[index] = [analysis.funnelObservation];
+        } catch (error) {
+          // Last-resort guard: a symbol must never take the cycle down with it.
+          const failure = this.unexpectedFailure(symbol, asOf, error);
+          results[index] = failure;
+          transitionsByIndex[index] = [];
+          funnelByIndex[index] = [
+            buildSignalFunnelObservation(failure, null, asOf),
+          ];
+        }
       }
-    }
+    );
+
+    // Flatten strictly in symbol order so the persisted transition history and
+    // signal-funnel observations stay deterministic under concurrency.
+    const transitionsToAppend = transitionsByIndex.flat();
+    const funnelObservations = funnelByIndex.flat();
 
     for (const transition of transitionsToAppend) {
       this.deps.repositories.transitions.append(transition);
@@ -212,7 +223,7 @@ export class ScannerService {
       startedAt,
       completedAt: asOf,
       durationMs: null,
-      symbolsRequested: this.symbols.length,
+      symbolsRequested: symbols.length,
       symbolsSuccessful: successful,
       symbolsFailed: results.length - successful,
       results,
@@ -230,10 +241,35 @@ export class ScannerService {
   }
 
   /**
+   * Run `worker` over `items` with at most `limit` in flight at once.
+   *
+   * The worker is awaited sequentially inside each runner, so at any moment at
+   * most `limit` workers are pending. Items are dispatched in array order and
+   * each caller receives its own index, so results can be written into a
+   * pre-sized array and flattened deterministically afterwards.
+   */
+  private async runWithConcurrency<T>(
+    items: readonly T[],
+    limit: number,
+    worker: (item: T, index: number) => Promise<void>
+  ): Promise<void> {
+    if (items.length === 0) return;
+    const effectiveLimit = Math.max(1, Math.min(limit, items.length));
+    let next = 0;
+    const runners = Array.from({ length: effectiveLimit }, async () => {
+      while (true) {
+        const current = next++;
+        if (current >= items.length) return;
+        await worker(items[current], current);
+      }
+    });
+    await Promise.all(runners);
+  }
+
+  /**
    * Analyse ONE symbol end to end. Every failure path returns a structured
    * {@link SymbolScanResult}; nothing throws past this method's caller.
-   */
-  async scanSymbol(symbol: string, asOf: number): Promise<SymbolAnalysis> {
+   */  async scanSymbol(symbol: string, asOf: number): Promise<SymbolAnalysis> {
     if (!(symbol in SYMBOL_METADATA)) {
       const result = failureResult(
         symbol,

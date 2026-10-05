@@ -181,6 +181,12 @@ export interface ScannerConfig {
    * places an order and never connects a broker.
    */
   executionMode: ExecutionModeAlias;
+  /**
+   * Maximum number of symbols analysed concurrently during one scan cycle.
+   * Bounded so provider quota and memory stay predictable; symbols beyond
+   * the limit wait in a queue. Must be an integer in [1, 8].
+   */
+  scanConcurrency: number;
   /** Candles requested per timeframe per symbol. */
   candleLookback: number;
 }
@@ -198,6 +204,7 @@ export const DEFAULT_SCANNER_CONFIG: ScannerConfig = {
   engineConfig: structuredClone(defaultEngineConfig),
   strategyConfig: structuredClone(DEFAULT_STRATEGY_CONFIG),
   executionMode: "SIGNAL_ONLY",
+  scanConcurrency: 3,
   candleLookback: 220,
 };
 
@@ -227,11 +234,36 @@ export function resolveScannerConfig(
       );
     } else if (key === "timeframeRoles" || key === "signalTtl" || key === "freshness" || key === "account") {
       out[key] = { ...out[key], ...(value as object) } as never;
+    } else if (key === "scanConcurrency") {
+      out.scanConcurrency = sanitizeScanConcurrency(value);
     } else {
       out[key] = value as never;
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Concurrency helpers
+// ---------------------------------------------------------------------------
+
+const MIN_SCAN_CONCURRENCY = 1;
+const MAX_SCAN_CONCURRENCY = 8;
+
+/**
+ * Clamp an operator-supplied concurrency value into the supported range.
+ * A malformed value falls back to the default so a bad override cannot
+ * silently disable or overload the scanner.
+ */
+export function sanitizeScanConcurrency(value: unknown): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    !Number.isInteger(value)
+  ) {
+    return DEFAULT_SCANNER_CONFIG.scanConcurrency;
+  }
+  return Math.min(MAX_SCAN_CONCURRENCY, Math.max(MIN_SCAN_CONCURRENCY, value));
 }
 /** Resolve metadata for a symbol, throwing only on genuine misconfiguration. */
 export function resolveSymbolMetadata(symbol: string): SymbolMetadata {
