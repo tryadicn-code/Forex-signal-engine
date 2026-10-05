@@ -96,7 +96,9 @@ export function SignalDetailPanel({
     );
   }
 
-  const failed = result.status !== "ANALYSED";
+  const failed =
+    result.status !== "ANALYSED" &&
+    result.status !== "ANALYSED_PARTIAL";
   const detailLabel = "Signal detail for " + result.symbol;
 
   return (

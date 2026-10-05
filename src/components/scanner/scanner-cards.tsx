@@ -108,7 +108,9 @@ function ScannerCard({
   onSelect: (symbol: string) => void;
 }) {
   const status = workstationStatus(result);
-  const failed = result.status !== "ANALYSED";
+  const partial = result.status === "ANALYSED_PARTIAL";
+  const failed =
+    result.status !== "ANALYSED" && !partial;
   const risk = result.riskDetail;
   const planned = result.plannedLevels ?? null;
   const isPlanned = !risk && planned !== null;
@@ -148,6 +150,11 @@ function ScannerCard({
           </span>
           <DirectionBadge direction={result.biasDirection} className="text-[11px]" />
           <FreshnessBadge status={result.freshness} className="text-[11px]" marketClosed={marketClosed} />
+          {partial && (
+            <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-300">
+              PARTIAL
+            </span>
+          )}
           <span
             className={cn(
               "rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums",

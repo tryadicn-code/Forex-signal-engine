@@ -71,6 +71,7 @@ function row(
     symbol: "EURUSD",
     status: "ANALYSED",
     reason: "ok",
+    executionEligible: false,
     latestPrice: 1.1,
     spreadPips: 1,
     regime: "TREND_UP",

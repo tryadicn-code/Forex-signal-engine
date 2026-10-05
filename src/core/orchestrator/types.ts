@@ -31,8 +31,15 @@ export interface AnalysisContext {
   biasTimeframe: TimeframeInput;
   /** Snapshot used for setup / zone detection. Defaults to the bias timeframe. */
   setupTimeframe?: TimeframeInput;
-  /** Snapshot used for trigger confirmation. Defaults to the setup timeframe. */
-  triggerTimeframe?: TimeframeInput;
+  /**
+   * Snapshot used for trigger confirmation.
+   *
+   * - undefined: fall back to the setup timeframe (legacy behaviour).
+   * - null: the trigger timeframe is explicitly unavailable. Strategies must
+   *   short-circuit and return a partial pipeline without trigger/risk/
+   *   execution stages (TRD-004 B1).
+   */
+  triggerTimeframe?: TimeframeInput | null;
   accountBalance: number;
   /** Currency the trading account is denominated in, e.g. "USD". Required. */
   accountCurrency: string;

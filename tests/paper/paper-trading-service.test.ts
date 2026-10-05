@@ -11,6 +11,7 @@ function result(overrides: Partial<SymbolScanResult> = {}): SymbolScanResult {
     symbol: "EURUSD",
     status: "ANALYSED",
     reason: "test",
+    executionEligible: false,
     latestPrice: 1.1,
     spreadPips: 1,
     regime: "TREND_UP",

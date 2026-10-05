@@ -32,6 +32,16 @@ function firstUsefulReason(result: SymbolScanResult): string | null {
 }
 
 export function workstationStatus(result: SymbolScanResult): WorkstationStatus {
+  if (result.status === "ANALYSED_PARTIAL") {
+    return {
+      headline: "Partial analysis",
+      detail:
+        result.reason ||
+        "Some timeframes are unavailable; execution was not evaluated.",
+      tone: "waiting",
+    };
+  }
+
   if (result.status !== "ANALYSED") {
     return {
       headline: "Data issue",

@@ -157,6 +157,18 @@ export function buildSignalFunnelObservation(
     rejectionDetail: detail,
   });
 
+  if (result.status === "ANALYSED_PARTIAL") {
+    // TRD-004 B1: D1/H4/H1 usable, trigger timeframe unavailable. The data
+    // gate passed for the timeframes we had; the trigger stage is where this
+    // observation stops, with an infrastructure classification.
+    passedStages.push("DATA_VALID");
+    return reject(
+      "TRIGGER_CONFIRMED",
+      "TRIGGER_TIMEFRAME_UNAVAILABLE",
+      result.reason
+    );
+  }
+
   if (result.status !== "ANALYSED") {
     return reject("DATA_VALID", result.status, result.reason);
   }
@@ -783,6 +795,7 @@ const INFRASTRUCTURE_REJECTION_CODES: ReadonlySet<string> = new Set([
   "INVALID_DATA",
   "ANALYSIS_ERROR",
   "PIPELINE_NOT_AVAILABLE",
+  "TRIGGER_TIMEFRAME_UNAVAILABLE",
   "TRIGGER_NOT_EVALUATED",
   "RISK_NOT_EVALUATED",
   "EXECUTION_NOT_EVALUATED",

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildMarketContext,
+  buildPartialMarketContext,
   DEFAULT_MIN_BARS_PER_TIMEFRAME,
 } from "@/scanner/market-context";
 import type { BuildMarketContextInput } from "@/scanner/market-context";
@@ -180,6 +181,50 @@ class FewBarsProvider extends MockMarketDataProvider {
             closed: true,
           },
         ],
+      };
+    }
+    return super.getCandles(request);
+  }
+}
+
+describe("TRD-004 B1 buildPartialMarketContext", () => {
+  it("builds a partial context when only M15 fails", async () => {
+    const outcome = await buildPartialMarketContext(
+      mkInput({ EURUSD: { direction: "UP", partialM15: true } })
+    );
+    expect(outcome.context).not.toBeNull();
+    expect(outcome.rejection).toBeNull();
+    const ctx = outcome.context!;
+    expect(ctx.d1.candles.length).toBeGreaterThanOrEqual(20);
+    expect(ctx.h4.candles.length).toBeGreaterThanOrEqual(20);
+    expect(ctx.h1.candles.length).toBeGreaterThanOrEqual(20);
+    expect(ctx.m15).toBeNull();
+    expect(ctx.missingTimeframes).toContain("M15");
+  });
+
+  it("rejects partial mode when H1 also fails", async () => {
+    const provider = new H1AndM15FailProvider();
+    const outcome = await buildPartialMarketContext({
+      ...mkInput(),
+      provider,
+    });
+    expect(outcome.context).toBeNull();
+    expect(outcome.rejection).not.toBeNull();
+  });
+});
+
+class H1AndM15FailProvider extends MockMarketDataProvider {
+  async getCandles(
+    request: import("@/providers/market-data/provider").CandleRequest
+  ) {
+    if (request.timeframe === "H1" || request.timeframe === "M15") {
+      return {
+        ok: false as const,
+        error: {
+          code: "PROVIDER_UNAVAILABLE" as const,
+          message: "forced failure",
+          at: request.asOf,
+        },
       };
     }
     return super.getCandles(request);

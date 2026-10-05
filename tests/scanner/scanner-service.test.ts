@@ -431,3 +431,54 @@ describe("TRD-005 bounded scan concurrency", () => {
     expect(snapshot.results.map((r) => r.symbol)).toEqual(symbols);
   });
 });
+
+// ---------------------------------------------------------------------------
+// TRD-004 B1 — partial pipeline (trigger timeframe unavailable)
+// ---------------------------------------------------------------------------
+
+describe("TRD-004 B1 partial pipeline", () => {
+  it("returns ANALYSED_PARTIAL when only M15 is missing", async () => {
+    const s = service({ EURUSD: { direction: "UP", partialM15: true } });
+    const snapshot = await s.scanOnce(T0);
+    const result = snapshot.results[0];
+
+    expect(result.status).toBe("ANALYSED_PARTIAL");
+    expect(result.executionEligible).toBe(false);
+    expect(result.triggerState).toBeNull();
+    expect(result.executionDecision).toBeNull();
+    expect(result.signalState).toBeNull();
+    expect(result.signalId).toBeNull();
+    expect(result.biasDirection).not.toBeNull();
+    expect(result.regime).not.toBeNull();
+    expect(result.timeframes.map((t) => t.role)).toEqual([
+      "macro",
+      "bias",
+      "setup",
+    ]);
+  });
+
+  it("does not affect sibling symbols in the same cycle", async () => {
+    const s = service(
+      {
+        EURUSD: { direction: "UP" },
+        GBPUSD: { direction: "UP", partialM15: true },
+      },
+      ["EURUSD", "GBPUSD"]
+    );
+    const snapshot = await s.scanOnce(T0);
+    const eur = snapshot.results.find((r) => r.symbol === "EURUSD");
+    const gbp = snapshot.results.find((r) => r.symbol === "GBPUSD");
+
+    expect(eur?.status).toBe("ANALYSED");
+    expect(gbp?.status).toBe("ANALYSED_PARTIAL");
+    expect(snapshot.symbolsSuccessful).toBe(2);
+    expect(snapshot.symbolsFailed).toBe(0);
+  });
+
+  it("does not record lifecycle transitions or signals for a partial symbol", async () => {
+    const s = service({ EURUSD: { direction: "UP", partialM15: true } });
+    await s.scanOnce(T0);
+    expect(s.repositories.transitions.count()).toBe(0);
+    expect(s.repositories.signals.count()).toBe(0);
+  });
+});

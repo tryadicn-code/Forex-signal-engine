@@ -42,6 +42,11 @@ export interface MockSymbolScenario {
   resumption?: boolean;
   /** Simulate a total provider failure for this symbol. */
   fail?: boolean;
+  /**
+   * TRD-004 B1: fail ONLY the trigger timeframe (M15) while leaving D1/H4/H1
+   * healthy, to exercise the partial-context path.
+   */
+  partialM15?: boolean;
   /** End the series far enough in the past to classify as STALE. */
   stale?: boolean;
   /** Inject one malformed candle (high below low). */
@@ -131,6 +136,13 @@ export class MockMarketDataProvider implements MarketDataProvider {
     if (scenario.fail) {
       this.recordFailure();
       return this.fail("PROVIDER_UNAVAILABLE", `Mock provider configured to fail for ${request.symbol}.`);
+    }
+    if (scenario.partialM15 && request.timeframe === "M15") {
+      this.recordFailure();
+      return this.fail(
+        "PROVIDER_UNAVAILABLE",
+        `Mock provider configured to fail only M15 for ${request.symbol}.`
+      );
     }
     const meta = SYMBOL_METADATA[request.symbol];
     if (!meta) {
