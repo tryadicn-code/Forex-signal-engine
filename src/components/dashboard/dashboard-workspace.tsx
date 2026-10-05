@@ -284,7 +284,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     setRequestError(null);
     try {
       await apiFetch("/api/analytics/signal-funnel", { method: "DELETE" });
-      // Refresh dashboard view only â€” do NOT trigger a new scan.
+      // Refresh dashboard view only \u2014 do NOT trigger a new scan.
       const next = await requestDashboard("GET", DASHBOARD_READ_TIMEOUT_MS);
       setData(next);
     } catch (error) {

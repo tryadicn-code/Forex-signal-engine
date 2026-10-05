@@ -50,7 +50,7 @@ export class TransactionalDocumentRepository<T> {
 
   /**
    * M8E-E1-1: `mutate` may be invoked more than once when a CAS conflict is
-   * retried. It MUST be a pure function of `current` â€” no external side
+   * retried. It MUST be a pure function of `current` -- no external side
    * effects, no random IDs, no timestamps read from `Date.now()` inside the
    * mutation. Every deterministic value the mutation needs should be derived
    * from `current` or from the arguments captured before `update()` is

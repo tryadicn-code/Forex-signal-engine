@@ -12,8 +12,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET  â€” current funnel dashboard view (read-only, no secret required).
- * DELETE â€” wipe every stored observation. Requires the broker approval
+ * GET  -- current funnel dashboard view (read-only, no secret required).
+ * DELETE -- wipe every stored observation. Requires the broker approval
  *          secret, mirroring every other mutation endpoint.
  */
 export async function GET() {
