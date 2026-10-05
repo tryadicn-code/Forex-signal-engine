@@ -238,10 +238,12 @@ export function BacktestWorkspace() {
               )}
             </section>
 
-            <section className="border-t border-zinc-800 pt-3">
-              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
-                2 · Source normalization
-              </h2>
+            <details className="border-t border-zinc-800 pt-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400 hover:text-zinc-200">
+                <span>2 - Source normalization</span>
+                <span aria-hidden="true" className="font-mono text-[11px] text-zinc-600">expand</span>
+              </summary>
+              
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 <Field label="Dataset id">
                   <input
@@ -285,12 +287,14 @@ export function BacktestWorkspace() {
                   />
                 </Field>
               </div>
-            </section>
+            
+            </details>
 
-            <section className="border-t border-zinc-800 pt-3">
-              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
-                3 · Replay window & risk
-              </h2>
+            <details open className="border-t border-zinc-800 pt-3">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400 hover:text-zinc-200">
+                <span>3 - Replay window and risk</span>
+                <span aria-hidden="true" className="font-mono text-[11px] text-zinc-600">collapse</span>
+              </summary>
               <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 <Field label="Start date" hint="Blank = common coverage start">
                   <input
@@ -362,7 +366,7 @@ export function BacktestWorkspace() {
                   </select>
                 </Field>
               </div>
-            </section>
+            </details>
 
             <div className="border-t border-zinc-800 pt-3">
               <button
