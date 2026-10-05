@@ -115,9 +115,8 @@ export function SignalDetailPanel({
         onTouchMove={onHandleTouchMove}
         onTouchEnd={onHandleTouchEnd}
         onTouchCancel={onHandleTouchEnd}
-        role="button"
-        aria-label="Drag down to close"
         style={{ touchAction: "none" }}
+        aria-hidden="true"
       >
         <div className="h-1 w-10 rounded-full bg-zinc-700" aria-hidden="true" />
       </div>
