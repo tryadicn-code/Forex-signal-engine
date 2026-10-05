@@ -103,3 +103,7 @@ __pycache__/
 *.rar
 files.txt
 test-output.txt
+# Audit scratch files
+.audit-backup/
+audit-batch1.txt
+audit-batch*.txt
