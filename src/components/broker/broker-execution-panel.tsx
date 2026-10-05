@@ -1,7 +1,7 @@
 "use client";
 
 import type { BrokerExecutionDashboard } from "@/broker/types";
-
+import { formatTime } from "@/lib/format";
 export function BrokerExecutionPanel({
   broker,
 }: {
@@ -161,11 +161,4 @@ function formatMoney(value: number, currency: string | null): string {
   return value.toLocaleString(undefined, {
     maximumFractionDigits: 2,
   }) + (currency ? " " + currency : "");
-}
-
-function formatTime(value: number): string {
-  return new Date(value).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
