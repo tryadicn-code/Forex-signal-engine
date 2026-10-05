@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { requestApprovalSecretDialog } from "@/components/system/approval-secret-dialog";
 import { ModalCloseButton } from "@/components/common/modal-close-button";
+import { useFocusTrap } from "@/components/common/use-focus-trap";
 
 interface ScannerUniversePayload {
   selected: string[];
@@ -112,6 +113,8 @@ export function ScannerUniverseControl({
     }
   };
 
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
+
   const normalized = symbol.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 6);
   const canAdd =
     normalized.length === 6 &&
@@ -154,7 +157,10 @@ export function ScannerUniverseControl({
             if (event.currentTarget === event.target) setOpen(false);
           }}
         >
-          <div className="max-h-[85dvh] w-full overflow-y-auto rounded-t-2xl border border-zinc-800 bg-[#0b0e14] p-4 shadow-2xl sm:max-w-md sm:rounded-2xl">
+          <div
+            ref={trapRef}
+            className="max-h-[85dvh] w-full overflow-y-auto rounded-t-2xl border border-zinc-800 bg-[#0b0e14] p-4 shadow-2xl sm:max-w-md sm:rounded-2xl"
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold text-zinc-100">

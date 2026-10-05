@@ -7,6 +7,7 @@ import {
 } from "@/components/paper/paper-trading-panel";
 import type { PaperDashboardData } from "@/paper/types";
 import { ModalCloseButton } from "@/components/common/modal-close-button";
+import { useFocusTrap } from "@/components/common/use-focus-trap";
 
 export function PaperTradingOverlay({
   open,
@@ -60,6 +61,8 @@ export function PaperTradingOverlay({
     };
   }, [open, onClose]);
 
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
+
   if (!open) return null;
 
   const title = "Paper Trading";
@@ -74,7 +77,10 @@ export function PaperTradingOverlay({
         if (event.currentTarget === event.target) onClose();
       }}
     >
-      <div className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-zinc-800 bg-[#0b0e14] shadow-2xl md:max-w-5xl md:rounded-2xl">
+      <div
+        ref={trapRef}
+        className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-zinc-800 bg-[#0b0e14] shadow-2xl md:max-w-5xl md:rounded-2xl"
+      >
         <header className="shrink-0 border-b border-zinc-800">
           <div className="flex items-center justify-between px-4 py-3">
             <div>
