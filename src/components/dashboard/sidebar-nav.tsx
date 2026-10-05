@@ -115,7 +115,7 @@ export function SidebarNav() {
         aria-label="Primary"
         className="pointer-events-auto fixed inset-x-0 bottom-0 z-40 h-[calc(3.75rem+env(safe-area-inset-bottom))] border-t border-zinc-800 bg-[#0b0e14]/98 md:hidden"
       >
-        <div className="grid h-full grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)]">
+        <div className="grid h-[3.75rem] grid-cols-5 px-1">
           {NAV_ITEMS.map((item) => {
             const itemClass =
               "relative z-10 flex min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 px-1 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500";
