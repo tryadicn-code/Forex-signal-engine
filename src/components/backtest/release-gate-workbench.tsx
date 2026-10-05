@@ -181,16 +181,16 @@ function ReleaseGateHeader({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[8px] font-semibold text-zinc-400">
+        <span className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[11px] font-semibold text-zinc-400">
           {state}
         </span>
-        <span className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[8px] text-zinc-600">
+        <span className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[11px] text-zinc-600">
           FP {fingerprint}
         </span>
         <button
           type="button"
           onClick={onExport}
-          className="rounded border border-zinc-700 px-2 py-1 font-mono text-[8px] text-zinc-500 hover:border-sky-800 hover:text-sky-300"
+          className="rounded border border-zinc-700 px-2 py-1 font-mono text-[11px] text-zinc-500 hover:border-sky-800 hover:text-sky-300"
         >
           Export gate JSON
         </button>
@@ -223,11 +223,11 @@ function EvidenceMatrix({
             key={item.id}
             className="grid gap-2 border-t border-zinc-800 bg-zinc-950/40 px-3 py-2 first:border-t-0 sm:grid-cols-[130px_150px_minmax(0,1fr)] sm:items-center"
           >
-            <div className="font-mono text-[8px] uppercase tracking-[0.08em] text-zinc-700">
+            <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-700">
               {item.category}
             </div>
             <div>
-              <span className="inline-flex rounded border border-zinc-800 px-1.5 py-0.5 font-mono text-[8px] font-semibold text-zinc-400">
+              <span className="inline-flex rounded border border-zinc-800 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-zinc-400">
                 {item.status}
               </span>
               <div className="mt-1 text-[9px] font-medium text-zinc-400">
@@ -253,7 +253,7 @@ function EvidenceMatrix({
 function Count({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded border border-zinc-800 bg-zinc-950/50 px-2.5 py-2">
-      <div className="text-[8px] uppercase tracking-[0.08em] text-zinc-700">
+      <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
         {label}
       </div>
       <div className="mt-0.5 font-mono text-sm font-semibold text-zinc-300">
@@ -301,7 +301,7 @@ function ReviewForm({
         <h4 className="text-[10px] font-semibold text-zinc-400">
           Manual reviewer checklist
         </h4>
-        <p className="mt-0.5 text-[8px] text-zinc-700">
+        <p className="mt-0.5 text-[11px] text-zinc-700">
           A checked item means it was reviewed, not that the evidence was favorable.
         </p>
       </header>
@@ -333,7 +333,7 @@ function ReviewForm({
           onChange={() => toggle("statisticsReviewed")}
         />
 
-        <label className="block text-[8px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
           Forward Paper evidence
           <select
             value={checklist.forwardPaper}
@@ -354,7 +354,7 @@ function ReviewForm({
           </span>
         </label>
 
-        <label className="block text-[8px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
           Reviewer
           <input
             value={reviewer}
@@ -365,7 +365,7 @@ function ReviewForm({
           />
         </label>
 
-        <label className="block text-[8px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
           Reviewer note
           <textarea
             value={note}
@@ -377,7 +377,7 @@ function ReviewForm({
           />
         </label>
 
-        <label className="block text-[8px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+        <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
           Reviewer decision
           <select
             value={decision}
@@ -410,7 +410,7 @@ function ReviewForm({
           {saving ? "Saving review…" : "Save release review"}
         </button>
 
-        <p className="text-[8px] leading-relaxed text-zinc-700">
+        <p className="text-[11px] leading-relaxed text-zinc-700">
           PROMOTE requires all core checklist items and Forward Paper marked REVIEWED or WAIVED. Evidence warnings remain visible and do not become an automatic decision.
         </p>
       </div>

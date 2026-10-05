@@ -77,6 +77,29 @@ export interface RiskDetail {
   accountCurrency?: string | null;
 }
 
+/**
+ * UIUX-M-001: planned entry/stop/TP derived from the Setup Engine's own zone.
+ * Present only while the setup is actionable (SETUP or ARMED) and the
+ * direction is not NEUTRAL. This is NOT the frozen execution snapshot; the
+ * Risk Engine still owns the final entry/SL/TP once the trigger confirms.
+ * Presentation-only; never fed back into the engine.
+ */
+export interface PlannedLevels {
+  direction: "LONG" | "SHORT";
+  /** Midpoint of the current setup zone (reference, not a fill guarantee). */
+  entry: number;
+  /** Setup invalidation level (later reused by the Risk Engine as the stop). */
+  stop: number;
+  /** Level projected at the strategy's minimum reward-to-risk. */
+  takeProfit: number;
+  /** Reward-to-risk used to project takeProfit. */
+  rr: number;
+  zoneLow: number;
+  zoneHigh: number;
+  /** Which engine produced the zone, kept for display context. */
+  source: string;
+}
+
 export interface SymbolScanResult {
   symbol: string;
 
@@ -128,6 +151,12 @@ export interface SymbolScanResult {
   executionDetail: ExecutionDetail | null;
   /** Risk-engine levels behind the R:R figure. */
   riskDetail: RiskDetail | null;
+  /**
+   * UIUX-M-001: planned levels from the current setup zone, rendered before
+   * the trigger confirms so the user can see where the engine is waiting.
+   * Null when no actionable setup exists yet.
+   */
+  plannedLevels?: PlannedLevels | null;
 
   /** Phase 1 evidence backing the conclusions. */
   evidence: Evidence[];
@@ -191,6 +220,7 @@ export function failureResult(
     timeframes: [],
     executionDetail: null,
     riskDetail: null,
+    plannedLevels: null,
     evidence: [],
     conflicts: [],
     issues: [],

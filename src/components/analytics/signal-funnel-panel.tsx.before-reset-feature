@@ -24,15 +24,9 @@ const WINDOWS: SignalFunnelWindow[] = ["24H", "7D", "30D"];
 export function SignalFunnelPanel({
   analytics,
   persistenceError,
-  onReset,
-  resetting = false,
 }: {
   analytics: SignalFunnelDashboard | null | undefined;
   persistenceError?: string | null;
-  /** Optional reset handler. When provided, a Reset button is rendered. */
-  onReset?: () => void;
-  /** True while a reset request is in flight. Disables the button. */
-  resetting?: boolean;
 }) {
   const [windowKey, setWindowKey] = useState<SignalFunnelWindow>("24H");
   const summary = analytics?.windows[windowKey] ?? null;
@@ -61,8 +55,7 @@ export function SignalFunnelPanel({
             Observability only — shows where opportunities are being filtered without changing strategy decisions.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex w-fit rounded-md border border-zinc-800 bg-zinc-950/60 p-0.5">
+        <div className="flex w-fit rounded-md border border-zinc-800 bg-zinc-950/60 p-0.5">
           {WINDOWS.map((item) => (
             <button
               key={item}
@@ -77,17 +70,6 @@ export function SignalFunnelPanel({
               {item}
             </button>
           ))}
-        </div>
-          {onReset && (
-            <button
-              type="button"
-              disabled={resetting}
-              onClick={onReset}
-              className="rounded-md border border-zinc-700 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:border-red-800/60 hover:bg-red-950/20 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {resetting ? "Resetting..." : "Reset"}
-            </button>
-          )}
         </div>
       </header>
 

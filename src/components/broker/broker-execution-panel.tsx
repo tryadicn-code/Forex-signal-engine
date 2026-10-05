@@ -28,7 +28,7 @@ export function BrokerExecutionPanel({
         </div>
         <span
           className={
-            "rounded border px-2 py-1 font-mono text-[8px] font-semibold " +
+            "rounded border px-2 py-1 font-mono text-[11px] font-semibold " +
             (broker.mode === "LIVE"
               ? broker.liveReady
                 ? "border-red-800 bg-red-950/25 text-red-300"
@@ -83,10 +83,10 @@ export function BrokerExecutionPanel({
                   key={record.id}
                   className="grid gap-1 rounded border border-zinc-800 bg-zinc-950/45 px-2.5 py-2 sm:grid-cols-[92px_72px_minmax(0,1fr)] sm:items-center"
                 >
-                  <span className={"font-mono text-[8px] " + statusTone(record.status)}>
+                  <span className={"font-mono text-[11px] " + statusTone(record.status)}>
                     {record.status}
                   </span>
-                  <span className="font-mono text-[8px] text-zinc-400">
+                  <span className="font-mono text-[11px] text-zinc-400">
                     {record.symbol} {record.side}
                   </span>
                   <span className="truncate text-[9px] text-zinc-600" title={record.message}>
@@ -138,7 +138,7 @@ export function BrokerExecutionPanel({
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded border border-zinc-800 bg-zinc-950/55 px-2 py-1.5">
-      <dt className="text-[7px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
         {label}
       </dt>
       <dd className="mt-0.5 truncate font-mono text-[9px] text-zinc-300" title={value}>

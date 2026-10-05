@@ -17,6 +17,12 @@ export function SignalExecutiveSummary({
   const status = workstationStatus(result);
   const stages = workstationStages(result);
   const risk = result.riskDetail;
+  const planned = result.plannedLevels ?? null;
+  const isPlanned = !risk && planned !== null;
+  const entryVal = risk?.entryPrice ?? planned?.entry ?? null;
+  const stopVal = risk?.stopLoss ?? planned?.stop ?? null;
+  const tpVal = risk?.takeProfit1 ?? planned?.takeProfit ?? null;
+  const rrVal = result.riskReward ?? risk?.plannedRR ?? planned?.rr ?? null;
 
   return (
     <section
@@ -80,11 +86,16 @@ export function SignalExecutiveSummary({
       </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-zinc-800 bg-zinc-800 sm:grid-cols-4">
-        <Metric label="Entry" value={formatPrice(result.symbol, risk?.entryPrice ?? null)} />
-        <Metric label="Stop" value={formatPrice(result.symbol, risk?.stopLoss ?? null)} />
-        <Metric label="Target" value={formatPrice(result.symbol, risk?.takeProfit1 ?? null)} />
-        <Metric label="R:R" value={formatRatio(result.riskReward ?? risk?.plannedRR ?? null)} />
+        <Metric label={isPlanned ? "Planned entry" : "Entry"} value={formatPrice(result.symbol, entryVal)} />
+        <Metric label={isPlanned ? "Planned stop" : "Stop"} value={formatPrice(result.symbol, stopVal)} />
+        <Metric label={isPlanned ? "Planned target" : "Target"} value={formatPrice(result.symbol, tpVal)} />
+        <Metric label={isPlanned ? "Min R:R" : "R:R"} value={formatRatio(rrVal)} />
       </dl>
+      {isPlanned && (
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">
+          Planned levels derived from the current setup zone. The Risk Engine will freeze the final entry, stop, and target once the trigger confirms.
+        </p>
+      )}
 
       <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[10px] text-zinc-600">
         <span>Engine {result.executionDecision ?? "—"}</span>

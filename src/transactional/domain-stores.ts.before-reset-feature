@@ -164,12 +164,6 @@ export class TransactionalSignalFunnelStore implements SignalFunnelStore {
       return { next, result: next };
     });
   }
-
-  async clear(): Promise<SignalFunnelStoreState> {
-    const empty = emptySignalFunnelStoreState();
-    await this.repo.replace(empty);
-    return empty;
-  }
 }
 
 export class TransactionalStrategyVersionStore {

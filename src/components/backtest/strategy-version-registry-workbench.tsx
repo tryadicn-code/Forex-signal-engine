@@ -233,7 +233,7 @@ export function StrategyVersionRegistryWorkbench({
             Immutable validated manifests with explicit supersession, controlled rollback and deprecation history.
           </p>
         </div>
-        <span className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[8px] text-zinc-500">
+        <span className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1 font-mono text-[11px] text-zinc-500">
           {registry?.entries.length ?? 0} registered
         </span>
       </header>
@@ -243,7 +243,7 @@ export function StrategyVersionRegistryWorkbench({
           <h4 className="text-[10px] font-semibold text-zinc-400">
             Register promoted strategy
           </h4>
-          <p className="mt-1 text-[8px] leading-relaxed text-zinc-700">
+          <p className="mt-1 text-[11px] leading-relaxed text-zinc-700">
             Registration freezes the current strategy/scanner baseline together with its validation and release-gate evidence.
           </p>
 
@@ -394,7 +394,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block text-[8px] font-medium uppercase tracking-[0.08em] text-zinc-700">
+    <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-700">
       {label}
       {children}
       {hint && (
@@ -469,14 +469,14 @@ function VersionCard({
             <span className="font-mono text-sm font-semibold text-zinc-200">
               {manifest.version}
             </span>
-            <span className="rounded border border-zinc-800 px-1.5 py-0.5 font-mono text-[8px] font-semibold text-zinc-400">
+            <span className="rounded border border-zinc-800 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-zinc-400">
               {entry.currentStatus}
             </span>
           </div>
           <h4 className="mt-1 text-[10px] font-medium text-zinc-400">
             {manifest.title}
           </h4>
-          <p className="mt-0.5 font-mono text-[8px] text-zinc-700">
+          <p className="mt-0.5 font-mono text-[11px] text-zinc-700">
             FP {manifest.manifestFingerprint} · report {manifest.sourceReportId}
           </p>
         </div>
@@ -484,7 +484,7 @@ function VersionCard({
           <button
             type="button"
             onClick={exportManifest}
-            className="rounded border border-zinc-800 px-2 py-1 text-[8px] text-zinc-500 hover:border-emerald-800 hover:text-emerald-300"
+            className="rounded border border-zinc-800 px-2 py-1 text-[11px] text-zinc-500 hover:border-emerald-800 hover:text-emerald-300"
           >
             Export manifest
           </button>
@@ -493,7 +493,7 @@ function VersionCard({
               type="button"
               disabled={disabled}
               onClick={onStartRollback}
-              className="rounded border border-zinc-800 px-2 py-1 text-[8px] text-zinc-500 hover:border-sky-800 hover:text-sky-300 disabled:opacity-40"
+              className="rounded border border-zinc-800 px-2 py-1 text-[11px] text-zinc-500 hover:border-sky-800 hover:text-sky-300 disabled:opacity-40"
             >
               Rollback
             </button>
@@ -503,7 +503,7 @@ function VersionCard({
               type="button"
               disabled={disabled}
               onClick={onStartDeprecate}
-              className="rounded border border-zinc-800 px-2 py-1 text-[8px] text-zinc-500 hover:border-amber-800 hover:text-amber-300 disabled:opacity-40"
+              className="rounded border border-zinc-800 px-2 py-1 text-[11px] text-zinc-500 hover:border-amber-800 hover:text-amber-300 disabled:opacity-40"
             >
               Deprecate
             </button>
@@ -527,7 +527,7 @@ function VersionCard({
             {entry.statusHistory.map((event, index) => (
               <div
                 key={event.changedAt + "-" + index}
-                className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-[8px] text-zinc-600"
+                className="rounded border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-[11px] text-zinc-600"
               >
                 <span className="font-mono font-semibold text-zinc-400">
                   {event.status}
@@ -585,14 +585,14 @@ function VersionCard({
               type="button"
               disabled={disabled}
               onClick={() => void onConfirmRollback()}
-              className="rounded border border-sky-800 px-2.5 py-1.5 text-[8px] font-semibold text-sky-300 disabled:opacity-40"
+              className="rounded border border-sky-800 px-2.5 py-1.5 text-[11px] font-semibold text-sky-300 disabled:opacity-40"
             >
               Confirm rollback
             </button>
             <button
               type="button"
               onClick={onCancelRollback}
-              className="rounded border border-zinc-800 px-2.5 py-1.5 text-[8px] text-zinc-500"
+              className="rounded border border-zinc-800 px-2.5 py-1.5 text-[11px] text-zinc-500"
             >
               Cancel
             </button>
@@ -626,14 +626,14 @@ function VersionCard({
               type="button"
               disabled={disabled}
               onClick={() => void onConfirmDeprecate()}
-              className="rounded border border-amber-800 px-2.5 py-1.5 text-[8px] font-semibold text-amber-300 disabled:opacity-40"
+              className="rounded border border-amber-800 px-2.5 py-1.5 text-[11px] font-semibold text-amber-300 disabled:opacity-40"
             >
               Confirm deprecate
             </button>
             <button
               type="button"
               onClick={onCancelDeprecate}
-              className="rounded border border-zinc-800 px-2.5 py-1.5 text-[8px] text-zinc-500"
+              className="rounded border border-zinc-800 px-2.5 py-1.5 text-[11px] text-zinc-500"
             >
               Cancel
             </button>
@@ -647,10 +647,10 @@ function VersionCard({
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded border border-zinc-800 bg-zinc-950/60 px-2 py-1.5">
-      <dt className="text-[7px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
         {label}
       </dt>
-      <dd className="mt-0.5 truncate font-mono text-[8px] text-zinc-400">
+      <dd className="mt-0.5 truncate font-mono text-[11px] text-zinc-400">
         {value || "—"}
       </dd>
     </div>

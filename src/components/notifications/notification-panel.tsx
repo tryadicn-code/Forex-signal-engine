@@ -32,7 +32,7 @@ export function NotificationPanel({
         </div>
         <span
           className={
-            "rounded border px-2 py-1 font-mono text-[8px] font-semibold " +
+            "rounded border px-2 py-1 font-mono text-[11px] font-semibold " +
             (notifications.enabled
               ? "border-sky-800 bg-sky-950/20 text-sky-300"
               : "border-zinc-700 text-zinc-500")
@@ -103,10 +103,10 @@ export function NotificationPanel({
                   key={event.id}
                   className="grid gap-1 rounded border border-zinc-800 bg-zinc-950/45 px-2.5 py-2 sm:grid-cols-[105px_92px_minmax(0,1fr)] sm:items-center"
                 >
-                  <span className={"font-mono text-[8px] " + stateTone(event.state)}>
+                  <span className={"font-mono text-[11px] " + stateTone(event.state)}>
                     {event.state}
                   </span>
-                  <span className="font-mono text-[8px] text-zinc-400">
+                  <span className="font-mono text-[11px] text-zinc-400">
                     {event.symbol} {event.direction}
                   </span>
                   <span className="truncate text-[9px] text-zinc-600" title={event.message}>
@@ -130,7 +130,7 @@ export function NotificationPanel({
                 </h3>
                 <span
                   className={
-                    "font-mono text-[8px] " +
+                    "font-mono text-[11px] " +
                     (!channel.enabled
                       ? "text-zinc-600"
                       : channel.configured
@@ -159,7 +159,7 @@ export function NotificationPanel({
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded border border-zinc-800 bg-zinc-950/55 px-2 py-1.5">
-      <dt className="text-[7px] uppercase tracking-[0.08em] text-zinc-700">
+      <dt className="text-[11px] uppercase tracking-[0.08em] text-zinc-700">
         {label}
       </dt>
       <dd className="mt-0.5 truncate font-mono text-[9px] text-zinc-300" title={value}>

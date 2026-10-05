@@ -68,3 +68,9 @@ tsconfig.tsbuildinfo
 src.batch*.backup/
 *.backup/
 
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+

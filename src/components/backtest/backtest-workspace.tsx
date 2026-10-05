@@ -578,7 +578,7 @@ function BacktestResultHeader({
             {artifact.metadata.tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[8px] text-zinc-600"
+                className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[11px] text-zinc-600"
               >
                 #{tag}
               </span>
@@ -744,7 +744,7 @@ function RecentRuns({
                 </span>
                 <div className="flex shrink-0 items-center gap-1">
                   {run.releaseDecision && (
-                    <span className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[8px] text-zinc-500">
+                    <span className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[11px] text-zinc-500">
                       {run.releaseDecision}
                     </span>
                   )}
@@ -758,7 +758,7 @@ function RecentRuns({
                   {run.tags.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[8px] text-zinc-600"
+                      className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[11px] text-zinc-600"
                     >
                       #{tag}
                     </span>
@@ -771,7 +771,7 @@ function RecentRuns({
                 <span>DD {formatPercent(run.maxDrawdownPercent)}</span>
                 <span>E[R] {formatSigned(run.expectancyR, 2)}</span>
               </div>
-              <div className="mt-1 font-mono text-[8px] text-zinc-700">
+              <div className="mt-1 font-mono text-[11px] text-zinc-700">
                 {loadingRunId === run.id ? "Loading…" : formatUtc(run.completedAt)}
               </div>
             </button>
@@ -785,7 +785,7 @@ function RecentRuns({
 function DataItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded border border-zinc-800 bg-zinc-950/30 px-2 py-1.5">
-      <dt className="text-[8px] uppercase tracking-[0.1em] text-zinc-700">{label}</dt>
+      <dt className="text-[11px] uppercase tracking-[0.1em] text-zinc-700">{label}</dt>
       <dd className="mt-0.5 font-mono text-[10px] text-zinc-300">{value}</dd>
     </div>
   );

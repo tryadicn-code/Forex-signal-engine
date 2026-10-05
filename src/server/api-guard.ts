@@ -33,7 +33,27 @@ export function readBrokerApprovalSecret(request: Request): string | null {
   return request.headers.get("x-fse-approval-secret");
 }
 
+/**
+ * DEV-ONLY bypass: when FSE_DEV_DISABLE_AUTH=true, all mutation endpoints
+ * skip the approval-secret check. This is intended for local development
+ * only and MUST NOT be set in a production environment.
+ */
+export function isAuthDisabled(): boolean {
+  return (process.env.FSE_DEV_DISABLE_AUTH ?? "").trim().toLowerCase() === "true";
+}
+
+let warnedAuthDisabled = false;
+
 export function requireBrokerSecret(request: Request): void {
+  if (isAuthDisabled()) {
+    if (!warnedAuthDisabled) {
+      warnedAuthDisabled = true;
+      console.warn(
+        "[api-guard] FSE_DEV_DISABLE_AUTH=true — approval secret check is DISABLED. Do not use in production."
+      );
+    }
+    return;
+  }
   assertBrokerApprovalSecret(readBrokerApprovalSecret(request));
 }
 
@@ -46,6 +66,9 @@ export function requireBrokerSecret(request: Request): void {
  *   - Secret configured -> require a matching header.
  */
 export function requireBrokerSecretOrDevOpen(request: Request): void {
+  if (isAuthDisabled()) {
+    return;
+  }
   const expected = (process.env.FSE_LIVE_APPROVAL_SECRET ?? "").trim();
   if (!expected) {
     if (process.env.NODE_ENV === "production") {
