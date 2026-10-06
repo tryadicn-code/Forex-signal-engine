@@ -7,7 +7,8 @@ import type {
   HistoricalIntrabarConflictPolicy,
 } from "@/replay/execution-types";
 import type { HistoricalTextFile } from "@/replay/import-types";
-import { executeAndPersistBacktest } from "@/server/backtest-access";
+import { startBacktestJob } from "@/server/backtest-access";
+import { snapshotBacktestJob } from "@/server/backtest-job-registry";
 import { requireBrokerSecret } from "@/server/api-guard";
 
 export const dynamic = "force-dynamic";
@@ -95,9 +96,15 @@ export async function POST(request: Request) {
     );
 
     const config = parseConfig(form);
-    const artifact = await executeAndPersistBacktest(files, config);
 
-    return NextResponse.json({ ok: true, artifact });
+    // TRD-018: replay is CPU-heavy and can run for tens of minutes on a
+    // multi-month M15 dataset. Run it as a background job and return 202
+    // immediately so the HTTP handler does not hold the connection.
+    const job = startBacktestJob(files, config);
+    return NextResponse.json(
+      { ok: true, job: snapshotBacktestJob(job) },
+      { status: 202 }
+    );
   } catch (error) {
     if (error instanceof BacktestValidationError) {
       return NextResponse.json(

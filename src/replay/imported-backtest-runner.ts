@@ -16,9 +16,15 @@ import {
 
 export const DEFAULT_MAX_SYNCHRONOUS_REPLAY_STEPS = 50_000;
 
+export type RunImportedBacktestOptions = {
+  onProgress?: (completedSteps: number, totalSteps: number) => void;
+  signal?: AbortSignal;
+};
+
 export async function runImportedBacktest(
   files: HistoricalTextFile[],
-  config: BacktestRunConfig
+  config: BacktestRunConfig,
+  options?: RunImportedBacktestOptions
 ): Promise<BacktestRunArtifact> {
   const startedWallClock = Date.now();
   const importOptions: HistoricalCsvImportOptions = {
@@ -162,7 +168,26 @@ export async function runImportedBacktest(
     },
   });
 
-  const result = await runner.run({ collectSteps: false });
+  const totalSteps = stepEstimate;
+  const onProgress = options?.onProgress;
+  const signal = options?.signal;
+  let completedSteps = 0;
+
+  const result = await runner.run({
+    collectSteps: false,
+    onStep: async () => {
+      if (signal?.aborted) {
+        const cancelError = new Error("Backtest job cancelled by user.");
+        cancelError.name = "AbortError";
+        throw cancelError;
+      }
+      completedSteps += 1;
+      if (onProgress) onProgress(completedSteps, totalSteps);
+      // Yield the event loop so concurrent HTTP polls stay responsive
+      // while the replay saturates the CPU.
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    },
+  });
   if (!result.execution || !result.analytics) {
     throw new Error(
       "Historical replay completed without execution/analytics output."

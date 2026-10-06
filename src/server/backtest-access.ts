@@ -1,4 +1,8 @@
 import { runImportedBacktest } from "@/replay/imported-backtest-runner";
+import {
+  createBacktestJob,
+  type BacktestJobInternal,
+} from "@/server/backtest-job-registry";
 import type {
   BacktestRunArtifact,
   BacktestRunConfig,
@@ -30,6 +34,55 @@ export async function executeAndPersistBacktest(
     await store.save(artifact);
   });
   return artifact;
+}
+
+export function startBacktestJob(
+  files: HistoricalTextFile[],
+  config: BacktestRunConfig
+): BacktestJobInternal {
+  const job = createBacktestJob(config.datasetId);
+  job.status = "RUNNING";
+  job.startedAt = Date.now();
+  job.lastProgressAt = Date.now();
+
+  // Fire-and-forget: the async replay keeps running after the HTTP handler
+  // returns the job id. Progress is written back into the registry; the
+  // client polls /api/backtest/runs/[id] to observe it.
+  void (async () => {
+    try {
+      const artifact = await runImportedBacktest(files, config, {
+        signal: job.abortController.signal,
+        onProgress: (completed, total) => {
+          job.completedSteps = completed;
+          if (total > 0 && job.totalSteps !== total) {
+            job.totalSteps = total;
+          }
+          job.lastProgressAt = Date.now();
+        },
+      });
+      await withBacktestMutation(async () => {
+        await store.save(artifact);
+      });
+      job.artifact = artifact;
+      job.status = "COMPLETED";
+      job.completedAt = Date.now();
+      job.lastProgressAt = Date.now();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unexpected backtest failure.";
+      const isAbort =
+        error instanceof Error &&
+        (error.name === "AbortError" || /cancel/i.test(message));
+      job.error = message;
+      job.status = isAbort ? "CANCELLED" : "FAILED";
+      job.completedAt = Date.now();
+      job.lastProgressAt = Date.now();
+    }
+  })();
+
+  return job;
 }
 
 export async function listPersistedBacktests(

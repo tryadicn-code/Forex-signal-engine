@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { BacktestRunArtifact, BacktestRunListItem } from "@/replay/backtest-run-types";
 import type { HistoricalDatasetValidation } from "@/replay/import-types";
+import type { BacktestJobSnapshot } from "@/server/backtest-job-registry";
 import { ValidationWorkbench } from "@/components/backtest/validation-workbench";
 import { apiFetch, ApiError } from "@/lib/api-client";
 
 type ApiRunResponse =
+  | { ok: true; job: BacktestJobSnapshot }
   | { ok: true; artifact: BacktestRunArtifact }
   | {
       ok: false;
@@ -30,6 +32,9 @@ export function BacktestWorkspace() {
   const [policy, setPolicy] = useState("STOP_FIRST");
   const [running, setRunning] = useState(false);
   const [artifact, setArtifact] = useState<BacktestRunArtifact | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobSnapshot, setJobSnapshot] = useState<BacktestJobSnapshot | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [validation, setValidation] =
     useState<HistoricalDatasetValidation | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,11 +69,63 @@ export function BacktestWorkspace() {
     return () => window.clearTimeout(initialLoad);
   }, []);
 
+  useEffect(() => {
+    if (!jobId) return;
+    let cancelled = false;
+    let interval: number | null = null;
+
+    const tick = async () => {
+      try {
+        const res = await fetch(
+          "/api/backtest/runs/" + encodeURIComponent(jobId),
+          { cache: "no-store" }
+        );
+        if (!res.ok) return;
+        const payload = (await res.json()) as
+          | { ok: true; job: BacktestJobSnapshot }
+          | { ok: true; artifact: BacktestRunArtifact };
+        if (cancelled || !payload.ok) return;
+        if ("job" in payload) {
+          setJobSnapshot(payload.job);
+          if (payload.job.status === "COMPLETED" && payload.job.artifact) {
+            if (interval !== null) window.clearInterval(interval);
+            setArtifact(payload.job.artifact);
+            setValidation(payload.job.artifact.validation);
+            void refreshRecent();
+            setRunning(false);
+            setJobId(null);
+          } else if (payload.job.status === "FAILED") {
+            if (interval !== null) window.clearInterval(interval);
+            setError(payload.job.error ?? "Backtest failed.");
+            setRunning(false);
+            setJobId(null);
+          } else if (payload.job.status === "CANCELLED") {
+            if (interval !== null) window.clearInterval(interval);
+            setError("Backtest cancelled.");
+            setRunning(false);
+            setJobId(null);
+          }
+        }
+      } catch {
+        // transient network error; keep polling
+      }
+    };
+
+    interval = window.setInterval(tick, 1500);
+    void tick();
+    return () => {
+      cancelled = true;
+      if (interval !== null) window.clearInterval(interval);
+    };
+  }, [jobId]);
+
   const runBacktest = async () => {
     if (running || files.length === 0) return;
     setRunning(true);
     setError(null);
     setValidation(null);
+    setJobSnapshot(null);
+    let keepRunning = false;
 
     try {
       const form = new FormData();
@@ -101,6 +158,13 @@ export function BacktestWorkspace() {
         return;
       }
 
+      if ("job" in payload) {
+        setJobId(payload.job.id);
+        setJobSnapshot(payload.job);
+        keepRunning = true;
+        return;
+      }
+
       setArtifact(payload.artifact);
       setValidation(payload.artifact.validation);
       await refreshRecent();
@@ -125,7 +189,21 @@ export function BacktestWorkspace() {
         runError instanceof Error ? runError.message : String(runError)
       );
     } finally {
-      setRunning(false);
+      if (!keepRunning) setRunning(false);
+    }
+  };
+
+  const cancelJob = async () => {
+    if (!jobId || cancelling) return;
+    setCancelling(true);
+    try {
+      await fetch("/api/backtest/runs/" + encodeURIComponent(jobId), {
+        method: "DELETE",
+      });
+    } catch {
+      // polling will surface the terminal state
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -369,17 +447,38 @@ export function BacktestWorkspace() {
             </details>
 
             <div className="border-t border-zinc-800 pt-3">
-              <button
-                type="button"
-                disabled={running || files.length === 0}
-                onClick={runBacktest}
-                className="w-full rounded-md border border-emerald-700/70 bg-emerald-950/30 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-              >
-                {running ? "Validating & replaying…" : "Validate & run backtest"}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={running || files.length === 0}
+                  onClick={runBacktest}
+                  className="rounded-md border border-emerald-700/70 bg-emerald-950/30 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {running
+                    ? jobId
+                      ? "Replaying..."
+                      : "Validating..."
+                    : "Validate & run backtest"}
+                </button>
+                {jobId && (
+                  <button
+                    type="button"
+                    disabled={cancelling}
+                    onClick={cancelJob}
+                    className="rounded-md border border-red-800 bg-red-950/30 px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-red-300 transition-colors hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {cancelling ? "Cancelling..." : "Cancel"}
+                  </button>
+                )}
+              </div>
               <p className="mt-1.5 text-[11px] text-zinc-600">
-                Synchronous safety limit: 50,000 M15 replay steps. Narrow the date range for larger datasets.
+                Runs in the background. You can leave this page and come back. Synchronous safety limit: 50,000 M15 replay steps.
               </p>
+              {!running && files.length > 0 && (
+                <p className="mt-1.5 text-[11px] text-amber-500/80">
+                  Rough estimate: 50-100 ms per M15 step. A 1-month window (~2,900 steps) typically takes 3-5 minutes; a 6-month window (~17,500 steps) can take 20-35 minutes.
+                </p>
+              )}
             </div>
           </div>
 
@@ -390,6 +489,16 @@ export function BacktestWorkspace() {
           />
         </div>
       </section>
+
+      {jobSnapshot &&
+        (jobSnapshot.status === "RUNNING" ||
+          jobSnapshot.status === "PENDING") && (
+          <JobProgressPanel
+            job={jobSnapshot}
+            cancelling={cancelling}
+            onCancel={cancelJob}
+          />
+        )}
 
       {error && (
         <div
@@ -783,6 +892,81 @@ function RecentRuns({
         )}
       </div>
     </aside>
+  );
+}
+
+function JobProgressPanel({
+  job,
+  cancelling,
+  onCancel,
+}: {
+  job: BacktestJobSnapshot;
+  cancelling: boolean;
+  onCancel: () => void;
+}) {
+  // Local 1-second tick so elapsed/ETA update on their own without calling
+  // Date.now() during render (react-hooks/purity forbids impure calls in
+  // the render body).
+  const [nowTick, setNowTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTick(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [job.id]);
+
+  const total = job.totalSteps > 0 ? job.totalSteps : 0;
+  const done = job.completedSteps;
+  const pct = total > 0 ? Math.min(100, (done / total) * 100) : 0;
+  const now = nowTick || job.createdAt;
+  const elapsedMs = job.startedAt ? now - job.startedAt : now - job.createdAt;
+  const elapsedSec = Math.max(0, Math.floor(elapsedMs / 1000));
+  const stepsPerSec = elapsedSec > 0 ? done / elapsedSec : 0;
+  const remainingSteps = total > 0 ? Math.max(0, total - done) : 0;
+  const etaSec =
+    stepsPerSec > 0 && remainingSteps > 0
+      ? Math.round(remainingSteps / stepsPerSec)
+      : null;
+
+  return (
+    <section className="rounded-md border border-cyan-900/60 bg-cyan-950/10">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-900/40 px-3 py-2.5">
+        <div>
+          <h2 className="text-sm font-semibold text-cyan-100">
+            Backtest running in background
+          </h2>
+          <p className="mt-0.5 font-mono text-[11px] text-cyan-200/60">
+            {job.id}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-[11px] text-cyan-200/80">
+            {elapsedSec}s elapsed
+            {etaSec !== null ? " \u00b7 ~" + etaSec + "s left" : ""}
+          </span>
+          <button
+            type="button"
+            disabled={cancelling}
+            onClick={onCancel}
+            className="rounded border border-red-800 bg-red-950/30 px-2.5 py-1 text-[11px] font-medium text-red-300 hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {cancelling ? "Cancelling..." : "Cancel"}
+          </button>
+        </div>
+      </header>
+      <div className="space-y-2 p-3">
+        <div className="flex items-center justify-between text-[11px] text-cyan-200/70">
+          <span>
+            {done.toLocaleString()} / {total > 0 ? total.toLocaleString() : "?"} M15 steps
+          </span>
+          <span className="font-mono">{pct.toFixed(1)}%</span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-cyan-950/40">
+          <div
+            className="h-full bg-cyan-500 transition-[width] duration-300"
+            style={{ width: pct + "%" }}
+          />
+        </div>
+      </div>
+    </section>
   );
 }
 

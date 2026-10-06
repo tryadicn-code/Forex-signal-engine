@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  cancelBacktestJob,
+  getBacktestJob,
+  snapshotBacktestJob,
+} from "@/server/backtest-job-registry";
 import type {
   ComparablePerformance,
   HistoricalForwardComparison,
@@ -34,6 +39,17 @@ export async function GET(
         { expose: true, statusOverride: 400 }
       );
     }
+    // TRD-018: check the in-process job registry first. If the id belongs
+    // to a running/completed job, return its live snapshot. Otherwise fall
+    // back to the persisted-artifact store (legacy behaviour).
+    const job = getBacktestJob(id);
+    if (job) {
+      return NextResponse.json({
+        ok: true,
+        job: snapshotBacktestJob(job),
+      });
+    }
+
     const artifact = await readPersistedBacktest(id);
     if (!artifact) {
       return errorResponse(
@@ -48,6 +64,38 @@ export async function GET(
   }
 }
 
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    requireBrokerSecret(request);
+    const { id } = await context.params;
+    if (!isValidBacktestId(id)) {
+      return errorResponse(
+        new Error("Invalid backtest id."),
+        "Invalid backtest id.",
+        { expose: true, statusOverride: 400 }
+      );
+    }
+    const job = getBacktestJob(id);
+    if (!job) {
+      return NextResponse.json(
+        { ok: false, error: "Backtest job not found." },
+        { status: 404 }
+      );
+    }
+    const cancelled = cancelBacktestJob(id);
+    return NextResponse.json({
+      ok: true,
+      cancelled,
+      job: snapshotBacktestJob(job),
+    });
+  } catch (error) {
+    return errorResponse(error, "Unable to cancel backtest job.");
+  }
+}
 
 export async function PATCH(
   request: Request,
