@@ -3,8 +3,10 @@ import "server-only";
 import { STORAGE_PATHS } from "@/config/storage";
 import {
   buildSignalFunnelDashboard,
+  type DownstreamOrderInput,
   type SignalFunnelDashboard,
 } from "@/analytics/signal-funnel";
+import { readPaperDashboard } from "@/server/paper-trading-access";
 import {
   JsonFileSignalFunnelStore,
   type SignalFunnelStore,
@@ -76,8 +78,18 @@ export async function readSignalFunnelDashboard(
 ): Promise<SignalFunnelDashboardView> {
   try {
     const state = await store.read();
+
+    // TRD-017 Change B: read the paper store at the same time so downstream
+    // outcomes (filled / rejected with reason) appear next to the funnel
+    // stages. This is a read-time join and never mutates the funnel schema.
+    const downstream = await readDownstreamOrdersSafely();
+
     return {
-      analytics: buildSignalFunnelDashboard(state.observations, asOf),
+      analytics: buildSignalFunnelDashboard(
+        state.observations,
+        asOf,
+        downstream
+      ),
       persistenceError: getPersistenceError(),
     };
   } catch (error) {
@@ -87,6 +99,26 @@ export async function readSignalFunnelDashboard(
       analytics: null,
       persistenceError: message,
     };
+  }
+}
+
+/**
+ * Read the paper store and project only the fields the funnel needs.
+ *
+ * A failure here must not take down the funnel view: downstream visibility is
+ * a nice-to-have, the funnel is the primary artifact. On any error we return
+ * an empty array and let the panel render zero counters.
+ */
+async function readDownstreamOrdersSafely(): Promise<DownstreamOrderInput[]> {
+  try {
+    const paper = await readPaperDashboard();
+    return paper.recentOrders.map((order) => ({
+      requestedAt: order.requestedAt,
+      status: order.status,
+      rejectionReason: order.rejectionReason,
+    }));
+  } catch {
+    return [];
   }
 }
 

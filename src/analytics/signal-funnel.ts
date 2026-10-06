@@ -30,6 +30,35 @@ export type SignalFunnelFailureCategory =
   | "INFRASTRUCTURE_FAILURE";
 export type SignalFunnelWindow = "24H" | "7D" | "30D";
 
+/**
+ * TRD-017 Change B: minimal shape of one downstream paper order, consumed by
+ * the funnel summary. Defined here (not imported from @/paper) so the
+ * analytics layer stays independent of the paper store implementation.
+ */
+export interface DownstreamOrderInput {
+  requestedAt: number;
+  status: "FILLED" | "REJECTED";
+  rejectionReason: string | null;
+}
+
+export interface DownstreamRejectionStat {
+  code: string;
+  count: number;
+}
+
+export interface DownstreamSummary {
+  paperFilled: number;
+  paperRejected: number;
+  paperRejectionReasons: DownstreamRejectionStat[];
+  /**
+   * Broker submissions pending reconciliation. Always 0 until the broker
+   * layer is wired into this read path.
+   */
+  brokerPending: number;
+  brokerRejected: number;
+  /** True when the broker layer is not yet available in this read path. */
+  brokerUnavailable: boolean;
+}
 export const SIGNAL_FUNNEL_WINDOW_MS: Record<SignalFunnelWindow, number> = {
   "24H": 24 * 60 * 60 * 1000,
   "7D": 7 * 24 * 60 * 60 * 1000,
@@ -117,6 +146,11 @@ export interface SignalFunnelSummary {
   failureCategoryStats: FailureCategoryStat[];
   regimeStats: RegimeFunnelStat[];
   strategyRoutingStats: StrategyRoutingFunnelStat[];
+  /**
+   * TRD-017 Change B: downstream paper/broker outcomes for the same window.
+   * Computed at read time from the paper store; never stored in the funnel.
+   */
+  downstream: DownstreamSummary;
 }
 
 export interface SignalFunnelDashboard {
@@ -399,14 +433,15 @@ export function buildSignalFunnelObservation(
 
 export function buildSignalFunnelDashboard(
   observations: SignalFunnelObservation[],
-  asOf: number
+  asOf: number,
+  downstream?: DownstreamOrderInput[]
 ): SignalFunnelDashboard {
   return {
     asOf,
     windows: {
-      "24H": summarizeWindow(observations, "24H", asOf),
-      "7D": summarizeWindow(observations, "7D", asOf),
-      "30D": summarizeWindow(observations, "30D", asOf),
+      "24H": summarizeWindow(observations, "24H", asOf, downstream),
+      "7D": summarizeWindow(observations, "7D", asOf, downstream),
+      "30D": summarizeWindow(observations, "30D", asOf, downstream),
     },
   };
 }
@@ -414,7 +449,8 @@ export function buildSignalFunnelDashboard(
 function summarizeWindow(
   observations: SignalFunnelObservation[],
   window: SignalFunnelWindow,
-  asOf: number
+  asOf: number,
+  downstream: DownstreamOrderInput[] | undefined
 ): SignalFunnelSummary {
   const from = asOf - SIGNAL_FUNNEL_WINDOW_MS[window];
   const filtered = observations.filter(
@@ -569,6 +605,7 @@ function summarizeWindow(
     regimeStats,
     strategyRoutingStats,
     failureCategoryStats,
+    downstream: summarizeDownstream(downstream, from, asOf),
   };
 }
 
@@ -808,4 +845,43 @@ export function classifyFailureCategory(
   return INFRASTRUCTURE_REJECTION_CODES.has(rejectionCode)
     ? "INFRASTRUCTURE_FAILURE"
     : "STRATEGY_REJECTION";
+}
+/**
+ * TRD-017 Change B: compute downstream paper/broker stats for one window.
+ *
+ * The funnel observation stream never carries downstream outcomes (it is
+ * produced before paper runs). This helper joins the funnel window boundary
+ * with the paper store's recent orders at read time, so nothing about the
+ * stored observation schema needs to change.
+ */
+function summarizeDownstream(
+  orders: DownstreamOrderInput[] | undefined,
+  from: number,
+  to: number
+): DownstreamSummary {
+  const inWindow = (orders ?? []).filter(
+    (o) => o.requestedAt >= from && o.requestedAt <= to
+  );
+  const filled = inWindow.filter((o) => o.status === "FILLED").length;
+  const rejected = inWindow.filter((o) => o.status === "REJECTED");
+
+  const reasonMap = new Map<string, number>();
+  for (const r of rejected) {
+    const key = r.rejectionReason ?? "UNKNOWN";
+    reasonMap.set(key, (reasonMap.get(key) ?? 0) + 1);
+  }
+  const paperRejectionReasons = [...reasonMap.entries()]
+    .map(([code, count]) => ({ code, count }))
+    .sort((a, b) =>
+      b.count - a.count || (a.code < b.code ? -1 : a.code > b.code ? 1 : 0)
+    );
+
+  return {
+    paperFilled: filled,
+    paperRejected: rejected.length,
+    paperRejectionReasons,
+    brokerPending: 0,
+    brokerRejected: 0,
+    brokerUnavailable: true,
+  };
 }

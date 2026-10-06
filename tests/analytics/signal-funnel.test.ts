@@ -553,3 +553,72 @@ describe("TRD-015 failure category classification", () => {
     expect(stratStat?.percentage).toBe(50);
   });
 });
+
+// ---------------------------------------------------------------------------
+// TRD-017 Change B — downstream execution summary
+// ---------------------------------------------------------------------------
+
+describe("TRD-017 downstream execution summary", () => {
+  it("counts paper filled and rejected orders within the window", () => {
+    const observations = [
+      buildSignalFunnelObservation(
+        analysedResult({ triggerState: "CONFIRMED", executionDecision: "EXECUTE" }),
+        pipeline({ triggerState: "CONFIRMED", riskApproved: true, decision: "EXECUTE" }),
+        T0
+      ),
+    ];
+    const downstream = [
+      { requestedAt: T0, status: "FILLED" as const, rejectionReason: null },
+      { requestedAt: T0 - 60_000, status: "REJECTED" as const, rejectionReason: "PAPER_MARKET_DATA_NOT_FRESH" },
+      { requestedAt: T0 - 120_000, status: "REJECTED" as const, rejectionReason: "PAPER_MARKET_DATA_NOT_FRESH" },
+      { requestedAt: T0 - 180_000, status: "REJECTED" as const, rejectionReason: "PAPER_MAX_OPEN_POSITIONS" },
+    ];
+
+    const summary = buildSignalFunnelDashboard(observations, T0, downstream).windows["24H"];
+    expect(summary.downstream.paperFilled).toBe(1);
+    expect(summary.downstream.paperRejected).toBe(3);
+    expect(summary.downstream.paperRejectionReasons).toEqual([
+      { code: "PAPER_MARKET_DATA_NOT_FRESH", count: 2 },
+      { code: "PAPER_MAX_OPEN_POSITIONS", count: 1 },
+    ]);
+    expect(summary.downstream.brokerPending).toBe(0);
+    expect(summary.downstream.brokerRejected).toBe(0);
+    expect(summary.downstream.brokerUnavailable).toBe(true);
+  });
+
+  it("excludes orders outside the window boundary", () => {
+    const observations = [
+      buildSignalFunnelObservation(
+        analysedResult({ triggerState: "CONFIRMED", executionDecision: "EXECUTE" }),
+        pipeline({ triggerState: "CONFIRMED", riskApproved: true, decision: "EXECUTE" }),
+        T0
+      ),
+    ];
+    const downstream = [
+      { requestedAt: T0, status: "FILLED" as const, rejectionReason: null },
+      // 8 days before T0 → outside 24H and 7D, inside 30D
+      { requestedAt: T0 - 8 * 24 * 60 * 60 * 1000, status: "REJECTED" as const, rejectionReason: "OLD" },
+    ];
+
+    const dash = buildSignalFunnelDashboard(observations, T0, downstream);
+    expect(dash.windows["24H"].downstream.paperFilled).toBe(1);
+    expect(dash.windows["24H"].downstream.paperRejected).toBe(0);
+    expect(dash.windows["30D"].downstream.paperRejected).toBe(1);
+  });
+
+  it("renders an empty downstream summary when no orders are provided", () => {
+    const observations = [
+      buildSignalFunnelObservation(
+        analysedResult({ triggerState: "CONFIRMED", executionDecision: "EXECUTE" }),
+        pipeline({ triggerState: "CONFIRMED", riskApproved: true, decision: "EXECUTE" }),
+        T0
+      ),
+    ];
+
+    const summary = buildSignalFunnelDashboard(observations, T0).windows["24H"];
+    expect(summary.downstream.paperFilled).toBe(0);
+    expect(summary.downstream.paperRejected).toBe(0);
+    expect(summary.downstream.paperRejectionReasons).toEqual([]);
+    expect(summary.downstream.brokerUnavailable).toBe(true);
+  });
+});
