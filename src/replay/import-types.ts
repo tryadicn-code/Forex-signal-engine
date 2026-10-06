@@ -51,6 +51,11 @@ export interface HistoricalDatasetValidation {
   files: HistoricalFileSummary[];
   series: HistoricalSeriesCoverage[];
   symbols: string[];
+  /**
+   * Symbols that lacked the full required timeframe set (D1/H4/H1/M15) and
+   * were therefore used only as conversion-rate sources, never backtested.
+   */
+  auxiliarySymbols?: string[];
   commonStartAt: number | null;
   commonEndAt: number | null;
   estimatedM15Steps: number | null;

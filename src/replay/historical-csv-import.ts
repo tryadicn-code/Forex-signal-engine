@@ -28,6 +28,22 @@ const SUPPORTED_TIMEFRAMES = new Set<Timeframe>([
 
 const MAX_REPORTED_ROW_ERRORS_PER_FILE = 20;
 
+/**
+ * Preferred timeframes for deriving a static conversion rate from an uploaded
+ * symbol: the highest-quality (slowest) series wins so the rate is not driven
+ * by a single M15 print. Static by design (F3-static): the resolver interface
+ * does not accept asOf, so a per-step rate is out of scope.
+ */
+const CONVERSION_RATE_TIMEFRAME_PREFERENCE: readonly Timeframe[] = [
+  "D1",
+  "H4",
+  "H1",
+  "M15",
+  "M30",
+  "M5",
+  "M1",
+];
+
 type Delimiter = "," | ";" | "\t";
 
 interface ParsedHistoricalFile {
@@ -125,6 +141,12 @@ export function importHistoricalCsvFiles(
 
   const symbolCodes = [...new Set([...groups.values()].map((group) => group.symbol))].sort();
 
+  // Primary = has ALL required TFs -> enters the backtest.
+  // Auxiliary = missing >=1 required TF -> used only as a conversion-rate source.
+  const primarySymbols: string[] = [];
+  const auxiliarySymbols: string[] = [];
+  const conversionRates: Record<string, number> = {};
+
   for (const symbol of symbolCodes) {
     const symbolGroups = [...groups.values()].filter(
       (group) => group.symbol === symbol
@@ -143,51 +165,110 @@ export function importHistoricalCsvFiles(
     const missing = REQUIRED_BACKTEST_TIMEFRAMES.filter(
       (timeframe) => !candles[timeframe]
     );
-    for (const timeframe of missing) {
+
+    if (missing.length === 0) {
+      primarySymbols.push(symbol);
+      symbols[symbol] = {
+        metadata: inferFxMetadata(symbol),
+        spreadPips: options.assumedSpreadPips,
+        candles,
+      };
       issues.push({
-        severity: "ERROR",
-        code: "REQUIRED_TIMEFRAME_MISSING",
+        severity: "WARNING",
+        code: "SYMBOL_METADATA_INFERRED",
+        message:
+          "FX metadata for " +
+          symbol +
+          " was inferred from its six-letter symbol code. Verify pip size and broker lot constraints before relying on sizing results.",
+        symbol,
+      });
+    } else {
+      for (const timeframe of missing) {
+        issues.push({
+          severity: "WARNING",
+          code: "REQUIRED_TIMEFRAME_MISSING",
+          message:
+            symbol +
+            " is missing required timeframe " +
+            timeframe +
+            " (required: D1, H4, H1, M15).",
+          symbol,
+          timeframe,
+        });
+      }
+      auxiliarySymbols.push(symbol);
+      issues.push({
+        severity: "WARNING",
+        code: "SYMBOL_TREATED_AS_AUXILIARY",
         message:
           symbol +
-          " is missing required timeframe " +
-          timeframe +
-          " (required: D1, H4, H1, M15).",
+          " lacks required timeframe(s) " +
+          missing.join(", ") +
+          " and will be used only as a conversion-rate source (not backtested).",
         symbol,
-        timeframe,
       });
     }
 
-    symbols[symbol] = {
-      metadata: inferFxMetadata(symbol),
-      spreadPips: options.assumedSpreadPips,
-      candles,
-    };
+    for (const tf of CONVERSION_RATE_TIMEFRAME_PREFERENCE) {
+      const series = candles[tf];
+      if (!series || series.length === 0) continue;
+      const last = series[series.length - 1];
+      conversionRates[symbol] = last.close;
+      issues.push({
+        severity: "INFO",
+        code: "CONVERSION_RATE_DERIVED",
+        message:
+          symbol +
+          " = " +
+          last.close +
+          " (from " +
+          tf +
+          " close at " +
+          new Date(last.timestamp).toISOString() +
+          ").",
+        symbol,
+        timeframe: tf,
+      });
+      break;
+    }
+  }
 
+  if (primarySymbols.length === 0) {
     issues.push({
-      severity: "WARNING",
-      code: "SYMBOL_METADATA_INFERRED",
+      severity: "ERROR",
+      code: "NO_PRIMARY_SYMBOL",
       message:
-        "FX metadata for " +
-        symbol +
-        " was inferred from its six-letter symbol code. Verify pip size and broker lot constraints before relying on sizing results.",
-      symbol,
+        "No symbol has the full required timeframe set (D1, H4, H1, M15). Backtest cannot run.",
     });
   }
 
-  const requiredCoverage = coverage.filter((item) =>
-    REQUIRED_BACKTEST_TIMEFRAMES.includes(
-      item.timeframe as RequiredBacktestTimeframe
-    )
+  if (Object.keys(conversionRates).length === 0) {
+    issues.push({
+      severity: "INFO",
+      code: "NO_CONVERSION_RATE_SYMBOL",
+      message:
+        "No conversion-rate symbol was derived. If the backtested symbol's quote currency differs from the account currency (e.g. AUDCAD on a USD account), upload its quote-vs-account pair (e.g. USDCAD) alongside it.",
+    });
+  }
+
+  const requiredCoverage = coverage.filter(
+    (item) =>
+      primarySymbols.includes(item.symbol) &&
+      REQUIRED_BACKTEST_TIMEFRAMES.includes(
+        item.timeframe as RequiredBacktestTimeframe
+      )
   );
 
   const commonStartAt =
     requiredCoverage.length > 0 &&
-    requiredCoverage.length === symbolCodes.length * REQUIRED_BACKTEST_TIMEFRAMES.length
+    requiredCoverage.length ===
+      primarySymbols.length * REQUIRED_BACKTEST_TIMEFRAMES.length
       ? Math.max(...requiredCoverage.map((item) => item.startAt))
       : null;
   const commonEndAt =
     requiredCoverage.length > 0 &&
-    requiredCoverage.length === symbolCodes.length * REQUIRED_BACKTEST_TIMEFRAMES.length
+    requiredCoverage.length ===
+      primarySymbols.length * REQUIRED_BACKTEST_TIMEFRAMES.length
       ? Math.min(...requiredCoverage.map((item) => item.endAt))
       : null;
 
@@ -252,14 +333,15 @@ export function importHistoricalCsvFiles(
             b.timeframe as RequiredBacktestTimeframe
           )
     ),
-    symbols: symbolCodes,
+    symbols: primarySymbols,
+    ...(auxiliarySymbols.length > 0 ? { auxiliarySymbols } : {}),
     commonStartAt,
     commonEndAt,
     estimatedM15Steps,
     issues,
   };
 
-  if (!validation.valid || symbolCodes.length === 0) {
+  if (!validation.valid || primarySymbols.length === 0) {
     return { dataset: null, validation };
   }
 
@@ -268,6 +350,7 @@ export function importHistoricalCsvFiles(
       id: validation.datasetId,
       source,
       symbols,
+      ...(Object.keys(conversionRates).length > 0 ? { conversionRates } : {}),
     },
     validation,
   };
