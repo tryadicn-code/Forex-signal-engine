@@ -58,7 +58,9 @@ export function ScannerTable({
           {results.map((result) => {
             const selected = result.symbol === selectedSymbol;
             const status = workstationStatus(result);
-            const failed = result.status !== "ANALYSED";
+            const partial = result.status === "ANALYSED_PARTIAL";
+            const failed =
+              result.status !== "ANALYSED" && !partial;
 
             return (
               <tr
@@ -85,6 +87,11 @@ export function ScannerTable({
                   <div className="mt-0.5 font-mono text-[11px] tabular-nums text-zinc-600">
                     {formatPrice(result.symbol, result.latestPrice)}
                   </div>
+                  {partial && (
+                    <div className="mt-0.5 inline-block rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-300">
+                      PARTIAL
+                    </div>
+                  )}
                 </td>
 
                 {failed ? (

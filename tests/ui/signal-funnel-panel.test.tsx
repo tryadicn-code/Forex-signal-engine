@@ -27,6 +27,7 @@ function summary(
     window,
     from: 0,
     to: 1_000,
+    failureCategoryStats: [],
     observations,
     executions,
     stageStats: SIGNAL_FUNNEL_STAGES.map((stage, index) => ({

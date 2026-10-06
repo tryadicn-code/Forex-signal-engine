@@ -105,6 +105,11 @@ export interface SymbolScanResult {
 
   /** Outcome of the whole per-symbol pipeline. */
   status: SymbolScanStatus;
+  /**
+   * TRD-004 B1: true only when the result is fully analysed AND the execution
+   * engine decision is EXECUTE. A partial result is never execution-eligible.
+   */
+  executionEligible: boolean;
   /** Human/machine-readable reason for the status. */
   reason: string;
 
@@ -169,8 +174,14 @@ export interface SymbolScanResult {
 }
 
 export type SymbolScanStatus =
-  /** Analysed successfully; a result exists. */
+  /** Analysed successfully with every required timeframe; a full result exists. */
   | "ANALYSED"
+  /**
+   * TRD-004 B1: D1/H4/H1 usable but the trigger timeframe (M15) is missing.
+   * The result carries structure, regime and bias only. Trigger, risk and
+   * execution are NOT evaluated; this result is never execution-eligible.
+   */
+  | "ANALYSED_PARTIAL"
   /** The provider could not supply usable data for this symbol. */
   | "PROVIDER_FAILURE"
   /** Data existed but was too malformed to analyse. */
@@ -196,6 +207,7 @@ export function failureResult(
   return {
     symbol,
     status,
+    executionEligible: false,
     reason,
     latestPrice: null,
     spreadPips: null,

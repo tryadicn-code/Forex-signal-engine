@@ -13,6 +13,21 @@ export const SIGNAL_FUNNEL_STAGES = [
 ] as const;
 
 export type SignalFunnelStage = (typeof SIGNAL_FUNNEL_STAGES)[number];
+
+/**
+ * TRD-015: why a rejection happened.
+ *
+ * STRATEGY_REJECTION: the pipeline ran and deliberately did not advance
+ *   (bias neutral, setup not actionable, trigger not confirmed, risk
+ *   rejected, hard veto, execution WAIT/BLOCKED/INVALIDATED).
+ *
+ * INFRASTRUCTURE_FAILURE: the pipeline could not run or could not be
+ *   evaluated (provider failure, invalid data, pipeline not available,
+ *   trigger/risk/execution engine not evaluated).
+ */
+export type SignalFunnelFailureCategory =
+  | "STRATEGY_REJECTION"
+  | "INFRASTRUCTURE_FAILURE";
 export type SignalFunnelWindow = "24H" | "7D" | "30D";
 
 export const SIGNAL_FUNNEL_WINDOW_MS: Record<SignalFunnelWindow, number> = {
@@ -62,6 +77,12 @@ export interface SignalFunnelStageStat {
   dropOff: number;
 }
 
+export interface FailureCategoryStat {
+  category: SignalFunnelFailureCategory;
+  count: number;
+  percentage: number;
+}
+
 export interface RejectionReasonStat {
   code: string;
   stage: SignalFunnelStage;
@@ -93,6 +114,7 @@ export interface SignalFunnelSummary {
   executions: number;
   stageStats: SignalFunnelStageStat[];
   rejectionReasons: RejectionReasonStat[];
+  failureCategoryStats: FailureCategoryStat[];
   regimeStats: RegimeFunnelStat[];
   strategyRoutingStats: StrategyRoutingFunnelStat[];
 }
@@ -134,6 +156,18 @@ export function buildSignalFunnelObservation(
     rejectionCode: code,
     rejectionDetail: detail,
   });
+
+  if (result.status === "ANALYSED_PARTIAL") {
+    // TRD-004 B1: D1/H4/H1 usable, trigger timeframe unavailable. The data
+    // gate passed for the timeframes we had; the trigger stage is where this
+    // observation stops, with an infrastructure classification.
+    passedStages.push("DATA_VALID");
+    return reject(
+      "TRIGGER_CONFIRMED",
+      "TRIGGER_TIMEFRAME_UNAVAILABLE",
+      result.reason
+    );
+  }
 
   if (result.status !== "ANALYSED") {
     return reject("DATA_VALID", result.status, result.reason);
@@ -501,6 +535,29 @@ function summarizeWindow(
             : 0)
     );
 
+  const failureCategoryMap = new Map<SignalFunnelFailureCategory, number>();
+  for (const item of rejected) {
+    const category = classifyFailureCategory(item.rejectionCode);
+    if (category === null) continue;
+    failureCategoryMap.set(
+      category,
+      (failureCategoryMap.get(category) ?? 0) + 1
+    );
+  }
+  const failureCategoryStats = [...failureCategoryMap.entries()]
+    .map(([category, count]) => ({
+      category,
+      count,
+      percentage:
+        rejected.length === 0
+          ? 0
+          : round2((count / rejected.length) * 100),
+    }))
+    .sort((a, b) =>
+      b.count - a.count ||
+      (a.category < b.category ? -1 : a.category > b.category ? 1 : 0)
+    );
+
   return {
     window,
     from,
@@ -511,6 +568,7 @@ function summarizeWindow(
     rejectionReasons,
     regimeStats,
     strategyRoutingStats,
+    failureCategoryStats,
   };
 }
 
@@ -721,4 +779,33 @@ function normalizeCode(value: string): string {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+/**
+ * TRD-015: classify a rejection code as infrastructure failure or strategy
+ * rejection. Returns null for null input (i.e. an executed observation).
+ *
+ * Infrastructure codes are those where the pipeline could not produce a
+ * result for the symbol at all (data problem or engine not evaluated). Every
+ * other code — including deliberate WAIT and all strategy gate rejections —
+ * is a strategy rejection.
+ */
+const INFRASTRUCTURE_REJECTION_CODES: ReadonlySet<string> = new Set([
+  "PROVIDER_FAILURE",
+  "INVALID_DATA",
+  "ANALYSIS_ERROR",
+  "PIPELINE_NOT_AVAILABLE",
+  "TRIGGER_TIMEFRAME_UNAVAILABLE",
+  "TRIGGER_NOT_EVALUATED",
+  "RISK_NOT_EVALUATED",
+  "EXECUTION_NOT_EVALUATED",
+]);
+
+export function classifyFailureCategory(
+  rejectionCode: string | null
+): SignalFunnelFailureCategory | null {
+  if (rejectionCode === null) return null;
+  return INFRASTRUCTURE_REJECTION_CODES.has(rejectionCode)
+    ? "INFRASTRUCTURE_FAILURE"
+    : "STRATEGY_REJECTION";
 }

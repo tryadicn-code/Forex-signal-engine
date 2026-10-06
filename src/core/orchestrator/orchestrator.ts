@@ -3,6 +3,7 @@ import type {
   PipelineResult,
 } from "@/core/orchestrator/types";
 import { analyzeStructure } from "@/core/structure";
+import { analyzeBias } from "@/core/bias";
 import { classifyRegime } from "@/core/regime";
 import {
   getImplementedStrategy,
@@ -63,6 +64,21 @@ export function analyzeMarketWithRouting(
     IMPLEMENTED_STRATEGY_IDS,
     { reversalQualification }
   );
+
+  // TRD-004 B1: when the trigger timeframe is explicitly unavailable, the
+  // pipeline stops at structure / regime / bias / setup. Trigger, risk and
+  // execution are never evaluated from a partial context, so fail-closed
+  // safety is preserved.
+  if (context.triggerTimeframe === null) {
+    return {
+      routing,
+      pipeline: buildTriggerUnavailablePipeline(
+        context,
+        routingStructure,
+        routingRegime
+      ),
+    };
+  }
 
   if (routing.selectedStrategyId === null) {
     return {
@@ -167,6 +183,78 @@ function buildNoStrategyPipeline(
       setupScore: 0,
       invalidationLevel: 0,
       zoneSource: "strategy-router",
+    },
+    timestamp: setupStructure.timestamp,
+  };
+
+  return {
+    structure,
+    regime,
+    bias,
+    setup,
+    setupStructure,
+    trigger: null,
+    risk: null,
+    execution: null,
+  };
+}
+/**
+ * TRD-004 B1: partial pipeline for the case where the trigger timeframe is
+ * explicitly unavailable.
+ *
+ * Unlike buildNoStrategyPipeline, this does NOT force the bias to NEUTRAL: the
+ * H4 bias is still computed from structure and regime, so the scanner shows
+ * the true directional view even when the M15 trigger cannot be evaluated.
+ * Setup stays NONE because setup engines are strategy-specific and this path
+ * never enters a strategy.
+ */
+function buildTriggerUnavailablePipeline(
+  context: AnalysisContext,
+  structure: PipelineResult["structure"],
+  regime: PipelineResult["regime"]
+): PipelineResult {
+  const biasTimeframe = context.biasTimeframe;
+  const setupTimeframe = context.setupTimeframe ?? biasTimeframe;
+
+  const bias = analyzeBias(
+    biasTimeframe.snapshot.candles,
+    structure.data,
+    regime.data,
+    context.configOverrides,
+    biasTimeframe.snapshot.asOf
+  );
+
+  const setupStructure = analyzeStructure(
+    setupTimeframe.snapshot.candles,
+    context.configOverrides,
+    context.instrument.pipSize,
+    setupTimeframe.snapshot.asOf
+  );
+
+  const evidence = [
+    {
+      code: "TRIGGER_TIMEFRAME_UNAVAILABLE",
+      label: "Trigger timeframe unavailable",
+      description:
+        "The trigger timeframe (M15) could not be built for this symbol. Trigger, risk and execution were not evaluated; this is an analytical view only.",
+      value: "M15",
+    },
+  ];
+
+  const setup: PipelineResult["setup"] = {
+    status: "SETUP_NOT_EVALUATED",
+    score: 0,
+    evidence,
+    conflicts: [],
+    data: {
+      state: "NONE",
+      zoneLow: 0,
+      zoneHigh: 0,
+      distanceToZone: 0,
+      setupType: "trigger-timeframe-unavailable",
+      setupScore: 0,
+      invalidationLevel: 0,
+      zoneSource: "partial-context",
     },
     timestamp: setupStructure.timestamp,
   };

@@ -107,3 +107,5 @@ test-output.txt
 .audit-backup/
 audit-batch1.txt
 audit-batch*.txt
+
+audit-trd-batch*.txt

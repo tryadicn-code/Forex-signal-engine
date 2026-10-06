@@ -58,6 +58,7 @@ function result(
     symbol: "EURUSD",
     status: "ANALYSED",
     reason: "Analysed successfully.",
+    executionEligible: false,
     latestPrice: 1.1,
     spreadPips: 1,
     regime: "TREND_UP",

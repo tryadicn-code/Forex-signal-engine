@@ -329,3 +329,201 @@ export async function buildMarketContext(
 
   return { context, perTimeframe, conversion, rejection: null, providerError: null };
 }
+// ---------------------------------------------------------------------------
+// Partial market context (TRD-004 B1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Partial market context: D1 + H4 + H1 usable, M15 missing.
+ *
+ * Deliberately a separate type from {@link MarketContext}: the full contract
+ * requires every timeframe, so nothing downstream can accidentally consume a
+ * partial as if it were complete. Only the scanner's partial pipeline path
+ * accepts this type; trigger, risk, and execution are never evaluated from it.
+ */
+export interface PartialMarketContext {
+  symbol: string;
+  metadata: SymbolMetadata;
+  d1: TimeframeContext;
+  h4: TimeframeContext;
+  h1: TimeframeContext;
+  /** Null when the trigger timeframe could not be built. */
+  m15: TimeframeContext | null;
+  latestPrice: number;
+  spreadPips?: number;
+  accountCurrency: string;
+  quoteToAccountConversionRate?: number;
+  source: string;
+  receivedAt: number;
+  marketTimestamp: number;
+  freshness: Freshness;
+  /** Timeframes that could not be built. Non-empty when this is a partial. */
+  missingTimeframes: Timeframe[];
+}
+
+export interface BuildPartialContextOutcome {
+  context: PartialMarketContext | null;
+  perTimeframe: TimeframeFetchOutcome[];
+  conversion: ConversionResult | null;
+  rejection: { reason: ContextRejectionReason; timeframes: Timeframe[] } | null;
+  providerError: string | null;
+}
+
+/**
+ * TRD-004 B1: build a partial context when the trigger timeframe (M15) is
+ * missing but D1, H4, and H1 are healthy.
+ *
+ * The full builder stays all-or-nothing; this function is additive and does
+ * not replace it. Callers must treat the result as analytical-only: the
+ * trigger, risk, and execution stages are never evaluated from a partial
+ * context, because that would compromise fail-closed safety.
+ */
+export async function buildPartialMarketContext(
+  input: BuildMarketContextInput
+): Promise<BuildPartialContextOutcome> {
+  const minBars = input.minBarsPerTimeframe ?? DEFAULT_MIN_BARS_PER_TIMEFRAME;
+
+  const configured = new Set<Timeframe>(
+    REQUIRED_ROLE_KEYS.map((r) => input.roles[r])
+  );
+  if (configured.size !== REQUIRED_ROLE_KEYS.length) {
+    return {
+      context: null,
+      perTimeframe: [],
+      conversion: null,
+      rejection: { reason: "MALFORMED_ROLES", timeframes: [] },
+      providerError:
+        "Timeframe roles must be four distinct timeframes (D1/H4/H1/M15).",
+    };
+  }
+
+  const perTimeframe: TimeframeFetchOutcome[] = [];
+  for (const role of REQUIRED_ROLE_KEYS) {
+    perTimeframe.push(
+      await fetchTimeframe(input.symbol, input.roles[role], input)
+    );
+  }
+
+  const byRole: Record<keyof TimeframeRoles, TimeframeFetchOutcome | undefined> = {
+    macro: perTimeframe.find((o) => o.timeframe === input.roles.macro),
+    bias: perTimeframe.find((o) => o.timeframe === input.roles.bias),
+    setup: perTimeframe.find((o) => o.timeframe === input.roles.setup),
+    trigger: perTimeframe.find((o) => o.timeframe === input.roles.trigger),
+  };
+
+  // Partial mode requires D1, H4, H1. The trigger timeframe is allowed to
+  // fail; that is the entire premise of partial mode.
+  const required = [byRole.macro!, byRole.bias!, byRole.setup!];
+  const requiredFailures = new Map<ContextRejectionReason, Timeframe[]>();
+  for (const outcome of required) {
+    const why = classifyOutcome(outcome, minBars);
+    if (why !== null) {
+      if (!requiredFailures.has(why)) requiredFailures.set(why, []);
+      requiredFailures.get(why)!.push(outcome.timeframe);
+    }
+  }
+
+  if (requiredFailures.size > 0) {
+    const reason: ContextRejectionReason = requiredFailures.has(
+      "TIMEFRAME_PROVIDER_FAILURE"
+    )
+      ? "TIMEFRAME_PROVIDER_FAILURE"
+      : requiredFailures.has("INSUFFICIENT_BARS")
+        ? "INSUFFICIENT_BARS"
+        : "INVALID_TIMEFRAME_DATA";
+    const timeframes = [...requiredFailures.values()].flat();
+    const firstError = required.find((o) => o.providerError);
+    return {
+      context: null,
+      perTimeframe,
+      conversion: null,
+      rejection: { reason, timeframes },
+      providerError: firstError?.providerError ?? null,
+    };
+  }
+
+  const metaResult = await input.provider.getSymbolMetadata(input.symbol);
+  if (!metaResult.ok) {
+    return {
+      context: null,
+      perTimeframe,
+      conversion: null,
+      rejection: { reason: "METADATA_UNAVAILABLE", timeframes: [] },
+      providerError: `${metaResult.error.code}: ${metaResult.error.message}`,
+    };
+  }
+  const metadata = metaResult.data;
+  const conversion = input.conversionResolver.resolve(
+    metadata,
+    input.accountCurrency
+  );
+
+  const makeTf = (outcome: TimeframeFetchOutcome): TimeframeContext => {
+    const candles = outcome.validation!.candles;
+    return {
+      timeframe: outcome.timeframe,
+      candles,
+      asOf: candles.length
+        ? candles[candles.length - 1].timestamp
+        : input.asOf,
+      freshness: outcome.freshness,
+    };
+  };
+
+  const d1 = makeTf(byRole.macro!);
+  const h4 = makeTf(byRole.bias!);
+  const h1 = makeTf(byRole.setup!);
+
+  const triggerWhy = classifyOutcome(byRole.trigger!, minBars);
+  const m15 = triggerWhy === null ? makeTf(byRole.trigger!) : null;
+  const missingTimeframes: Timeframe[] =
+    triggerWhy === null ? [] : [input.roles.trigger];
+
+  const latestPriceResult = await input.provider.getLatestPrice(
+    input.symbol,
+    input.asOf
+  );
+  const priceSource = m15 ?? h1;
+  const latestPrice = latestPriceResult.ok
+    ? latestPriceResult.data.price
+    : priceSource.candles[priceSource.candles.length - 1]?.close ?? 0;
+  const spreadPips = latestPriceResult.ok
+    ? latestPriceResult.data.spreadPips
+    : undefined;
+
+  return {
+    context: {
+      symbol: input.symbol,
+      metadata,
+      d1,
+      h4,
+      h1,
+      m15,
+      latestPrice,
+      spreadPips,
+      accountCurrency: input.accountCurrency,
+      quoteToAccountConversionRate:
+        conversion.notRequired || !conversionResolved(conversion)
+          ? undefined
+          : conversion.rate,
+      source: input.provider.id,
+      receivedAt: input.asOf,
+      marketTimestamp:
+        priceSource.freshness.marketTimestamp ?? priceSource.asOf,
+      freshness: {
+        source: input.provider.id,
+        marketTimestamp:
+          priceSource.freshness.marketTimestamp ?? priceSource.asOf,
+        receivedAt: input.asOf,
+        ageMs: priceSource.freshness.ageMs,
+        missing: priceSource.freshness.missing,
+        status: rollupFreshness(perTimeframe.map((o) => o.freshness.status)),
+      },
+      missingTimeframes,
+    },
+    perTimeframe,
+    conversion,
+    rejection: null,
+    providerError: null,
+  };
+}

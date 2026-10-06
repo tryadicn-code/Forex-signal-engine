@@ -1,4 +1,5 @@
-import type { BiasLabel } from "@/types/market";
+import type { BiasLabel, ExecutionDecision } from "@/types/market";
+import type { FreshnessStatus } from "@/types/market-data";
 import type { IntrabarConflictPolicy } from "@/config/paper";
 
 export type PaperDirection = "LONG" | "SHORT";
@@ -29,8 +30,19 @@ export interface PaperEngineSnapshot {
   strategyId?: string | null;
   bias: BiasLabel | null;
   setupScore: number | null;
-  executionDecision: "EXECUTE";
-  freshness: "FRESH";
+  /**
+   * TRD-017 Change A: engine decision at the time this snapshot was written.
+   * Not always "EXECUTE" — a rejected order carries the actual decision value
+   * that the scanner produced. Null on legacy records written before this fix.
+   */
+  executionDecision: ExecutionDecision | null;
+  /**
+   * TRD-017 Change A: freshness of the symbol at the time this snapshot was
+   * written. Not always "FRESH" — a rejected order carries the actual status
+   * (DELAYED or STALE) that caused paper to refuse the fill. Null on legacy
+   * records written before this fix.
+   */
+  freshness: FreshnessStatus | null;
   engineVersion: string;
   paperConfigVersion: string;
   /** Phase 7 release identity; absent on legacy/unversioned Paper records. */

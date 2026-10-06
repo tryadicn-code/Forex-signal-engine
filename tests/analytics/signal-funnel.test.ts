@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSignalFunnelDashboard,
   buildSignalFunnelObservation,
+  classifyFailureCategory,
   type SignalFunnelObservation,
 } from "@/analytics/signal-funnel";
 import type { PipelineResult } from "@/core/orchestrator";
@@ -463,5 +464,92 @@ describe("Signal Funnel rolling summaries", () => {
           item.routingMode === "COMPATIBILITY_FALLBACK"
       )?.observations
     ).toBe(1);
+  });
+});
+// ---------------------------------------------------------------------------
+// TRD-015 — strategy rejection vs infrastructure failure
+// ---------------------------------------------------------------------------
+
+describe("TRD-015 failure category classification", () => {
+  it("labels provider failures and pipeline-unavailable as infrastructure", () => {
+    const providerFailure = buildSignalFunnelObservation(
+      failureResult("EURUSD", "PROVIDER_FAILURE", "feed down", T0),
+      null,
+      T0
+    );
+    expect(providerFailure.rejectionCode).toBe("PROVIDER_FAILURE");
+    expect(
+      classifyFailureCategory(providerFailure.rejectionCode)
+    ).toBe("INFRASTRUCTURE_FAILURE");
+
+    const pipelineMissing = buildSignalFunnelObservation(
+      analysedResult(),
+      null,
+      T0
+    );
+    expect(pipelineMissing.rejectionCode).toBe("PIPELINE_NOT_AVAILABLE");
+    expect(
+      classifyFailureCategory(pipelineMissing.rejectionCode)
+    ).toBe("INFRASTRUCTURE_FAILURE");
+  });
+
+  it("labels strategy gate rejections as strategy rejections", () => {
+    const setup = buildSignalFunnelObservation(
+      analysedResult({ setupState: "NONE" }),
+      pipeline({ setupState: "NONE", setupEvidenceCode: "ZONE_TOO_FAR" }),
+      T0
+    );
+    expect(classifyFailureCategory(setup.rejectionCode)).toBe(
+      "STRATEGY_REJECTION"
+    );
+
+    const veto = buildSignalFunnelObservation(
+      analysedResult({
+        executionDecision: "BLOCKED",
+        triggerState: "CONFIRMED",
+      }),
+      pipeline({
+        triggerState: "CONFIRMED",
+        riskApproved: true,
+        decision: "BLOCKED",
+        vetoes: ["SPREAD_TOO_HIGH"],
+      }),
+      T0
+    );
+    expect(classifyFailureCategory(veto.rejectionCode)).toBe(
+      "STRATEGY_REJECTION"
+    );
+
+    expect(classifyFailureCategory(null)).toBeNull();
+  });
+
+  it("summarizes failure categories in the dashboard window", () => {
+    const infra = buildSignalFunnelObservation(
+      failureResult("EURUSD", "PROVIDER_FAILURE", "down", T0),
+      null,
+      T0
+    );
+    const strategy = buildSignalFunnelObservation(
+      analysedResult({ setupState: "NONE" }),
+      pipeline({ setupState: "NONE", setupEvidenceCode: "ZONE_TOO_FAR" }),
+      T0
+    );
+
+    const summary = buildSignalFunnelDashboard(
+      [infra, strategy],
+      T0
+    ).windows["24H"];
+
+    expect(summary.failureCategoryStats).toHaveLength(2);
+    const infraStat = summary.failureCategoryStats.find(
+      (s) => s.category === "INFRASTRUCTURE_FAILURE"
+    );
+    const stratStat = summary.failureCategoryStats.find(
+      (s) => s.category === "STRATEGY_REJECTION"
+    );
+    expect(infraStat?.count).toBe(1);
+    expect(stratStat?.count).toBe(1);
+    expect(infraStat?.percentage).toBe(50);
+    expect(stratStat?.percentage).toBe(50);
   });
 });

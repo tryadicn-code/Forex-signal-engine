@@ -43,7 +43,9 @@ import { TableAccountConversionResolver } from "@/market-data/account-conversion
 import type { AccountConversionResolver } from "@/market-data/account-conversion";
 import {
   buildMarketContext,
+  buildPartialMarketContext,
   type BuildContextOutcome,
+  type PartialMarketContext,
 } from "@/scanner/market-context";
 import {
   computeSignalIdentity,
@@ -175,25 +177,36 @@ export class ScannerService {
    */
   async scanOnce(asOf: number): Promise<ScannerSnapshot> {
     const startedAt = asOf;
-    const results: SymbolScanResult[] = [];
-    const transitionsToAppend: SignalStateTransition[] = [];
-    const funnelObservations: SignalFunnelObservation[] = [];
+    const symbols = this.symbols;
+    const results = new Array<SymbolScanResult>(symbols.length);
+    const transitionsByIndex = new Array<SignalStateTransition[]>(symbols.length);
+    const funnelByIndex = new Array<SignalFunnelObservation[]>(symbols.length);
 
-    for (const symbol of this.symbols) {
-      try {
-        const analysis = await this.scanSymbol(symbol, asOf);
-        results.push(analysis.result);
-        transitionsToAppend.push(...analysis.transitions);
-        funnelObservations.push(analysis.funnelObservation);
-      } catch (error) {
-        // Last-resort guard: a symbol must never take the cycle down with it.
-        const failure = this.unexpectedFailure(symbol, asOf, error);
-        results.push(failure);
-        funnelObservations.push(
-          buildSignalFunnelObservation(failure, null, asOf)
-        );
+    await this.runWithConcurrency(
+      symbols,
+      this.config.scanConcurrency,
+      async (symbol, index) => {
+        try {
+          const analysis = await this.scanSymbol(symbol, asOf);
+          results[index] = analysis.result;
+          transitionsByIndex[index] = analysis.transitions;
+          funnelByIndex[index] = [analysis.funnelObservation];
+        } catch (error) {
+          // Last-resort guard: a symbol must never take the cycle down with it.
+          const failure = this.unexpectedFailure(symbol, asOf, error);
+          results[index] = failure;
+          transitionsByIndex[index] = [];
+          funnelByIndex[index] = [
+            buildSignalFunnelObservation(failure, null, asOf),
+          ];
+        }
       }
-    }
+    );
+
+    // Flatten strictly in symbol order so the persisted transition history and
+    // signal-funnel observations stay deterministic under concurrency.
+    const transitionsToAppend = transitionsByIndex.flat();
+    const funnelObservations = funnelByIndex.flat();
 
     for (const transition of transitionsToAppend) {
       this.deps.repositories.transitions.append(transition);
@@ -207,12 +220,17 @@ export class ScannerService {
       asOf - SIGNAL_FUNNEL_MAX_RETENTION_MS
     );
 
-    const successful = results.filter((r) => r.status === "ANALYSED").length;
+    // TRD-004 B1: a partial result is an analytical success (D1/H4/H1 built,
+    // bias/regime available) even though it is not execution-eligible. Only
+    // results that could not be analysed at all count as failures.
+    const successful = results.filter(
+      (r) => r.status === "ANALYSED" || r.status === "ANALYSED_PARTIAL"
+    ).length;
     const snapshot: ScannerSnapshot = {
       startedAt,
       completedAt: asOf,
       durationMs: null,
-      symbolsRequested: this.symbols.length,
+      symbolsRequested: symbols.length,
       symbolsSuccessful: successful,
       symbolsFailed: results.length - successful,
       results,
@@ -230,10 +248,35 @@ export class ScannerService {
   }
 
   /**
+   * Run `worker` over `items` with at most `limit` in flight at once.
+   *
+   * The worker is awaited sequentially inside each runner, so at any moment at
+   * most `limit` workers are pending. Items are dispatched in array order and
+   * each caller receives its own index, so results can be written into a
+   * pre-sized array and flattened deterministically afterwards.
+   */
+  private async runWithConcurrency<T>(
+    items: readonly T[],
+    limit: number,
+    worker: (item: T, index: number) => Promise<void>
+  ): Promise<void> {
+    if (items.length === 0) return;
+    const effectiveLimit = Math.max(1, Math.min(limit, items.length));
+    let next = 0;
+    const runners = Array.from({ length: effectiveLimit }, async () => {
+      while (true) {
+        const current = next++;
+        if (current >= items.length) return;
+        await worker(items[current], current);
+      }
+    });
+    await Promise.all(runners);
+  }
+
+  /**
    * Analyse ONE symbol end to end. Every failure path returns a structured
    * {@link SymbolScanResult}; nothing throws past this method's caller.
-   */
-  async scanSymbol(symbol: string, asOf: number): Promise<SymbolAnalysis> {
+   */  async scanSymbol(symbol: string, asOf: number): Promise<SymbolAnalysis> {
     if (!(symbol in SYMBOL_METADATA)) {
       const result = failureResult(
         symbol,
@@ -262,6 +305,14 @@ export class ScannerService {
     });
 
     if (outcome.context === null) {
+      // TRD-004 B1: if only the trigger timeframe failed, try the partial path
+      // before declaring the symbol unusable. Trigger, risk and execution are
+      // never evaluated from a partial context.
+      const partial = await this.tryBuildPartialContext(outcome, symbol, asOf);
+      if (partial !== null) {
+        return this.scanSymbolPartial(partial, asOf);
+      }
+
       const status: SymbolScanStatus =
         outcome.rejection === null
           ? "PROVIDER_FAILURE"
@@ -640,6 +691,8 @@ export class ScannerService {
     return {
       symbol,
       status: "ANALYSED",
+      executionEligible:
+        pipeline.execution?.data.decision === "EXECUTE",
       reason: news?.evaluationStatus === "EVALUATED" && news.newsPending
         ? "Analysed; high-impact news is pending."
         : "Analysed successfully.",
@@ -706,6 +759,168 @@ export class ScannerService {
     };
   }
 
+
+  // -------------------------------------------------------------------------
+  // TRD-004 B1 — partial pipeline (trigger timeframe unavailable)
+  // -------------------------------------------------------------------------
+
+  private async tryBuildPartialContext(
+    outcome: BuildContextOutcome,
+    symbol: string,
+    asOf: number
+  ): Promise<PartialMarketContext | null> {
+    const rejection = outcome.rejection;
+    if (rejection === null) return null;
+
+    const triggerTf = this.config.timeframeRoles.trigger;
+    if (rejection.timeframes.length !== 1) return null;
+    if (rejection.timeframes[0] !== triggerTf) return null;
+    if (
+      rejection.reason !== "TIMEFRAME_PROVIDER_FAILURE" &&
+      rejection.reason !== "INSUFFICIENT_BARS" &&
+      rejection.reason !== "INVALID_TIMEFRAME_DATA"
+    ) {
+      return null;
+    }
+
+    const partial = await buildPartialMarketContext({
+      symbol,
+      provider: this.deps.marketData,
+      roles: this.config.timeframeRoles,
+      thresholds: this.config.freshness,
+      candleLookback: this.config.candleLookback,
+      accountCurrency: this.config.account.currency,
+      conversionResolver: this.deps.conversionResolver,
+      asOf,
+      minBarsPerTimeframe: 40,
+    });
+    return partial.context;
+  }
+
+  private async scanSymbolPartial(
+    context: PartialMarketContext,
+    asOf: number
+  ): Promise<SymbolAnalysis> {
+    const news = await this.fetchNewsRisk(context.symbol, asOf);
+    const routedAnalysis = this.runPartialPipeline(
+      context,
+      asOf,
+      news?.evaluationStatus === "EVALUATED" ? news.newsPending : undefined
+    );
+
+    const result = this.toPartialSymbolScanResult({
+      symbol: context.symbol,
+      context,
+      pipeline: routedAnalysis.pipeline,
+      news,
+      routing: routedAnalysis.routing,
+      asOf,
+    });
+
+    return {
+      result,
+      lifecycle: null,
+      transitions: [],
+      funnelObservation: buildSignalFunnelObservation(
+        result,
+        routedAnalysis.pipeline,
+        asOf
+      ),
+    };
+  }
+
+  private runPartialPipeline(
+    context: PartialMarketContext,
+    asOf: number,
+    newsPending?: boolean
+  ): RoutedAnalysisResult {
+    const instrument = toCurrencyPair(context.metadata);
+    return analyzeMarketWithRouting({
+      instrument,
+      macroTimeframe: {
+        timeframe: context.d1.timeframe,
+        snapshot: toSnapshot(context.symbol, context.d1),
+      },
+      biasTimeframe: {
+        timeframe: context.h4.timeframe,
+        snapshot: toSnapshot(context.symbol, context.h4),
+      },
+      setupTimeframe: {
+        timeframe: context.h1.timeframe,
+        snapshot: toSnapshot(context.symbol, context.h1),
+      },
+      triggerTimeframe: null,
+      accountBalance: this.config.account.balance,
+      accountCurrency: this.config.account.currency,
+      riskPercent: this.config.account.riskPercent,
+      quoteToAccountConversionRate: context.quoteToAccountConversionRate,
+      configOverrides: this.config.engineConfig,
+      strategyConfigOverrides: this.config.strategyConfig,
+      execution: {
+        now: asOf,
+        mode: this.config.executionMode,
+        marketDataFreshness: context.freshness.status,
+        marketDataAgeMs: context.freshness.ageMs,
+        spreadPips: context.spreadPips,
+        newsPending,
+      },
+    });
+  }
+
+  private toPartialSymbolScanResult(input: {
+    symbol: string;
+    context: PartialMarketContext;
+    pipeline: PipelineResult;
+    news: NewsRiskContext | null;
+    routing: StrategyRoutingDecision;
+    asOf: number;
+  }): SymbolScanResult {
+    const { symbol, context, pipeline, news, routing, asOf } = input;
+    const setup = pipeline.setup.data;
+    const missing = context.missingTimeframes.join(", ");
+
+    return {
+      symbol,
+      status: "ANALYSED_PARTIAL",
+      executionEligible: false,
+      reason:
+        news?.evaluationStatus === "EVALUATED" && news.newsPending
+          ? `Partial analysis: ${missing} unavailable; high-impact news is pending.`
+          : `Partial analysis: ${missing} unavailable. Trigger, risk and execution were not evaluated.`,
+      latestPrice: context.latestPrice,
+      spreadPips: context.spreadPips ?? null,
+      regime: pipeline.regime.data.regime,
+      strategyId: routing.selectedStrategyId,
+      strategyRouting: routing,
+      bias: pipeline.bias.data.label,
+      biasScore: pipeline.bias.data.score,
+      biasDirection: pipeline.bias.data.direction,
+      setupState: setup.state,
+      setupScore: setup.setupScore,
+      triggerState: null,
+      triggerScore: null,
+      triggerAgeInBars: null,
+      riskReward: null,
+      positionSize: null,
+      executionDecision: null,
+      signalState: null,
+      signalId: null,
+      freshness: context.freshness.status,
+      updatedAt: asOf,
+      timeframes: [
+        summarizeTimeframe("macro", context.d1),
+        summarizeTimeframe("bias", context.h4),
+        summarizeTimeframe("setup", context.h1),
+      ],
+      executionDetail: null,
+      plannedLevels: null,
+      riskDetail: null,
+      evidence: collectEvidence(pipeline),
+      conflicts: collectConflicts(pipeline),
+      issues: [],
+      errors: [],
+    };
+  }
   private unexpectedFailure(symbol: string, asOf: number, error: unknown): SymbolScanResult {
     const message = error instanceof Error ? error.message : String(error);
     return failureResult(
