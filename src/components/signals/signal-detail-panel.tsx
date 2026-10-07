@@ -280,6 +280,17 @@ function PaperExecutionDetail({
       "The engine decision is EXECUTE, but the signal lifecycle is not executable. No paper position will be opened.";
   }
 
+  if (label === "NO PAPER ACTION") {
+    return (
+      <section aria-labelledby="paper-execution-title">
+        <SectionTitle id="paper-execution-title">Paper execution</SectionTitle>
+        <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
+          No action {"\u2014"} this signal has not produced a paper execution.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby="paper-execution-title">
       <SectionTitle id="paper-execution-title">Paper execution</SectionTitle>
@@ -404,7 +415,7 @@ function ExecutionDetail({ result }: { result: SymbolScanResult }) {
 function RiskDetail({ result }: { result: SymbolScanResult }) {
   const risk = result.riskDetail;
   if (!risk) {
-    return <p className="mt-2 text-xs text-zinc-600">Risk was not evaluated.</p>;
+    return <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">Not evaluated {"\u2014"} the trigger is waiting.</p>;
   }
 
   return (
