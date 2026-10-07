@@ -18,6 +18,7 @@ import {
   type ScannerSort,
 } from "@/lib/scanner-query";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import type { DashboardData, DownstreamStatus } from "@/types/dashboard";
 
 const DASHBOARD_READ_TIMEOUT_MS = 10_000;
@@ -277,7 +278,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         {runtimeIssue && (
           <a
             href="/system"
-            className="mt-2 flex items-center justify-between gap-3 rounded-md border border-amber-900/50 bg-amber-950/10 px-3 py-2 text-[11px] sm:text-xs"
+            className="mt-4 flex items-center justify-between gap-3 rounded-md border border-amber-900/50 bg-amber-950/10 px-3 py-2 text-[11px] sm:text-xs"
           >
             <span className="min-w-0 truncate">
               <strong className="text-amber-300">{"\u26A0 "}{runtimeIssueTitle}</strong>
@@ -379,7 +380,10 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
         <div
           id="signals"
-          className="min-w-0 scroll-mt-20 xl:sticky xl:top-[4.5rem] xl:self-start"
+          className={cn(
+            "min-w-0 scroll-mt-20 xl:sticky xl:top-[4.5rem] xl:self-start",
+            !selectedResult && "hidden xl:block"
+          )}
         >
           <SignalDetailPanel
             result={selectedResult}

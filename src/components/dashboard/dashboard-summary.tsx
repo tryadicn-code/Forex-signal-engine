@@ -76,7 +76,7 @@ function Kpi({
       <button
         type="button"
         onClick={onClick}
-        className="min-w-0 px-2 py-2 text-center sm:px-3 transition-colors hover:bg-zinc-800/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600"
+        className="min-w-0 px-2.5 py-2 text-center transition-colors hover:bg-zinc-800/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600"
         aria-label={`Filter scanner by ${label}`}
       >
         {content}
@@ -85,7 +85,7 @@ function Kpi({
   }
 
   return (
-    <div className="min-w-0 px-2 py-2 text-center sm:px-3">
+    <div className="min-w-0 px-2.5 py-2 text-center">
       {content}
     </div>
   );
