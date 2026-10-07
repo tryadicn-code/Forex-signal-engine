@@ -51,7 +51,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const restoredSelectionRef = useRef(false);
   const scanInFlightRef = useRef(false);
 
   const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
@@ -70,23 +69,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     selectedResult?.signalId
       ? data.signalHistory[selectedResult.signalId] ?? []
       : [];
-
-  useEffect(() => {
-    if (restoredSelectionRef.current || allResults.length === 0) return;
-    restoredSelectionRef.current = true;
-
-    const saved = window.localStorage.getItem("fse:selected-symbol");
-    if (saved && allResults.some((result) => result.symbol === saved)) {
-      const restore = window.setTimeout(() => setSelectedSymbol(saved), 0);
-      return () => window.clearTimeout(restore);
-    }
-  }, [allResults]);
-
-  useEffect(() => {
-    if (selectedSymbol) {
-      window.localStorage.setItem("fse:selected-symbol", selectedSymbol);
-    }
-  }, [selectedSymbol]);
 
   useEffect(() => {
     const openSignalDetail = (symbol: string): boolean => {

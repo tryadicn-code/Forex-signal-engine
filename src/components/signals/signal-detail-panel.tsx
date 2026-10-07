@@ -107,8 +107,8 @@ export function SignalDetailPanel({
       aria-label={detailLabel}
       style={dragY > 0 ? { transform: `translateY(${dragY}px)` } : undefined}
       className={cn(
-        "fixed inset-x-0 bottom-0 top-12 z-40 overflow-y-auto border-t border-zinc-700 bg-[#0b0e14] shadow-2xl",
-        "xl:sticky xl:top-16 xl:z-0 xl:max-h-[calc(100vh-5rem)] xl:rounded xl:border xl:border-zinc-800 xl:bg-zinc-900/30 xl:shadow-none"
+        "fixed inset-x-0 top-12 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-40 overflow-y-auto border-t border-zinc-700 bg-[#0b0e14] shadow-2xl",
+        "xl:sticky xl:top-16 xl:bottom-auto xl:z-0 xl:max-h-[calc(100vh-5rem)] xl:rounded xl:border xl:border-zinc-800 xl:bg-zinc-900/30 xl:shadow-none"
       )}
     >
       <div
