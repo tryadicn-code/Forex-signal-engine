@@ -287,25 +287,29 @@ function ScannerCard({
                 </div>
               )}
 
-            <div className="mt-1.5 flex items-center gap-2 text-[11px] leading-5">
+            <div className={cn("flex items-center gap-2 text-[11px]", isNeutralWithoutLevels(result) ? "mt-1 leading-4" : "mt-1.5 leading-5")}>
               <span className={cn("truncate font-medium", biasTone(result.bias))}>
                 {bias}
               </span>
 
               <div className="ml-auto flex items-center justify-end gap-2">
-                <span className="whitespace-nowrap text-right text-zinc-600">
-                  Engine{" "}
-                  <span className={cn("font-mono", engineTone(result.executionDecision))}>
-                    {result.executionDecision ?? "—"}
+                {result.executionDecision && (
+                  <span className="whitespace-nowrap text-right text-zinc-600">
+                    Engine{" "}
+                    <span className={cn("font-mono", engineTone(result.executionDecision))}>
+                      {result.executionDecision}
+                    </span>
                   </span>
-                </span>
+                )}
 
-                <span className="whitespace-nowrap text-right text-zinc-600">
-                  Lifecycle{" "}
-                  <span className="font-mono text-zinc-400">
-                    {result.signalState ?? "—"}
+                {result.signalState && (
+                  <span className="whitespace-nowrap text-right text-zinc-600">
+                    Lifecycle{" "}
+                    <span className="font-mono text-zinc-400">
+                      {result.signalState}
+                    </span>
                   </span>
-                </span>
+                )}
 
                 <span className="whitespace-nowrap text-right font-mono tabular-nums text-zinc-600">
                   {formatTimeShort(result.updatedAt)}
