@@ -91,17 +91,22 @@ export function ScannerFilters({
             aria-expanded={mobileFiltersOpen}
             aria-controls="mobile-scanner-filters"
             onClick={() => setMobileFiltersOpen((open) => !open)}
+            aria-label={`Filters${advancedCount > 0 ? ` (${advancedCount} active)` : ""}`}
             className={cn(
-              "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border px-3 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
+              "relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
               mobileFiltersOpen || advancedCount > 0
                 ? "border-emerald-700/60 bg-emerald-950/20 text-emerald-300"
                 : "border-zinc-700 bg-zinc-900 text-zinc-300"
             )}
           >
-            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4">
               <path d="M3 5h14M5.5 10h9M8 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            <span>Filters{advancedCount > 0 ? ` ${advancedCount}` : ""}</span>
+            {advancedCount > 0 && (
+              <span className="absolute right-0.5 top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-emerald-500 px-1 font-mono text-[9px] font-semibold leading-none text-zinc-950">
+                {advancedCount}
+              </span>
+            )}
           </button>
         </div>
 
