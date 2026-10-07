@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 type PaperOverlayWindow = Window & {
   __fseOpenPaper?: (view: "portfolio" | "journal") => void;
@@ -84,8 +85,16 @@ function DesktopNavLabel({
   );
 }
 
+function isRouteActive(href: string | undefined, pathname: string): boolean {
+  if (!href) return false;
+  // Home link is "/#overview"; its pathname is still "/".
+  if (href === "/#overview") return pathname === "/";
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
 export function SidebarNav() {
   const router = useRouter();
+  const pathname = usePathname();
 
   const openPortfolio = () => {
     const browserWindow = window as PaperOverlayWindow;
@@ -151,7 +160,11 @@ export function SidebarNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={itemClass}
+                className={cn(
+                  itemClass,
+                  isRouteActive(item.href, pathname) &&
+                    "rounded-md bg-zinc-800/40 text-zinc-100"
+                )}
               >
                 <MobileNavLabel icon={item.icon} label={item.label} />
               </Link>
@@ -205,7 +218,12 @@ export function SidebarNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              className={cn(
+                "flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500",
+                isRouteActive(item.href, pathname)
+                  ? "bg-zinc-800/50 text-zinc-100"
+                  : "text-zinc-500"
+              )}
             >
               <DesktopNavLabel
                 icon={item.icon}
