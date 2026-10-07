@@ -3,6 +3,7 @@ import type { HistoricalExecutionConfig, HistoricalExecutionSummary } from "@/re
 import type { ScannerSnapshot } from "@/scanner/scanner-result";
 import type { Timeframe } from "@/types/market";
 import type { CanonicalCandle, SymbolMetadata } from "@/types/market-data";
+import type { DeepPartial, EngineConfig } from "@/core/config/engine-config";
 
 /**
  * Immutable historical input for one symbol.
@@ -58,7 +59,13 @@ export interface ReplayRunConfig {
    * Default false preserves legacy runs that evaluate every M15 bar.
    */
   skipNonTradingHours?: boolean;
-  execution?: HistoricalExecutionConfig;
+  /**
+   * TRD-007: optional engine config override injected into ScannerApi.
+   * Used by research harnesses to vary a single EngineConfig field
+   * without touching src/core/.
+   */
+  engineConfigOverrides?: DeepPartial<EngineConfig>;
+    execution?: HistoricalExecutionConfig;
 }
 
 export interface ReplayStep {

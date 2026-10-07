@@ -14,6 +14,7 @@ import type {
   ReplayStepHandler,
 } from "@/replay/types";
 import { ScannerApi } from "@/scanner/scanner-api";
+import type { DeepPartial, EngineConfig } from "@/core/config/engine-config";
 import {
   setDeterministicMode,
   isDeterministicMode,
@@ -43,6 +44,8 @@ export class HistoricalReplayRunner {
   > & { skipNonTradingHours: boolean };
   private readonly provider: HistoricalReplayProvider;
   private readonly scannerApi: ScannerApi;
+  /** TRD-007: engine config override, passed through to ScannerApi. */
+  private readonly engineConfigOverrides: DeepPartial<EngineConfig> | undefined;
   private readonly executionSimulator: HistoricalExecutionSimulator | null;
 
   constructor(dataset: ReplayDataset, config: ReplayRunConfig) {
@@ -78,7 +81,9 @@ export class HistoricalReplayRunner {
           config: config.execution,
         })
       : null;
-    this.scannerApi = new ScannerApi(
+    this.engineConfigOverrides = (config as { engineConfigOverrides?: DeepPartial<EngineConfig> })
+      .engineConfigOverrides;
+        this.scannerApi = new ScannerApi(
       {
         providerId: this.provider.id,
         // B3-H2: default PAPER preserves legacy behaviour, but real backtests
@@ -88,7 +93,8 @@ export class HistoricalReplayRunner {
         executionMode:
           (config as { executionMode?: "SIGNAL_ONLY" | "PAPER" | "LIVE" })
             .executionMode ?? "PAPER",
-        symbols: this.config.symbols,
+        engineConfig: this.engineConfigOverrides,
+                symbols: this.config.symbols,
         candleLookback: this.config.candleLookback,
         account: {
           balance: this.config.accountBalance,
