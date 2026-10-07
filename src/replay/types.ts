@@ -46,6 +46,7 @@ export interface ReplayRunConfig {
   symbols?: string[];
   /** Scanner candle window. Defaults to the existing scanner configuration. */
   candleLookback?: number;
+  executionMode?: "SIGNAL_ONLY" | "PAPER" | "LIVE";
   /** Existing Risk Engine account input. No paper account is created. */
   accountBalance?: number;
   accountCurrency?: string;

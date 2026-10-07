@@ -157,6 +157,7 @@ export async function runImportedBacktest(
     startAt,
     endAt,
     stepTimeframe: "M15",
+    executionMode: "LIVE",
     accountBalance: config.initialBalance,
     riskPercent: config.riskPercent,
     execution: {
