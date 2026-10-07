@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
-import { SignalFunnelPanel } from "@/components/analytics/signal-funnel-panel";
+import { SignalFunnelSummary } from "@/components/analytics/signal-funnel-summary";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
@@ -49,7 +49,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [sort, setSort] = useState<ScannerSort>(DEFAULT_SORT);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [resettingFunnel, setResettingFunnel] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const restoredSelectionRef = useRef(false);
   const scanInFlightRef = useRef(false);
@@ -246,35 +245,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       setRefreshing(false);
     }
   };
-  const resetFunnel = async () => {
-    if (resettingFunnel) return;
-    const confirmed = window.confirm(
-      "Reset signal funnel? Semua observasi yang tersimpan akan dihapus permanen. Tindakan ini tidak dapat dibatalkan."
-    );
-    if (!confirmed) return;
-
-    setResettingFunnel(true);
-    setRequestError(null);
-    try {
-      await apiFetch("/api/analytics/signal-funnel", { method: "DELETE" });
-      // Refresh dashboard view only \u2014 do NOT trigger a new scan.
-      const next = await requestDashboard("GET", DASHBOARD_READ_TIMEOUT_MS);
-      setData(next);
-    } catch (error) {
-      if (error instanceof ApiError && error.code === "UNAUTHORIZED") {
-        setRequestError(
-          "Approval secret is required to reset the signal funnel. Set it from the dialog, then try again."
-        );
-      } else {
-        setRequestError(
-          error instanceof Error ? error.message : String(error)
-        );
-      }
-    } finally {
-      setResettingFunnel(false);
-    }
-  };
-
   const errorMessage = requestError ?? data.scanError;
   const runtimeIssue =
     data.releaseRuntime && data.releaseRuntime.status !== "ACTIVE"
@@ -423,12 +393,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         </div>
       </div>
 
-      <SignalFunnelPanel
-        analytics={data.signalFunnel}
-        persistenceError={data.signalFunnelError}
-        onReset={resetFunnel}
-        resetting={resettingFunnel}
-      />
+      <SignalFunnelSummary analytics={data.signalFunnel} />
 
       <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
 

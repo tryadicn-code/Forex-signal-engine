@@ -3,6 +3,7 @@ import { ForwardValidationPanel } from "@/components/forward-validation/forward-
 import { ProductionHealthPanel } from "@/components/production/production-health-panel";
 import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { TransitionHistory } from "@/components/signals/transition-history";
+import { SystemSignalFunnel } from "@/components/system/system-signal-funnel";
 import type { BrokerExecutionDashboard } from "@/broker/types";
 import type { DashboardData } from "@/types/dashboard";
 
@@ -58,6 +59,11 @@ export function SystemWorkspace({
           />
         </div>
       </details>
+
+      <SystemSignalFunnel
+        analytics={data.signalFunnel}
+        persistenceError={data.signalFunnelError}
+      />
     </div>
   );
 }
