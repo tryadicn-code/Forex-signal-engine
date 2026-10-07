@@ -351,28 +351,7 @@ describe("Phase 10.5 trading workstation dashboard", () => {
     expect(screen.getAllByText("EURUSD").length).toBeGreaterThan(0);
   });
 
-  it("derives the auto-sync countdown from the last completed scan when nextScanAt is missing", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(T0 + 30_000);
-
-    const data = dashboard([analysed("EURUSD")]);
-    data.automation = {
-      enabled: true,
-      scanIntervalMs: 60_000,
-      dashboardSyncIntervalMs: 15_000,
-      nextScanAt: null,
-    };
-
-    render(<DashboardWorkspace initialData={data} />);
-
-    await act(async () => {
-      vi.advanceTimersByTime(0);
-    });
-
-    expect(screen.getByText("30s")).toBeInTheDocument();
-  });
-
-  it("does not start a POST scan from the browser when auto-sync reaches zero", async () => {
+  it("does not POST a scan from the browser without an explicit refresh", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(T0);
 

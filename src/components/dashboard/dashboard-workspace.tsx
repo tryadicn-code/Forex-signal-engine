@@ -51,7 +51,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [refreshing, setRefreshing] = useState(false);
   const [resettingFunnel, setResettingFunnel] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [clockNow, setClockNow] = useState<number | null>(null);
   const restoredSelectionRef = useRef(false);
   const scanInFlightRef = useRef(false);
 
@@ -164,19 +163,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   useEffect(() => {
     if (!data.automation?.enabled) return;
 
-    const tick = () => setClockNow(Date.now());
-    const initialTick = window.setTimeout(tick, 0);
-    const timer = window.setInterval(tick, 1_000);
-
-    return () => {
-      window.clearTimeout(initialTick);
-      window.clearInterval(timer);
-    };
-  }, [data.automation?.enabled]);
-
-  useEffect(() => {
-    if (!data.automation?.enabled) return;
-
     const intervalMs = Math.max(5_000, data.automation.dashboardSyncIntervalMs);
     let inFlight = false;
 
@@ -207,19 +193,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     return () => window.clearInterval(timer);
   }, [data.automation?.dashboardSyncIntervalMs, data.automation?.enabled]);
 
-  const scanIntervalMs = data.automation?.scanIntervalMs ?? null;
-  const lastScanCompletedAt = data.health?.lastScanCompletedAt ?? null;
-  const nextScanAt =
-    data.automation?.nextScanAt ??
-    (data.automation?.enabled &&
-    scanIntervalMs !== null &&
-    lastScanCompletedAt !== null
-      ? lastScanCompletedAt + scanIntervalMs
-      : null);
-  const countdownSeconds =
-    clockNow !== null && nextScanAt !== null
-      ? Math.max(0, Math.ceil((nextScanAt - clockNow) / 1000))
-      : null;
 
   const clearFilters = () => {
     setQuery(DEFAULT_QUERY);
@@ -315,38 +288,13 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   return (
     <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4 lg:p-5">
       <section id="overview" aria-label="Market overview" className="scroll-mt-20">
-        <div className="mb-2 flex justify-end">
-          <div className="flex items-center justify-end gap-2 text-xs">
-            {data.automation?.enabled ? (
-              <div className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/50 px-2.5 py-1.5">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                  Auto sync
-                </span>
-                <span className="font-mono tabular-nums text-emerald-300">
-                  {countdownSeconds ?? "\u2014"}s
-                </span>
-              </div>
-            ) : (
-              <span className="text-[11px] uppercase tracking-wide text-zinc-600">
-                Auto sync off
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={refresh}
-              disabled={refreshing}
-              aria-label="Refresh scan"
-              className="rounded-md border border-zinc-700 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-emerald-700/60 hover:text-emerald-300 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-            >
-              {refreshing ? "Syncing\u2026" : "Refresh"}
-            </button>
-          </div>
-        </div>
-
         <DashboardSummary
           snapshot={data.snapshot}
           health={data.health}
-          activeSignals={data.activeSignals}
+          liveMarketData={Boolean(data.liveMarketData)}
+          providerId={data.providerId ?? null}
+          onRefresh={refresh}
+          refreshing={refreshing}
           onFilter={(state) => {
             setQuery({ ...DEFAULT_QUERY, state });
             const target = document.getElementById("scanner");

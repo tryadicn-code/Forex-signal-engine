@@ -5,8 +5,8 @@
  */
 
 import type { ScannerHealth, ScannerSnapshot, SymbolScanResult } from "@/scanner/scanner-result";
-import type { SignalView } from "@/scanner/scanner-api";
-import { formatTime } from "@/lib/format";
+import { formatTimeShort } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { StateFilter } from "@/lib/scanner-query";
 
 export function summarizeResults(results: SymbolScanResult[]) {
@@ -94,14 +94,22 @@ function Kpi({
 export function DashboardSummary({
   snapshot,
   health,
-  activeSignals,
   onFilter,
+  liveMarketData,
+  providerId,
+  onRefresh,
+  refreshing,
 }: {
   snapshot: ScannerSnapshot | null;
   health: ScannerHealth | null;
-  activeSignals: SignalView[];
   /** UIUX-M-010: tap a KPI tile to jump to the scanner with that filter. */
   onFilter?: (state: StateFilter) => void;
+  /** UIUX-M: provider identity + live flag for the footer meta row. */
+  liveMarketData?: boolean;
+  providerId?: string | null;
+  /** UIUX-M: refresh control owned by the parent workspace. */
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }) {
   const counts = summarizeResults(snapshot?.results ?? []);
 
@@ -137,12 +145,42 @@ export function DashboardSummary({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t border-zinc-800 px-3 py-2 text-[11px] text-zinc-500 sm:text-xs">
-        <span><span className="font-mono text-zinc-300">{counts.scanned}</span> pairs</span>
-        <span aria-hidden="true" className="text-zinc-500">·</span>
-        <span><span className="font-mono text-zinc-300">{activeSignals.length}</span> active</span>
-        <span aria-hidden="true" className="text-zinc-500">·</span>
-        <span>Last scan <span className="font-mono tabular-nums text-zinc-300">{formatTime(health?.lastScanCompletedAt)}</span></span>
+      <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 border-t border-zinc-800 px-3 py-2 text-[11px] text-zinc-500 sm:text-xs">
+        <span className={cn("font-mono text-[10px] uppercase tracking-wide", liveMarketData ? "text-emerald-400" : "text-zinc-600")}>
+          {liveMarketData ? "[LIVE]" : "[MOCK]"}
+        </span>
+        <span className="font-mono text-zinc-300">
+          {(providerId ?? "unknown").toUpperCase()}
+        </span>
+        <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
+        <span>
+          <span className="font-mono text-zinc-300">{counts.scanned}</span> pairs
+        </span>
+        <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
+        <span>
+          Last scan <span className="font-mono tabular-nums text-zinc-300">{formatTimeShort(health?.lastScanCompletedAt)}{" WITA"}</span>
+        </span>
+        <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            aria-label="Refresh scan"
+            className="inline-flex items-center gap-1 transition-colors hover:text-zinc-200 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+          >
+            <span>Sync</span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              className={cn("h-3 w-3 text-zinc-300", refreshing && "animate-spin")}
+            >
+              <path d="M16 4v4h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M15.5 11a6 6 0 1 1-1.3-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {counts.engineExecute > counts.ready && (
