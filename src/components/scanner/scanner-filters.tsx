@@ -110,7 +110,7 @@ export function ScannerFilters({
           </button>
         </div>
 
-        <div className="-mx-0.5 flex gap-2 overflow-x-auto px-0.5 pb-1 scrollbar-none">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {MOBILE_STATE_FILTERS.map((chip) => (
             <StateChip
               key={chip}
@@ -322,8 +322,8 @@ function StateChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full border font-mono font-medium uppercase tracking-[0.08em] transition-colors",
-        mobile ? "h-11 min-h-[44px] px-3 text-[11px]" : "px-2 py-0.5 text-[11px]",
+        "rounded-md border font-mono text-[11px] font-semibold uppercase transition-colors text-center",
+        mobile ? "flex-1 min-w-0 h-11 min-h-[44px] px-2 text-[11px]" : "shrink-0 px-2 py-0.5 text-[11px]",
         active
           ? "border-emerald-600/60 bg-emerald-600/15 text-emerald-300"
           : "border-zinc-700 text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-200"
