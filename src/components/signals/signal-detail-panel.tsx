@@ -131,9 +131,11 @@ export function SignalDetailPanel({
             <DirectionBadge direction={result.biasDirection} />
             <FreshnessBadge status={result.freshness} />
           </div>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-500">{result.reason}</p>
+          {result.status !== "ANALYSED" && (
+            <p className="mt-1 text-xs leading-relaxed text-zinc-500">{result.reason}</p>
+          )}
         </div>
-        <ModalCloseButton onClick={onClose} label="Close signal detail" />
+        <ModalCloseButton onClick={onClose} label="Close signal detail" variant="icon" />
       </header>
 
       <div className="space-y-4 p-3 sm:p-4">
