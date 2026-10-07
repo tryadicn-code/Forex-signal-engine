@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { SymbolScanResult } from "@/scanner/scanner-result";
 import {
   DirectionBadge,
@@ -36,17 +37,58 @@ export function ScannerCards({
   selectedSymbol: string | null;
   onSelect: (symbol: string) => void;
 }) {
+  const [neutralCollapsed, setNeutralCollapsed] = useState(true);
+  const activeResults = results.filter(
+    (result) => !isNeutralWithoutLevels(result)
+  );
+  const neutralResults = results.filter((result) =>
+    isNeutralWithoutLevels(result)
+  );
+
   return (
-    <ul>
-      {results.map((result) => (
-        <ScannerCard
-          key={result.symbol}
-          result={result}
-          selected={result.symbol === selectedSymbol}
-          onSelect={onSelect}
-        />
-      ))}
-    </ul>
+    <>
+      {activeResults.length > 0 && (
+        <ul>
+          {activeResults.map((result) => (
+            <ScannerCard
+              key={result.symbol}
+              result={result}
+              selected={result.symbol === selectedSymbol}
+              onSelect={onSelect}
+            />
+          ))}
+        </ul>
+      )}
+
+      {neutralResults.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setNeutralCollapsed((v) => !v)}
+            aria-expanded={!neutralCollapsed}
+            className="flex w-full items-center gap-2 border-b border-zinc-700/80 bg-zinc-950/40 px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wide text-zinc-500 transition-colors hover:bg-zinc-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600"
+          >
+            <span aria-hidden="true" className="font-mono text-zinc-400">
+              {neutralCollapsed ? "\u25B8" : "\u25BE"}
+            </span>
+            <span>{"Neutral pairs \u00B7 "}{neutralResults.length}</span>
+          </button>
+
+          {!neutralCollapsed && (
+            <ul>
+              {neutralResults.map((result) => (
+                <ScannerCard
+                  key={result.symbol}
+                  result={result}
+                  selected={result.symbol === selectedSymbol}
+                  onSelect={onSelect}
+                />
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </>
   );
 }
 
@@ -96,6 +138,31 @@ function biasTone(bias: string | null): string {
   if (bias === "STRONG_LONG") return "text-emerald-300";
   if (bias === "STRONG_SHORT") return "text-red-300";
   return "text-zinc-400";
+}
+
+function isNeutralWithoutLevels(result: SymbolScanResult): boolean {
+  // Failed / partial results must stay visible so the operator sees the
+  // data problem; never hide them behind the collapsed Neutral section.
+  if (result.status !== "ANALYSED" && result.status !== "ANALYSED_PARTIAL") {
+    return false;
+  }
+
+  const neutralBias =
+    result.biasDirection === null || result.biasDirection === "NEUTRAL";
+  if (!neutralBias) return false;
+
+  const risk = result.riskDetail;
+  const planned = result.plannedLevels;
+  const hasRiskLevel =
+    risk?.entryPrice != null ||
+    risk?.takeProfit1 != null ||
+    risk?.stopLoss != null;
+  const hasPlannedLevel =
+    planned?.entry != null ||
+    planned?.takeProfit != null ||
+    planned?.stop != null ||
+    planned?.rr != null;
+  return !hasRiskLevel && !hasPlannedLevel && result.riskReward == null;
 }
 
 function ScannerCard({
