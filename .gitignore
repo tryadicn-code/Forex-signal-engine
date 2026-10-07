@@ -109,3 +109,5 @@ audit-batch1.txt
 audit-batch*.txt
 
 audit-trd-batch*.txt
+*.bak
+run*-debug.log
