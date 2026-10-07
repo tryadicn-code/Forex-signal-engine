@@ -397,24 +397,6 @@ function ExecutionDetail({ result }: { result: SymbolScanResult }) {
           </ul>
         </div>
       )}
-
-      <div>
-        <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-          Engine reasons
-        </div>
-        {detail.reasons.length > 0 ? (
-          <ul className="mt-1 space-y-1 text-[11px] leading-relaxed text-zinc-400">
-            {detail.reasons.map((reason, index) => (
-              <li key={reason + index} className="flex gap-2">
-                <span aria-hidden="true" className="text-zinc-600">•</span>
-                <span>{reason}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-1 text-xs text-zinc-600">No execution reasons recorded.</p>
-        )}
-      </div>
     </div>
   );
 }
