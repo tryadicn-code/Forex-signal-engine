@@ -19,6 +19,17 @@ function result(overrides: Partial<SymbolScanResult> = {}): SymbolScanResult {
     executionDecision: "WAIT",
     signalState: "WATCH",
     freshness: "FRESH",
+    latestPrice: 1.11959,
+    plannedLevels: {
+      direction: "SHORT",
+      entry: 1.1225,
+      stop: 1.1255,
+      takeProfit: 1.1165,
+      rr: 2.0,
+      zoneLow: 1.12208,
+      zoneHigh: 1.12533,
+      source: "test",
+    },
     evidence: [
       {
         code: "BIAS_STRUCTURE",
@@ -36,22 +47,31 @@ function result(overrides: Partial<SymbolScanResult> = {}): SymbolScanResult {
 }
 
 describe("SignalNarrative", () => {
-  it("renders hero state, reason, and Bias section", () => {
+  it("renders the rich watching narrative with zone, distance, and setup score", () => {
     render(<SignalNarrative result={result()} />);
 
-    expect(screen.getByText("WATCHING")).toBeInTheDocument();
-    expect(screen.getByText("Watching for a valid setup.")).toBeInTheDocument();
-    expect(screen.getByText(/Bias/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Waiting for price to reach the supply zone/)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/1\.12208/)).toBeInTheDocument();
+    expect(screen.getByText(/25 pips below/)).toBeInTheDocument();
+    expect(screen.getByText(/Setup score 45\/60/)).toBeInTheDocument();
+  });
+
+  it("renders the Bias section with the signed score and evidence bullets", () => {
+    render(<SignalNarrative result={result()} />);
+
     expect(screen.getByText(/-67/)).toBeInTheDocument();
     expect(screen.getByText(/Structure trend SHORT/)).toBeInTheDocument();
     expect(screen.getByText(/EMA stack bearish/)).toBeInTheDocument();
   });
 
-  it("renders BLOCKED with the first veto when execution is blocked", () => {
+  it("renders the blocked narrative with the first veto", () => {
     render(
       <SignalNarrative
         result={result({
           executionDecision: "BLOCKED",
+          signalState: "BLOCKED",
           executionDetail: {
             decision: "BLOCKED",
             conditions: [],
@@ -62,16 +82,33 @@ describe("SignalNarrative", () => {
       />
     );
 
-    expect(screen.getByText("BLOCKED")).toBeInTheDocument();
     expect(
       screen.getByText("Execution blocked: RR_TOO_LOW.")
     ).toBeInTheDocument();
   });
 
-  it("omits the Bias section when bias is null", () => {
-    render(<SignalNarrative result={result({ bias: null, biasScore: null })} />);
+  it("renders the ready narrative with the levels summary", () => {
+    render(
+      <SignalNarrative
+        result={result({
+          executionDecision: "EXECUTE",
+          signalState: "EXECUTE",
+        })}
+      />
+    );
 
-    expect(screen.getByText("WATCHING")).toBeInTheDocument();
-    expect(screen.queryByText(/Bias/)).not.toBeInTheDocument();
+    expect(screen.getByText(/All gates passed\./)).toBeInTheDocument();
+    expect(screen.getByText(/Entry 1\.12250/)).toBeInTheDocument();
+    expect(screen.getByText(/RR 1:2\.00/)).toBeInTheDocument();
+  });
+
+  it("omits the Bias section when bias is null", () => {
+    render(
+      <SignalNarrative result={result({ bias: null, biasScore: null })} />
+    );
+
+    expect(
+      screen.queryByText(/Structure trend SHORT/)
+    ).not.toBeInTheDocument();
   });
 });

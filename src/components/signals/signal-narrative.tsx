@@ -1,50 +1,169 @@
 /**
  * Signal Detail narrative panel.
  *
- * Fase A prototype of the narrative redesign (see
- * docs/UIUX-M-SIGNAL-DETAIL-NARRATIVE.md). Renders the hero status card
- * and the Bias section from data already present on SymbolScanResult.
- * Fase B adds Setup / Trigger / Risk. Fase C moves the technical sections
- * below into a collapsed "Raw data" group.
+ * Fase A revision: hero card renders the pipeline progress bar plus a
+ * rich, plain-language narrative derived from the engine's own output
+ * (plannedLevels, riskDetail, executionDetail, workstationStatus). The
+ * former standalone state word is dropped; the current stage is shown
+ * by the progress bar itself.
  *
- * All copy is English. Engine codes and descriptions are shown as-is; the
- * UI never computes or re-weights anything.
+ * All copy is English. Engine codes and descriptions are shown as-is;
+ * the UI never computes or re-weights anything.
  */
 
 "use client";
 
 import type { SymbolScanResult } from "@/scanner/scanner-result";
+import { SYMBOL_METADATA } from "@/config/scanner";
+import { formatPrice } from "@/lib/format";
+import {
+  stageGlyph,
+  workstationStages,
+  workstationStatus,
+} from "@/lib/workstation-status";
+import { cn } from "@/lib/utils";
 
-function deriveHeroState(result: SymbolScanResult): string {
-  if (result.signalState === "INVALIDATED") return "INVALIDATED";
-  if (result.signalState === "CLOSED") return "CLOSED";
-  if (result.signalState === "EXECUTE") return "EXECUTED";
-  if (result.executionDecision === "BLOCKED") return "BLOCKED";
-  if (result.signalState === "RISK_APPROVED") return "READY";
-  if (result.signalState === "TRIGGERED") return "READY";
-  if (result.signalState === "ARMED") return "ARMED";
-  if (result.signalState === "SETUP") return "WATCHING";
-  if (result.signalState === "WATCH") return "WATCHING";
-  if (result.signalState === "DISCOVERED") return "MONITORING";
-  return "MONITORING";
+function pipSizeFor(symbol: string): number | null {
+  return SYMBOL_METADATA[symbol]?.pipSize ?? null;
 }
 
-function deriveHeroReason(result: SymbolScanResult): string {
-  if (result.signalState === "CLOSED") return "Signal lifecycle ended.";
-  if (result.signalState === "INVALIDATED") return "Signal invalidated by the engine.";
-  if (result.signalState === "EXECUTE") return "Signal executed.";
-  if (result.executionDecision === "BLOCKED") {
-    const veto = result.executionDetail?.triggeredVetoes?.[0];
-    return veto
-      ? "Execution blocked: " + veto + "."
-      : "Execution blocked by engine gate.";
+function levelsSummary(result: SymbolScanResult): string {
+  const risk = result.riskDetail;
+  const planned = result.plannedLevels ?? null;
+  const entry = risk?.entryPrice ?? planned?.entry ?? null;
+  const stop = risk?.stopLoss ?? planned?.stop ?? null;
+  const tp = risk?.takeProfit1 ?? planned?.takeProfit ?? null;
+  const rr = result.riskReward ?? risk?.plannedRR ?? planned?.rr ?? null;
+  if (entry === null || stop === null || tp === null) return "";
+  let text =
+    "Entry " +
+    formatPrice(result.symbol, entry) +
+    " \u00B7 SL " +
+    formatPrice(result.symbol, stop) +
+    " \u00B7 TP1 " +
+    formatPrice(result.symbol, tp);
+  if (rr !== null && Number.isFinite(rr)) {
+    text += " \u00B7 RR 1:" + rr.toFixed(2);
   }
-  if (result.signalState === "RISK_APPROVED") return "Risk approved, awaiting execution.";
-  if (result.signalState === "TRIGGERED") return "Trigger confirmed, awaiting risk check.";
-  if (result.signalState === "ARMED") return "Price in setup zone, awaiting trigger.";
-  if (result.signalState === "SETUP") return "Setup formed, awaiting price entry.";
-  if (result.signalState === "WATCH") return "Watching for a valid setup.";
-  return "Monitoring for a valid setup.";
+  return text + ".";
+}
+
+function watchingNarrative(
+  result: SymbolScanResult,
+  pipSize: number | null
+): string {
+  const planned = result.plannedLevels ?? null;
+  if (!planned) return workstationStatus(result).detail;
+  const zoneName = planned.direction === "SHORT" ? "supply zone" : "demand zone";
+  const zoneStr =
+    formatPrice(result.symbol, planned.zoneLow) +
+    " \u2013 " +
+    formatPrice(result.symbol, planned.zoneHigh);
+  let text = "Waiting for price to reach the " + zoneName + " " + zoneStr + ".";
+  const price = result.latestPrice;
+  if (price !== null && pipSize !== null && pipSize > 0) {
+    const near =
+      planned.direction === "SHORT" ? planned.zoneLow : planned.zoneHigh;
+    const distance = Math.round(Math.abs(near - price) / pipSize);
+    const rel =
+      price < near ? "below" : price > near ? "above" : "at";
+    text +=
+      " Current price " +
+      formatPrice(result.symbol, price) +
+      " (" +
+      distance +
+      " pips " +
+      rel +
+      ").";
+  }
+  if (result.setupScore !== null && Number.isFinite(result.setupScore)) {
+    text += " Setup score " + Math.round(result.setupScore) + "/60.";
+  }
+  return text;
+}
+
+function armedNarrative(
+  result: SymbolScanResult,
+  pipSize: number | null
+): string {
+  void pipSize;
+  const planned = result.plannedLevels ?? null;
+  if (!planned) return workstationStatus(result).detail;
+  const zoneName = planned.direction === "SHORT" ? "supply zone" : "demand zone";
+  const zoneStr =
+    formatPrice(result.symbol, planned.zoneLow) +
+    " \u2013 " +
+    formatPrice(result.symbol, planned.zoneHigh);
+  const levels = levelsSummary(result);
+  return (
+    "Price inside " +
+    zoneName +
+    " " +
+    zoneStr +
+    ". Awaiting trigger candle." +
+    (levels ? " " + levels : "")
+  );
+}
+
+function heroNarrative(
+  result: SymbolScanResult,
+  pipSize: number | null
+): string {
+  const status = result.status;
+  if (status !== "ANALYSED" && status !== "ANALYSED_PARTIAL") {
+    return workstationStatus(result).detail;
+  }
+  if (
+    result.executionDecision === "INVALIDATED" ||
+    result.signalState === "INVALIDATED" ||
+    result.setupState === "INVALIDATED" ||
+    result.triggerState === "INVALIDATED"
+  ) {
+    return workstationStatus(result).detail;
+  }
+  if (result.signalState === "CLOSED") {
+    return "Signal lifecycle ended.";
+  }
+  if (
+    result.executionDecision === "BLOCKED" ||
+    result.signalState === "BLOCKED"
+  ) {
+    const veto = result.executionDetail?.triggeredVetoes?.[0];
+    if (veto) return "Execution blocked: " + veto + ".";
+    if (result.riskDetail?.rejectionReason) {
+      return "Execution blocked: " + result.riskDetail.rejectionReason + ".";
+    }
+    return "Execution blocked by engine gate.";
+  }
+  if (
+    result.executionDecision === "EXECUTE" &&
+    result.signalState === "EXECUTE"
+  ) {
+    const levels = levelsSummary(result);
+    return levels ? "All gates passed. " + levels : "All gates passed.";
+  }
+  if (
+    result.signalState === "RISK_APPROVED" ||
+    result.signalState === "TRIGGERED" ||
+    result.triggerState === "CONFIRMED"
+  ) {
+    const levels = levelsSummary(result);
+    return levels
+      ? "Trigger confirmed. Awaiting execution. " + levels
+      : "Trigger confirmed. Awaiting risk and execution confirmation.";
+  }
+  if (result.signalState === "ARMED" || result.setupState === "ARMED") {
+    return armedNarrative(result, pipSize);
+  }
+  if (
+    result.setupState === "SETUP" ||
+    result.signalState === "SETUP" ||
+    result.setupState === "WATCH" ||
+    result.signalState === "WATCH"
+  ) {
+    return watchingNarrative(result, pipSize);
+  }
+  return workstationStatus(result).detail;
 }
 
 function biasReasons(result: SymbolScanResult): string[] {
@@ -60,8 +179,8 @@ function signedScore(score: number): string {
 }
 
 export function SignalNarrative({ result }: { result: SymbolScanResult }) {
-  const heroState = deriveHeroState(result);
-  const heroReason = deriveHeroReason(result);
+  const stages = workstationStages(result);
+  const narrative = heroNarrative(result, pipSizeFor(result.symbol));
   const reasons = biasReasons(result);
   const biasLabel = result.bias ? result.bias.replace(/_/g, " ") : null;
   const biasScore = result.biasScore;
@@ -69,16 +188,36 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
   return (
     <>
       <section
-        aria-label="Signal status"
+        aria-label="Signal pipeline and status"
         className="rounded border border-zinc-800 bg-zinc-900/30 px-3 py-3"
       >
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-          Status
+        <div className="grid grid-cols-5 gap-1">
+          {stages.map((stage) => (
+            <div key={stage.label} className="min-w-0">
+              <div
+                className={cn(
+                  "h-1 rounded-full",
+                  stage.state === "done" && "bg-emerald-500/70",
+                  stage.state === "current" && "bg-amber-500/70",
+                  stage.state === "blocked" && "bg-red-500/70",
+                  stage.state === "pending" && "bg-zinc-800"
+                )}
+              />
+              <div
+                className={cn(
+                  "mt-1.5 truncate text-[11px]",
+                  stage.state === "done" && "text-emerald-300",
+                  stage.state === "current" && "text-amber-300",
+                  stage.state === "blocked" && "text-red-300",
+                  stage.state === "pending" && "text-zinc-600"
+                )}
+              >
+                {stageGlyph(stage)} {stage.label}
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="mt-1 text-base font-semibold tracking-wide text-zinc-100">
-          {heroState}
-        </div>
-        <p className="mt-1 text-xs leading-relaxed text-zinc-500">{heroReason}</p>
+        <p className="mt-3 text-xs leading-relaxed text-zinc-400">{narrative}</p>
       </section>
 
       {biasLabel && biasScore !== null && (

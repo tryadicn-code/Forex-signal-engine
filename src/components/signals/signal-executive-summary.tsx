@@ -2,8 +2,6 @@ import type { SymbolScanResult } from "@/scanner/scanner-result";
 import { DirectionBadge, FreshnessBadge } from "@/components/common/badges";
 import { formatPrice, formatRatio } from "@/lib/format";
 import {
-  stageGlyph,
-  workstationStages,
   workstationStatus,
   workstationToneClass,
 } from "@/lib/workstation-status";
@@ -17,7 +15,6 @@ export function SignalExecutiveSummary({
   paper?: PaperDashboardData;
 }) {
   const status = workstationStatus(result);
-  const stages = workstationStages(result);
   const risk = result.riskDetail;
   const planned = result.plannedLevels ?? null;
   const isPlanned = !risk && planned !== null;
@@ -62,32 +59,6 @@ export function SignalExecutiveSummary({
 
       <OperationalSummary result={result} paper={paper} />
 
-      <div className="mt-4 grid grid-cols-5 gap-1">
-        {stages.map((stage) => (
-          <div key={stage.label} className="min-w-0">
-            <div
-              className={cn(
-                "h-1 rounded-full",
-                stage.state === "done" && "bg-emerald-500/70",
-                stage.state === "current" && "bg-amber-500/70",
-                stage.state === "blocked" && "bg-red-500/70",
-                stage.state === "pending" && "bg-zinc-800"
-              )}
-            />
-            <div
-              className={cn(
-                "mt-1.5 truncate text-[11px] sm:text-[11px]",
-                stage.state === "done" && "text-emerald-300",
-                stage.state === "current" && "text-amber-300",
-                stage.state === "blocked" && "text-red-300",
-                stage.state === "pending" && "text-zinc-600"
-              )}
-            >
-              {stageGlyph(stage)} {stage.label}
-            </div>
-          </div>
-        ))}
-      </div>
 
       <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-zinc-800 bg-zinc-800 sm:grid-cols-4">
         <Metric label={isPlanned ? "Planned entry" : "Entry"} value={formatPrice(result.symbol, entryVal)} />
