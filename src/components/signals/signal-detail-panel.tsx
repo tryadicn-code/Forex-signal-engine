@@ -123,7 +123,7 @@ export function SignalDetailPanel({
       >
         <div className="h-1 w-10 rounded-full bg-zinc-700" aria-hidden="true" />
       </div>
-      <header className="sticky top-[1.5rem] z-10 flex items-start justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-4 py-3 backdrop-blur xl:top-0 xl:bg-zinc-900/95">
+      <header className="sticky top-[1.5rem] z-30 flex items-start justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-4 py-3 backdrop-blur xl:top-0 xl:bg-zinc-900/95">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-mono text-base font-semibold tracking-wide text-zinc-100">
