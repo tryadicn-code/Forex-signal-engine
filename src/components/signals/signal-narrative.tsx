@@ -48,12 +48,27 @@ function levelsSummary(result: SymbolScanResult): string {
   return text + ".";
 }
 
+function genericWatchingNarrative(result: SymbolScanResult): string {
+  const parts: string[] = [];
+  parts.push("Watching for a valid setup.");
+  if (result.biasDirection && result.biasScore !== null) {
+    const strength = Math.round(Math.abs(result.biasScore));
+    parts.push(
+      "Bias " + result.biasDirection + " at strength " + strength + "."
+    );
+  }
+  parts.push(
+    "No setup zone formed yet \u2014 the Setup engine will create one once price approaches a demand or supply level."
+  );
+  return parts.join(" ");
+}
+
 function watchingNarrative(
   result: SymbolScanResult,
   pipSize: number | null
 ): string {
   const planned = result.plannedLevels ?? null;
-  if (!planned) return workstationStatus(result).detail;
+  if (!planned) return genericWatchingNarrative(result);
   const zoneName = planned.direction === "SHORT" ? "supply zone" : "demand zone";
   const zoneStr =
     formatPrice(result.symbol, planned.zoneLow) +
@@ -88,7 +103,7 @@ function armedNarrative(
 ): string {
   void pipSize;
   const planned = result.plannedLevels ?? null;
-  if (!planned) return workstationStatus(result).detail;
+  if (!planned) return genericWatchingNarrative(result);
   const zoneName = planned.direction === "SHORT" ? "supply zone" : "demand zone";
   const zoneStr =
     formatPrice(result.symbol, planned.zoneLow) +

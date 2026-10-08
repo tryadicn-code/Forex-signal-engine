@@ -102,6 +102,23 @@ describe("SignalNarrative", () => {
     expect(screen.getByText(/RR 1:2\.00/)).toBeInTheDocument();
   });
 
+
+  it("renders the generic watching narrative when no setup zone exists", () => {
+    render(
+      <SignalNarrative
+        result={result({ plannedLevels: null, setupScore: null })}
+      />
+    );
+
+    expect(
+      screen.getByText(/Watching for a valid setup\./)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Bias SHORT at strength 67/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/No setup zone formed yet/)
+    ).toBeInTheDocument();
+  });
+
   it("omits the Bias section when bias is null", () => {
     render(
       <SignalNarrative result={result({ bias: null, biasScore: null })} />
