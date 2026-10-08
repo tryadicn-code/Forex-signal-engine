@@ -193,12 +193,136 @@ function signedScore(score: number): string {
   return rounded > 0 ? "+" + rounded : String(rounded);
 }
 
+interface NarrativeSection {
+  state: string;
+  stateTone: "done" | "current" | "blocked" | "muted";
+  meta: string | null;
+  body: string;
+}
+
+function setupSection(result: SymbolScanResult): NarrativeSection | null {
+  const state = result.setupState;
+  if (state === null || state === "NONE") return null;
+  const planned = result.plannedLevels ?? null;
+  let stateTone: NarrativeSection["stateTone"] = "current";
+  if (state === "ARMED") stateTone = "done";
+  else if (state === "INVALIDATED") stateTone = "blocked";
+  const meta =
+    result.setupScore !== null && Number.isFinite(result.setupScore)
+      ? Math.round(result.setupScore) + " / 60"
+      : null;
+  let body: string;
+  if (!planned) {
+    body = "Setup engine is watching for price to approach a demand or supply zone.";
+  } else {
+    const zoneName = planned.direction === "SHORT" ? "supply zone" : "demand zone";
+    const zoneStr =
+      formatPrice(result.symbol, planned.zoneLow) +
+      " \u2013 " +
+      formatPrice(result.symbol, planned.zoneHigh);
+    if (state === "ARMED") {
+      body = "Price inside " + zoneName + " " + zoneStr + ". Awaiting trigger.";
+    } else {
+      body = "Waiting for price to reach " + zoneName + " " + zoneStr + ".";
+    }
+  }
+  return { state, stateTone, meta, body };
+}
+
+function triggerSection(result: SymbolScanResult): NarrativeSection | null {
+  const state = result.triggerState;
+  if (state === null) return null;
+  let stateTone: NarrativeSection["stateTone"] = "current";
+  if (state === "CONFIRMED") stateTone = "done";
+  else if (state === "INVALIDATED") stateTone = "blocked";
+  const meta =
+    result.triggerScore !== null && Number.isFinite(result.triggerScore)
+      ? Math.round(result.triggerScore) + " / 80"
+      : null;
+  let body: string;
+  if (state === "CONFIRMED") {
+    body = "Trigger confirmed. Risk evaluation is next.";
+  } else if (state === "INVALIDATED") {
+    body = "Trigger invalidated. The setup no longer qualifies.";
+  } else {
+    body =
+      "Awaiting a confirmation candle in the setup zone (structural break, momentum, or volume expansion).";
+  }
+  return { state, stateTone, meta, body };
+}
+
+function riskSection(result: SymbolScanResult): NarrativeSection | null {
+  const risk = result.riskDetail;
+  if (!risk) {
+    return {
+      state: "PENDING",
+      stateTone: "muted",
+      meta: null,
+      body: "Risk will be evaluated after the trigger confirms.",
+    };
+  }
+  if (risk.approved) {
+    const levels = levelsSummary(result);
+    return {
+      state: "APPROVED",
+      stateTone: "done",
+      meta: null,
+      body: levels ? "Approved. " + levels : "Approved.",
+    };
+  }
+  return {
+    state: "REJECTED",
+    stateTone: "blocked",
+    meta: null,
+    body: risk.rejectionReason
+      ? "Rejected: " + risk.rejectionReason + "."
+      : "Rejected by risk guard.",
+  };
+}
+
+function NarrativeCard({
+  title,
+  section,
+}: {
+  title: string;
+  section: NarrativeSection;
+}) {
+  const stateClass =
+    section.stateTone === "done"
+      ? "text-emerald-300"
+      : section.stateTone === "current"
+        ? "text-amber-300"
+        : section.stateTone === "blocked"
+          ? "text-red-300"
+          : "text-zinc-500";
+  return (
+    <section className="rounded border border-zinc-800 bg-zinc-900/30 px-3 py-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+          {title} {"\u2014"} <span className={stateClass}>{section.state}</span>
+        </h3>
+        {section.meta && (
+          <span className="font-mono text-xs tabular-nums text-zinc-300">
+            {section.meta}
+          </span>
+        )}
+      </div>
+      <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
+        {section.body}
+      </p>
+    </section>
+  );
+}
+
 export function SignalNarrative({ result }: { result: SymbolScanResult }) {
   const stages = workstationStages(result);
   const narrative = heroNarrative(result, pipSizeFor(result.symbol));
   const reasons = biasReasons(result);
   const biasLabel = result.bias ? result.bias.replace(/_/g, " ") : null;
   const biasScore = result.biasScore;
+  const setup = setupSection(result);
+  const trigger = triggerSection(result);
+  const risk = riskSection(result);
 
   return (
     <>
@@ -265,6 +389,12 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
           )}
         </section>
       )}
+
+      {setup && <NarrativeCard title="Setup" section={setup} />}
+
+      {trigger && <NarrativeCard title="Trigger" section={trigger} />}
+
+      {risk && <NarrativeCard title="Risk" section={risk} />}
     </>
   );
 }
