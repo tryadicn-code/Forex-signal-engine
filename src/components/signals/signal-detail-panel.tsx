@@ -13,6 +13,7 @@ import { SignalLifecycle } from "@/components/signals/signal-lifecycle";
 import { TransitionHistory } from "@/components/signals/transition-history";
 import { PriceChart } from "@/components/signals/price-chart";
 import { SignalExecutiveSummary } from "@/components/signals/signal-executive-summary";
+import { SignalNarrative } from "@/components/signals/signal-narrative";
 import {
   formatFixed,
   formatPrice,
@@ -149,6 +150,8 @@ export function SignalDetailPanel({
                 <PriceChart symbol={result.symbol} asOf={result.updatedAt} />
               </div>
             </section>
+
+            <SignalNarrative result={result} />
 
             <SignalExecutiveSummary result={result} paper={paper} />
 
