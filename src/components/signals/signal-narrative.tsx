@@ -1,11 +1,15 @@
 /**
  * Signal Detail narrative panel.
  *
- * Fase A revision: hero card renders the pipeline progress bar plus a
- * rich, plain-language narrative derived from the engine's own output
- * (plannedLevels, riskDetail, executionDetail, workstationStatus). The
- * former standalone state word is dropped; the current stage is shown
- * by the progress bar itself.
+ * Hero card: 5-stage progress bar plus the narrative of the currently
+ * active stage (the first stage that is not done). The former Setup /
+ * Trigger / Risk cards are folded into this single narrative so the
+ * same information is shown once, immediately under the progress bar.
+ *
+ * Bias section is unchanged in structure. BOS / CHOCH / LH / LL / HH /
+ * HL are expanded to full words and numeric strength gets a qualitative
+ * label ("strength 75 (very strong)"). Expansion applies only to the
+ * Bias section; Raw data keeps engine text verbatim for audit.
  *
  * All copy is English. Engine codes and descriptions are shown as-is;
  * the UI never computes or re-weights anything.
@@ -19,7 +23,7 @@ import { formatPrice } from "@/lib/format";
 import {
   stageGlyph,
   workstationStages,
-  workstationStatus,
+  type WorkstationStage,
 } from "@/lib/workstation-status";
 import { cn } from "@/lib/utils";
 
@@ -48,161 +52,45 @@ function levelsSummary(result: SymbolScanResult): string {
   return text + ".";
 }
 
-function genericWatchingNarrative(result: SymbolScanResult): string {
-  const parts: string[] = [];
-  parts.push("Watching for a valid setup.");
-  if (result.biasDirection && result.biasScore !== null) {
-    const strength = Math.round(Math.abs(result.biasScore));
-    parts.push(
-      "Bias " + result.biasDirection + " at strength " + strength + "."
-    );
-  }
-  parts.push(
-    "No setup zone formed yet \u2014 the Setup engine will create one once price approaches a demand or supply level."
-  );
-  return parts.join(" ");
+function qualitativeStrength(strength: number): string {
+  if (strength < 25) return "weak";
+  if (strength < 50) return "moderate";
+  if (strength < 75) return "strong";
+  return "very strong";
 }
 
-function watchingNarrative(
-  result: SymbolScanResult,
-  pipSize: number | null
-): string {
-  const planned = result.plannedLevels ?? null;
-  if (!planned) return genericWatchingNarrative(result);
-  const zoneName = planned.direction === "SHORT" ? "supply zone" : "demand zone";
-  const zoneStr =
-    formatPrice(result.symbol, planned.zoneLow) +
-    " \u2013 " +
-    formatPrice(result.symbol, planned.zoneHigh);
-  let text = "Waiting for price to reach the " + zoneName + " " + zoneStr + ".";
-  const price = result.latestPrice;
-  if (price !== null && pipSize !== null && pipSize > 0) {
-    const inside = price >= planned.zoneLow && price <= planned.zoneHigh;
-    if (inside) {
-      text +=
-        " Current price " +
-        formatPrice(result.symbol, price) +
-        " (inside the zone).";
-    } else {
-      const edge = price < planned.zoneLow ? planned.zoneLow : planned.zoneHigh;
-      const distance = Math.round(Math.abs(edge - price) / pipSize);
-      const rel = price < planned.zoneLow ? "below" : "above";
-      text +=
-        " Current price " +
-        formatPrice(result.symbol, price) +
-        " (" +
-        distance +
-        " pips " +
-        rel +
-        ").";
-    }
-  }  if (result.setupScore !== null && Number.isFinite(result.setupScore)) {
-    text += " Setup score " + Math.round(result.setupScore) + "/60.";
-  }
-  return text;
-}
+const ABBREVIATIONS: Array<[string, string]> = [
+  ["CHOCH", "change of character"],
+  ["BOS", "break of structure"],
+  ["LH", "lower high"],
+  ["LL", "lower low"],
+  ["HH", "higher high"],
+  ["HL", "higher low"],
+];
 
-function armedNarrative(
-  result: SymbolScanResult,
-  pipSize: number | null
-): string {
-  void pipSize;
-  const planned = result.plannedLevels ?? null;
-  if (!planned) return genericWatchingNarrative(result);
-  const zoneName = planned.direction === "SHORT" ? "supply zone" : "demand zone";
-  const zoneStr =
-    formatPrice(result.symbol, planned.zoneLow) +
-    " \u2013 " +
-    formatPrice(result.symbol, planned.zoneHigh);
-  const levels = levelsSummary(result);
-  return (
-    "Price inside " +
-    zoneName +
-    " " +
-    zoneStr +
-    ". Awaiting trigger candle." +
-    (levels ? " " + levels : "")
-  );
-}
-
-function heroNarrative(
-  result: SymbolScanResult,
-  pipSize: number | null
-): string {
-  const status = result.status;
-  if (status !== "ANALYSED" && status !== "ANALYSED_PARTIAL") {
-    return workstationStatus(result).detail;
+function expandBiasText(text: string): string {
+  let out = text;
+  for (const [abbr, full] of ABBREVIATIONS) {
+    const re = new RegExp("\\b" + abbr + "\\b", "g");
+    out = out.replace(re, full);
   }
-  if (
-    result.executionDecision === "INVALIDATED" ||
-    result.signalState === "INVALIDATED" ||
-    result.setupState === "INVALIDATED" ||
-    result.triggerState === "INVALIDATED"
-  ) {
-    return workstationStatus(result).detail;
-  }
-  if (result.signalState === "CLOSED") {
-    return "Signal lifecycle ended.";
-  }
-  if (
-    result.executionDecision === "BLOCKED" ||
-    result.signalState === "BLOCKED"
-  ) {
-    const veto = result.executionDetail?.triggeredVetoes?.[0];
-    if (veto) return "Execution blocked: " + veto + ".";
-    if (result.riskDetail?.rejectionReason) {
-      return "Execution blocked: " + result.riskDetail.rejectionReason + ".";
-    }
-    return "Execution blocked by engine gate.";
-  }
-  if (
-    result.executionDecision === "EXECUTE" &&
-    result.signalState === "EXECUTE"
-  ) {
-    const levels = levelsSummary(result);
-    return levels ? "All gates passed. " + levels : "All gates passed.";
-  }
-  if (
-    result.signalState === "RISK_APPROVED" ||
-    result.signalState === "TRIGGERED" ||
-    result.triggerState === "CONFIRMED"
-  ) {
-    const levels = levelsSummary(result);
-    return levels
-      ? "Trigger confirmed. Awaiting execution. " + levels
-      : "Trigger confirmed. Awaiting risk and execution confirmation.";
-  }
-  if (result.signalState === "ARMED" || result.setupState === "ARMED") {
-    return armedNarrative(result, pipSize);
-  }
-  if (
-    result.setupState === "SETUP" ||
-    result.signalState === "SETUP" ||
-    result.setupState === "WATCH" ||
-    result.signalState === "WATCH"
-  ) {
-    return watchingNarrative(result, pipSize);
-  }
-  return workstationStatus(result).detail;
+  out = out.replace(/strength (\d+)/g, (_, raw) => {
+    const num = parseInt(raw, 10);
+    return "strength " + num + " (" + qualitativeStrength(num) + ")";
+  });
+  return out;
 }
 
 function biasReasons(result: SymbolScanResult): string[] {
   return result.evidence
     .filter((item) => item.code.startsWith("BIAS_"))
-    .map((item) => item.description)
+    .map((item) => expandBiasText(item.description))
     .filter((text) => text.length > 0);
 }
 
 function signedScore(score: number): string {
   const rounded = Math.round(score);
   return rounded > 0 ? "+" + rounded : String(rounded);
-}
-
-interface NarrativeSection {
-  state: string;
-  stateTone: "done" | "current" | "blocked" | "muted";
-  meta: string | null;
-  body: string;
 }
 
 function formatSetupState(state: string): string {
@@ -220,54 +108,108 @@ function formatSetupState(state: string): string {
   }
 }
 
-function formatTriggerState(state: string): string {
-  switch (state) {
-    case "WAITING":
-      return "WAITING";
-    case "CONFIRMED":
-      return "CONFIRMED";
-    case "INVALIDATED":
-      return "INVALIDATED";
-    default:
-      return state;
-  }
+type StageTone = "done" | "current" | "blocked" | "muted";
+
+interface ActiveStageNarrative {
+  title: string;
+  stateDisplay: string;
+  stateTone: StageTone;
+  meta: string | null;
+  body: string;
 }
 
-function setupSection(result: SymbolScanResult): NarrativeSection | null {
+function toneClass(tone: StageTone): string {
+  if (tone === "done") return "text-emerald-300";
+  if (tone === "current") return "text-amber-300";
+  if (tone === "blocked") return "text-red-300";
+  return "text-zinc-500";
+}
+
+function setupBody(result: SymbolScanResult, state: string): string {
+  const planned = result.plannedLevels ?? null;
+  if (!planned) {
+    return "Setup engine is watching for price to approach a demand or supply zone.";
+  }
+  const zoneName =
+    planned.direction === "SHORT" ? "supply zone" : "demand zone";
+  const zoneStr =
+    formatPrice(result.symbol, planned.zoneLow) +
+    " \u2013 " +
+    formatPrice(result.symbol, planned.zoneHigh);
+  let text: string;
+  if (state === "ARMED") {
+    text = "Price inside " + zoneName + " " + zoneStr + ". Awaiting trigger.";
+  } else {
+    text = "Waiting for price to reach " + zoneName + " " + zoneStr + ".";
+  }
+  const price = result.latestPrice;
+  const pipSize = pipSizeFor(result.symbol);
+  if (price !== null && pipSize !== null && pipSize > 0) {
+    const inside = price >= planned.zoneLow && price <= planned.zoneHigh;
+    if (inside && state !== "ARMED") {
+      text +=
+        " Current price " +
+        formatPrice(result.symbol, price) +
+        " is inside the zone.";
+    } else if (!inside) {
+      const edge =
+        price < planned.zoneLow ? planned.zoneLow : planned.zoneHigh;
+      const distance = Math.round(Math.abs(edge - price) / pipSize);
+      const rel = price < planned.zoneLow ? "below" : "above";
+      text +=
+        " Current price " +
+        formatPrice(result.symbol, price) +
+        " (" +
+        distance +
+        " pips " +
+        rel +
+        ").";
+    }
+  }
+  return text;
+}
+
+function biasStageNarrative(result: SymbolScanResult): ActiveStageNarrative {
+  void result;
+  return {
+    title: "BIAS",
+    stateDisplay: "ANALYZING",
+    stateTone: "current",
+    meta: null,
+    body:
+      "Bias engine is evaluating structure, trend, regime, and momentum.",
+  };
+}
+
+function setupStageNarrative(
+  result: SymbolScanResult
+): ActiveStageNarrative | null {
   const state = result.setupState;
   if (state === null || state === "NONE") return null;
-  const planned = result.plannedLevels ?? null;
-  let stateTone: NarrativeSection["stateTone"] = "current";
-  if (state === "ARMED") stateTone = "done";
-  else if (state === "INVALIDATED") stateTone = "blocked";
+  let tone: StageTone = "current";
+  if (state === "ARMED") tone = "done";
+  else if (state === "INVALIDATED") tone = "blocked";
   const meta =
     result.setupScore !== null && Number.isFinite(result.setupScore)
       ? Math.round(result.setupScore) + " (min 60)"
       : null;
-  let body: string;
-  if (!planned) {
-    body = "Setup engine is watching for price to approach a demand or supply zone.";
-  } else {
-    const zoneName = planned.direction === "SHORT" ? "supply zone" : "demand zone";
-    const zoneStr =
-      formatPrice(result.symbol, planned.zoneLow) +
-      " \u2013 " +
-      formatPrice(result.symbol, planned.zoneHigh);
-    if (state === "ARMED") {
-      body = "Price inside " + zoneName + " " + zoneStr + ". Awaiting trigger.";
-    } else {
-      body = "Waiting for price to reach " + zoneName + " " + zoneStr + ".";
-    }
-  }
-  return { state: formatSetupState(state), stateTone, meta, body };
+  return {
+    title: "SETUP",
+    stateDisplay: formatSetupState(state),
+    stateTone: tone,
+    meta,
+    body: setupBody(result, state),
+  };
 }
 
-function triggerSection(result: SymbolScanResult): NarrativeSection | null {
+function triggerStageNarrative(
+  result: SymbolScanResult
+): ActiveStageNarrative | null {
   const state = result.triggerState;
   if (state === null) return null;
-  let stateTone: NarrativeSection["stateTone"] = "current";
-  if (state === "CONFIRMED") stateTone = "done";
-  else if (state === "INVALIDATED") stateTone = "blocked";
+  let tone: StageTone = "current";
+  if (state === "CONFIRMED") tone = "done";
+  else if (state === "INVALIDATED") tone = "blocked";
   const meta =
     result.triggerScore !== null && Number.isFinite(result.triggerScore)
       ? Math.round(result.triggerScore) + " (min 80)"
@@ -281,14 +223,23 @@ function triggerSection(result: SymbolScanResult): NarrativeSection | null {
     body =
       "Awaiting a confirmation candle in the setup zone (structural break, momentum, or volume expansion).";
   }
-  return { state: formatTriggerState(state), stateTone, meta, body };
+  return {
+    title: "TRIGGER",
+    stateDisplay: state,
+    stateTone: tone,
+    meta,
+    body,
+  };
 }
 
-function riskSection(result: SymbolScanResult): NarrativeSection | null {
+function riskStageNarrative(
+  result: SymbolScanResult
+): ActiveStageNarrative | null {
   const risk = result.riskDetail;
   if (!risk) {
     return {
-      state: "PENDING",
+      title: "RISK",
+      stateDisplay: "PENDING",
       stateTone: "muted",
       meta: null,
       body: "Risk will be evaluated after the trigger confirms.",
@@ -297,14 +248,16 @@ function riskSection(result: SymbolScanResult): NarrativeSection | null {
   if (risk.approved) {
     const levels = levelsSummary(result);
     return {
-      state: "APPROVED",
+      title: "RISK",
+      stateDisplay: "APPROVED",
       stateTone: "done",
       meta: null,
       body: levels ? "Approved. " + levels : "Approved.",
     };
   }
   return {
-    state: "REJECTED",
+    title: "RISK",
+    stateDisplay: "REJECTED",
     stateTone: "blocked",
     meta: null,
     body: risk.rejectionReason
@@ -313,49 +266,86 @@ function riskSection(result: SymbolScanResult): NarrativeSection | null {
   };
 }
 
-function NarrativeCard({
-  title,
-  section,
-}: {
-  title: string;
-  section: NarrativeSection;
-}) {
-  const stateClass =
-    section.stateTone === "done"
-      ? "text-emerald-300"
-      : section.stateTone === "current"
-        ? "text-amber-300"
-        : section.stateTone === "blocked"
-          ? "text-red-300"
-          : "text-zinc-500";
-  return (
-    <section className="rounded border border-zinc-800 bg-zinc-900/30 px-3 py-3">
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-          {title} {"\u2014"} <span className={stateClass}>{section.state}</span>
-        </h3>
-        {section.meta && (
-          <span className="font-mono text-xs tabular-nums text-zinc-300">
-            {section.meta}
-          </span>
-        )}
-      </div>
-      <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
-        {section.body}
-      </p>
-    </section>
-  );
+function executeStageNarrative(
+  result: SymbolScanResult
+): ActiveStageNarrative {
+  const levels = levelsSummary(result);
+  return {
+    title: "EXECUTE",
+    stateDisplay: "READY",
+    stateTone: "done",
+    meta: null,
+    body: levels ? "All gates passed. " + levels : "All gates passed.",
+  };
+}
+
+function blockedReason(result: SymbolScanResult): string | null {
+  if (result.executionDetail?.triggeredVetoes.length) {
+    return result.executionDetail.triggeredVetoes[0] ?? null;
+  }
+  if (result.riskDetail?.rejectionReason) {
+    return result.riskDetail.rejectionReason;
+  }
+  return null;
+}
+
+function activeStageNarrative(
+  result: SymbolScanResult,
+  stages: WorkstationStage[]
+): ActiveStageNarrative | null {
+  const idx = stages.findIndex((s) => s.state !== "done");
+  const targetIdx = idx === -1 ? stages.length - 1 : idx;
+  const target = stages[targetIdx];
+
+  let base: ActiveStageNarrative | null;
+  switch (target.label) {
+    case "Bias":
+      base = biasStageNarrative(result);
+      break;
+    case "Setup":
+      base = setupStageNarrative(result) ?? biasStageNarrative(result);
+      break;
+    case "Trigger":
+      base =
+        triggerStageNarrative(result) ??
+        setupStageNarrative(result) ??
+        biasStageNarrative(result);
+      break;
+    case "Risk":
+      base =
+        riskStageNarrative(result) ??
+        triggerStageNarrative(result) ??
+        biasStageNarrative(result);
+      break;
+    case "Execute":
+      base = executeStageNarrative(result);
+      break;
+    default:
+      base = null;
+  }
+  if (!base) return null;
+  const isBlocked =
+    result.executionDecision === "BLOCKED" || result.signalState === "BLOCKED";
+  if (isBlocked) {
+    const veto = blockedReason(result);
+    if (veto && base.body.indexOf(veto) === -1) {
+      base = {
+        ...base,
+        stateTone: "blocked",
+        stateDisplay: "BLOCKED",
+        body: "Blocked: " + veto + ". " + base.body,
+      };
+    }
+  }
+  return base;
 }
 
 export function SignalNarrative({ result }: { result: SymbolScanResult }) {
   const stages = workstationStages(result);
-  const narrative = heroNarrative(result, pipSizeFor(result.symbol));
+  const active = activeStageNarrative(result, stages);
   const reasons = biasReasons(result);
   const biasLabel = result.bias ? result.bias.replace(/_/g, " ") : null;
   const biasScore = result.biasScore;
-  const setup = setupSection(result);
-  const trigger = triggerSection(result);
-  const risk = riskSection(result);
 
   return (
     <>
@@ -389,7 +379,26 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-zinc-400">{narrative}</p>
+        {active && (
+          <div className="mt-3 border-t border-zinc-800/70 pt-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                {active.title} {"\u2014"}{" "}
+                <span className={toneClass(active.stateTone)}>
+                  {active.stateDisplay}
+                </span>
+              </span>
+              {active.meta && (
+                <span className="font-mono text-xs tabular-nums text-zinc-300">
+                  {active.meta}
+                </span>
+              )}
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
+              {active.body}
+            </p>
+          </div>
+        )}
       </section>
 
       {biasLabel && biasScore !== null && (
@@ -422,12 +431,6 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
           )}
         </section>
       )}
-
-      {setup && <NarrativeCard title="Setup" section={setup} />}
-
-      {trigger && <NarrativeCard title="Trigger" section={trigger} />}
-
-      {risk && <NarrativeCard title="Risk" section={risk} />}
     </>
   );
 }

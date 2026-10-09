@@ -34,7 +34,8 @@ function result(overrides: Partial<SymbolScanResult> = {}): SymbolScanResult {
       {
         code: "BIAS_STRUCTURE",
         label: "Structure component",
-        description: "Structure trend SHORT at strength 75, last BOS SHORT.",
+        description:
+          "Structure trend SHORT at strength 75, last BOS SHORT, last CHOCH LONG.",
       },
       {
         code: "BIAS_TREND",
@@ -47,26 +48,47 @@ function result(overrides: Partial<SymbolScanResult> = {}): SymbolScanResult {
 }
 
 describe("SignalNarrative", () => {
-  it("renders the rich watching narrative with zone, distance, and setup score", () => {
+  it("renders the active stage narrative under the progress bar", () => {
     render(<SignalNarrative result={result()} />);
 
+    // Setup is the active stage (Bias done, Setup WATCH)
+    expect(screen.getByText(/SETUP/)).toBeInTheDocument();
+    expect(screen.getByText(/FORMING/)).toBeInTheDocument();
+    expect(screen.getByText(/45 \(min 60\)/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Waiting for price to reach the supply zone/)
+      screen.getByText(/Waiting for price to reach supply zone/)
     ).toBeInTheDocument();
-    expect(screen.getAllByText(/1\.12208/).length).toBeGreaterThan(0);
     expect(screen.getByText(/25 pips below/)).toBeInTheDocument();
-    expect(screen.getByText(/Setup score 45\/60/)).toBeInTheDocument();
   });
 
-  it("renders the Bias section with the signed score and evidence bullets", () => {
+  it("renders the Bias section with expanded abbreviations and strength label", () => {
     render(<SignalNarrative result={result()} />);
 
     expect(screen.getByText(/-67/)).toBeInTheDocument();
-    expect(screen.getByText(/Structure trend SHORT/)).toBeInTheDocument();
-    expect(screen.getByText(/EMA stack bearish/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/strength 75 \(very strong\)/)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/break of structure/)).toBeInTheDocument();
+    expect(screen.getByText(/change of character/)).toBeInTheDocument();
+    expect(screen.queryByText(/\bBOS\b/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\bCHOCH\b/)).not.toBeInTheDocument();
   });
 
-  it("renders the blocked narrative with the first veto", () => {
+  it("shows setup narrative with no-zone body when plannedLevels is null", () => {
+    render(
+      <SignalNarrative
+        result={result({ plannedLevels: null, setupScore: null })}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        /Setup engine is watching for price to approach a demand or supply zone\./
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("shows the blocked narrative when execution is blocked", () => {
     render(
       <SignalNarrative
         result={result({
@@ -82,76 +104,18 @@ describe("SignalNarrative", () => {
       />
     );
 
-    expect(
-      screen.getByText("Execution blocked: RR_TOO_LOW.")
-    ).toBeInTheDocument();
+    // The active stage is Setup (blocked tone) and blockedReason prefixes the veto
+    expect(screen.getByText(/RR_TOO_LOW/)).toBeInTheDocument();
   });
 
-  it("renders the ready narrative with the levels summary", () => {
+  it("shows the EXECUTE narrative when all gates passed", () => {
     render(
       <SignalNarrative
         result={result({
           executionDecision: "EXECUTE",
           signalState: "EXECUTE",
-        })}
-      />
-    );
-
-    expect(screen.getByText(/All gates passed\./)).toBeInTheDocument();
-    expect(screen.getByText(/Entry 1\.12250/)).toBeInTheDocument();
-    expect(screen.getByText(/RR 1:2\.00/)).toBeInTheDocument();
-  });
-
-
-  it("renders the generic watching narrative when no setup zone exists", () => {
-    render(
-      <SignalNarrative
-        result={result({ plannedLevels: null, setupScore: null })}
-      />
-    );
-
-    expect(
-      screen.getByText(/Watching for a valid setup\./)
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Bias SHORT at strength 67/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/No setup zone formed yet/)
-    ).toBeInTheDocument();
-  });
-
-  it("renders the Setup card with state, score, and zone", () => {
-    render(<SignalNarrative result={result()} />);
-
-    expect(screen.getByText(/Setup —/)).toBeInTheDocument();
-    expect(screen.getByText(/FORMING/)).toBeInTheDocument();
-    expect(screen.getByText(/45 \(min 60\)/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Waiting for price to reach supply zone/)
-    ).toBeInTheDocument();
-  });
-
-  it("renders the Trigger card with state and score", () => {
-    render(<SignalNarrative result={result()} />);
-
-    expect(screen.getByText(/Trigger —/)).toBeInTheDocument();
-    expect(screen.getByText(/WAITING/)).toBeInTheDocument();
-    expect(screen.getByText(/25 \(min 80\)/)).toBeInTheDocument();
-  });
-
-  it("renders the Risk card as PENDING when no risk has been evaluated", () => {
-    render(<SignalNarrative result={result()} />);
-
-    expect(screen.getByText(/Risk —/)).toBeInTheDocument();
-    expect(screen.getByText(/PENDING/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Risk will be evaluated after the trigger confirms\./)
-    ).toBeInTheDocument();
-  });
-
-  it("renders the Risk card as APPROVED with the levels summary", () => {
-    render(
-      <SignalNarrative
-        result={result({
+          setupState: "ARMED",
+          triggerState: "CONFIRMED",
           riskDetail: {
             approved: true,
             rejectionReason: null,
@@ -166,7 +130,9 @@ describe("SignalNarrative", () => {
       />
     );
 
-    expect(screen.getByText(/APPROVED/)).toBeInTheDocument();
+    expect(screen.getByText(/EXECUTE/)).toBeInTheDocument();
+    expect(screen.getByText(/READY/)).toBeInTheDocument();
+    expect(screen.getByText(/All gates passed\./)).toBeInTheDocument();
     expect(screen.getByText(/Entry 1\.12250/)).toBeInTheDocument();
   });
 
