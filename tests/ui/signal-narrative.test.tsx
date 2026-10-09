@@ -61,7 +61,7 @@ describe("SignalNarrative", () => {
     expect(screen.getByText(/25 pips below/)).toBeInTheDocument();
   });
 
-  it("renders the regime routing line when strategyRouting is present", () => {
+  it("renders the regime routing box when strategyRouting is present", () => {
     render(
       <SignalNarrative
         result={result({
@@ -79,18 +79,21 @@ describe("SignalNarrative", () => {
       />
     );
 
-    expect(
-      screen.getByText(/TREND_DOWN/, { selector: "dd" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/TREND_PULLBACK/, { selector: "dd" })
-    ).toBeInTheDocument();
+    expect(screen.getByText("Regime")).toBeInTheDocument();
+    expect(screen.getByText("Preferred")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByText("Route")).toBeInTheDocument();
+    expect(screen.getAllByText(/TREND_DOWN/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/TREND_PULLBACK/).length).toBeGreaterThan(0);
+    expect(screen.getByText("REGIME_MATCH")).toBeInTheDocument();
   });
 
-  it("hides the regime routing line when strategyRouting is null", () => {
+  it("hides the regime box when strategyRouting is null", () => {
     render(<SignalNarrative result={result()} />);
 
     expect(screen.queryByText("Regime")).not.toBeInTheDocument();
+    expect(screen.queryByText("Preferred")).not.toBeInTheDocument();
+    expect(screen.queryByText("Route")).not.toBeInTheDocument();
   });
 
   it("renders the gates summary line when some gates are pending", () => {

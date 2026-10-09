@@ -376,12 +376,22 @@ function dataQualityBanner(result: SymbolScanResult): DataQualityBanner | null {
   };
 }
 
-function regimeSummary(result: SymbolScanResult): string | null {
+interface RegimeBoxData {
+  regime: string;
+  preferred: string | null;
+  active: string | null;
+  route: string;
+}
+
+function regimeBox(result: SymbolScanResult): RegimeBoxData | null {
   const routing = result.strategyRouting;
-  if (!routing || !routing.regime) return null;
-  const active = routing.selectedStrategyId ?? routing.preferredStrategyId;
-  if (!active) return routing.regime;
-  return routing.regime + " \u2192 " + active;
+  if (!routing) return null;
+  return {
+    regime: routing.regime,
+    preferred: routing.preferredStrategyId,
+    active: routing.selectedStrategyId ?? result.strategyId ?? null,
+    route: routing.mode,
+  };
 }
 
 function gatesSummary(result: SymbolScanResult): string | null {
@@ -421,7 +431,7 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
   const biasScore = result.biasScore;
   const planned = result.plannedLevels ?? null;
   const gates = gatesSummary(result);
-  const routing = regimeSummary(result);
+  const regime = regimeBox(result);
   const dq = dataQualityBanner(result);
 
   return (
@@ -517,28 +527,51 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
             />
           </div>
         )}
-        {(gates || routing) && (
-          <dl className="mt-3 space-y-1.5 border-t border-zinc-800/70 pt-3">
-            {gates && (
-              <div className="grid grid-cols-[4rem_1fr] gap-x-2">
-                <dt className="pt-px text-[10px] font-medium uppercase tracking-wide text-zinc-600">
-                  Gates
-                </dt>
-                <dd className="font-mono text-[11px] leading-relaxed text-zinc-400">
-                  {gates}
-                </dd>
-              </div>
+        {regime && (
+          <div className="mt-3 rounded border border-zinc-800 bg-zinc-950/35 px-3 py-2.5">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px]">
+              <span className="text-zinc-500">
+                Regime{" "}
+                <strong className="font-medium text-zinc-300">
+                  {regime.regime}
+                </strong>
+              </span>
+              <span className="text-zinc-500">
+                Preferred{" "}
+                <strong className="font-medium text-zinc-300">
+                  {regime.preferred ?? "WAIT"}
+                </strong>
+              </span>
+              <span className="text-zinc-500">
+                Active{" "}
+                <strong className="font-medium text-zinc-300">
+                  {regime.active ?? "\u2014"}
+                </strong>
+              </span>
+              <span className="text-zinc-500">
+                Route{" "}
+                <strong className="font-medium text-zinc-300">
+                  {regime.route}
+                </strong>
+              </span>
+            </div>
+            {result.strategyRouting?.mode === "COMPATIBILITY_FALLBACK" && (
+              <p className="mt-1.5 text-[11px] leading-relaxed text-amber-300/80">
+                {result.strategyRouting.reason}
+              </p>
             )}
-            {routing && (
-              <div className="grid grid-cols-[4rem_1fr] gap-x-2">
-                <dt className="pt-px text-[10px] font-medium uppercase tracking-wide text-zinc-600">
-                  Regime
-                </dt>
-                <dd className="font-mono text-[11px] leading-relaxed text-zinc-400">
-                  {routing}
-                </dd>
-              </div>
-            )}
+          </div>
+        )}
+        {gates && (
+          <dl className="mt-3 border-t border-zinc-800/70 pt-3">
+            <div className="grid grid-cols-[4rem_1fr] gap-x-2">
+              <dt className="pt-px text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+                Gates
+              </dt>
+              <dd className="font-mono text-[11px] leading-relaxed text-zinc-400">
+                {gates}
+              </dd>
+            </div>
           </dl>
         )}
       </section>
