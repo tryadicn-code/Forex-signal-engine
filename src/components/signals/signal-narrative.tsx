@@ -428,7 +428,7 @@ function GatesBar({ passed, total }: { passed: number; total: number }) {
           key={i}
           className={cn(
             "flex-1 rounded-[1px]",
-            i < passed ? "bg-emerald-400" : "bg-zinc-700"
+            i < passed ? "bg-emerald-500/80" : "bg-zinc-700/60"
           )}
         />
       ))}
