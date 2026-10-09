@@ -224,7 +224,7 @@ describe("Phase 10.5 trading workstation dashboard", () => {
     expect(detail).toBeInTheDocument();
     expect(within(detail).getByText("Multi-timeframe context")).toBeInTheDocument();
 
-    fireEvent.click(within(detail).getByRole("button", { name: "Close signal detail" }));
+    fireEvent.click(within(detail).getByRole("button", { name: "Close detail" }));
     expect(
       screen.queryByRole("complementary", { name: "Signal detail for EURUSD" })
     ).not.toBeInTheDocument();

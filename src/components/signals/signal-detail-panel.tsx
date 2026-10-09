@@ -112,18 +112,14 @@ export function SignalDetailPanel({
         "xl:sticky xl:top-16 xl:bottom-auto xl:z-0 xl:max-h-[calc(100vh-5rem)] xl:rounded xl:border xl:border-zinc-800 xl:bg-zinc-900/30 xl:shadow-none"
       )}
     >
-      <div
-        className="sticky top-0 z-20 flex justify-center bg-[#0b0e14]/95 pb-1 pt-2 backdrop-blur xl:hidden"
+      <header
+        className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14] px-3 py-2.5 sm:px-4 xl:bg-zinc-900/95"
         onTouchStart={onHandleTouchStart}
         onTouchMove={onHandleTouchMove}
         onTouchEnd={onHandleTouchEnd}
         onTouchCancel={onHandleTouchEnd}
-        style={{ touchAction: "none" }}
-        aria-hidden="true"
+        style={{ touchAction: "pan-x" }}
       >
-        <div className="h-1 w-10 rounded-full bg-zinc-700" aria-hidden="true" />
-      </div>
-      <header className="sticky top-[1.5rem] z-30 flex items-start justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-4 py-3 backdrop-blur xl:top-0 xl:bg-zinc-900/95">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-mono text-base font-semibold tracking-wide text-zinc-100">
@@ -136,7 +132,7 @@ export function SignalDetailPanel({
             <p className="mt-1 text-xs leading-relaxed text-zinc-500">{result.reason}</p>
           )}
         </div>
-        <ModalCloseButton onClick={onClose} label="Close signal detail" variant="icon" />
+        <ModalCloseButton onClick={onClose} label="Close detail" style={{ height: "2rem" }} />
       </header>
 
       <div className="space-y-4 p-3 sm:p-4">
