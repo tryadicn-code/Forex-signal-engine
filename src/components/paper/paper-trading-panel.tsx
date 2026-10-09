@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { PaperDashboardData } from "@/paper/types";
+import type { PaperDashboardData, PaperOrder } from "@/paper/types";
 import { formatDateTimeShort, formatDuration, formatPrice, formatTimeShort } from "@/lib/format";
 import { BiasBadge, DecisionBadge, FreshnessBadge } from "@/components/common/badges";
 import { cn } from "@/lib/utils";
@@ -66,6 +66,28 @@ function TradeFilterChip({
       {children}
     </button>
   );
+}
+type OrdersView =
+  | { mode: "collapsed" }
+  | { mode: "preview" }
+  | { mode: "paged"; page: number };
+
+const ORDERS_PREVIEW_COUNT = 5;
+const ORDERS_PAGE_SIZE = 10;
+
+function sortOrdersByRequestedAt(orders: PaperOrder[]): PaperOrder[] {
+  return [...orders].sort((a, b) => b.requestedAt - a.requestedAt);
+}
+
+function visibleOrders(sorted: PaperOrder[], view: OrdersView): PaperOrder[] {
+  if (view.mode === "collapsed") return [];
+  if (view.mode === "preview") return sorted.slice(0, ORDERS_PREVIEW_COUNT);
+  const start = (view.page - 1) * ORDERS_PAGE_SIZE;
+  return sorted.slice(start, start + ORDERS_PAGE_SIZE);
+}
+
+function ordersTotalPages(count: number): number {
+  return Math.max(1, Math.ceil(count / ORDERS_PAGE_SIZE));
 }
 function money(value: number, currency: string): string {
   if (!Number.isFinite(value)) return "—";
@@ -155,6 +177,7 @@ export function PaperTradingPanel({
   view?: PaperPanelView;
 }) {
   const [tradeFilter, setTradeFilter] = useState<TradeFilterState>(DEFAULT_TRADE_FILTER);
+  const [ordersView, setOrdersView] = useState<OrdersView>({ mode: "collapsed" });
 
   if (!paper) return null;
 
@@ -163,6 +186,9 @@ export function PaperTradingPanel({
     matchesTradeFilter(trade, tradeFilter)
   );
   const filterActive = isTradeFilterActive(tradeFilter);
+  const sortedOrders = sortOrdersByRequestedAt(paper.recentOrders);
+  const shownOrders = visibleOrders(sortedOrders, ordersView);
+  const totalOrderPages = ordersTotalPages(sortedOrders.length);
 
   return (
     <div className="space-y-4">
@@ -373,22 +399,36 @@ export function PaperTradingPanel({
             <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
               Recent orders
             </h3>
-            <span className="font-mono text-[11px] text-zinc-600">
-              {paper.recentOrders.length} total
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[11px] text-zinc-600">
+                {sortedOrders.length} total
+              </span>
+              {sortedOrders.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOrdersView((prev) =>
+                      prev.mode === "collapsed"
+                        ? { mode: "preview" }
+                        : { mode: "collapsed" }
+                    )
+                  }
+                  className="rounded border border-zinc-800 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                >
+                  {ordersView.mode === "collapsed" ? "▸ Show" : "▾ Hide"}
+                </button>
+              )}
+            </div>
           </div>
 
-          {paper.recentOrders.length === 0 ? (
+          {sortedOrders.length === 0 ? (
             <p className="border-t border-zinc-800 px-3 py-4 text-center text-xs text-zinc-600">
               No paper orders recorded yet.
             </p>
-          ) : (
-            <div className="divide-y divide-zinc-800 border-t border-zinc-800">
-              {paper.recentOrders
-                .slice()
-                .sort((a, b) => b.requestedAt - a.requestedAt)
-                .slice(0, 5)
-                .map((order) => (
+          ) : ordersView.mode === "collapsed" ? null : (
+            <>
+              <div className="divide-y divide-zinc-800 border-t border-zinc-800">
+                {shownOrders.map((order) => (
                   <article key={order.id} className="px-3 py-2.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-sm font-semibold text-zinc-100">
@@ -450,7 +490,59 @@ export function PaperTradingPanel({
                     )}
                   </article>
                 ))}
-            </div>
+              </div>
+
+              {ordersView.mode === "preview" && sortedOrders.length > ORDERS_PREVIEW_COUNT && (
+                <div className="border-t border-zinc-800 px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setOrdersView({ mode: "paged", page: 1 })}
+                    className="font-mono text-[11px] text-zinc-400 hover:text-zinc-200"
+                  >
+                    Show all ({sortedOrders.length}) →
+                  </button>
+                </div>
+              )}
+
+              {ordersView.mode === "paged" && (
+                <div className="border-t border-zinc-800 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      disabled={ordersView.page <= 1}
+                      onClick={() =>
+                        setOrdersView({ mode: "paged", page: ordersView.page - 1 })
+                      }
+                      className="rounded border border-zinc-800 px-2 py-0.5 font-mono text-[11px] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
+                    >
+                      ◀ Prev
+                    </button>
+                    <span className="font-mono text-[11px] text-zinc-500">
+                      Page {ordersView.page} / {totalOrderPages}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={ordersView.page >= totalOrderPages}
+                      onClick={() =>
+                        setOrdersView({ mode: "paged", page: ordersView.page + 1 })
+                      }
+                      className="rounded border border-zinc-800 px-2 py-0.5 font-mono text-[11px] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
+                    >
+                      Next ▶
+                    </button>
+                  </div>
+                  <div className="mt-1.5 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setOrdersView({ mode: "preview" })}
+                      className="font-mono text-[11px] text-zinc-500 hover:text-zinc-300"
+                    >
+                      ← Show less
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
