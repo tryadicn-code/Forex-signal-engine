@@ -442,12 +442,15 @@ export function PaperTradingPanel({
                     {formatDuration(trade.holdingDurationMs)}
                   </div>
                   <div className="mt-1 font-mono text-[11px] text-zinc-500">
-                    MFE {(trade.maxFavorableR ?? 0) >= 0 ? "+" : ""}
+                    {trade.plannedRR !== null && "Planned 1:" + trade.plannedRR.toFixed(2) + " \u00B7 "}MFE {(trade.maxFavorableR ?? 0) >= 0 ? "+" : ""}
                     {(trade.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
                     {(trade.maxAdverseR ?? 0).toFixed(2)}R
                   </div>
                 </div>
                 <div className="text-right">
+                  <div className="font-mono text-[11px] text-zinc-600">
+                    {formatTimeShort(trade.closedAt)}
+                  </div>
                   <div
                     className={
                       "font-mono text-sm font-semibold " +
