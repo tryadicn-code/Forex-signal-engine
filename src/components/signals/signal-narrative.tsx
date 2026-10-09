@@ -419,7 +419,7 @@ function gatesData(result: SymbolScanResult): GatesData | null {
 function GatesBar({ passed, total }: { passed: number; total: number }) {
   return (
     <div
-      className="flex h-1.5 items-stretch gap-px"
+      className="flex h-1 items-stretch gap-1"
       role="img"
       aria-label={passed + " of " + total + " gates passed"}
     >
@@ -427,8 +427,8 @@ function GatesBar({ passed, total }: { passed: number; total: number }) {
         <div
           key={i}
           className={cn(
-            "flex-1 rounded-[1px]",
-            i < passed ? "bg-emerald-500/80" : "bg-zinc-700/60"
+            "flex-1 rounded-full",
+            i < passed ? "bg-emerald-500/70" : "bg-zinc-800"
           )}
         />
       ))}
