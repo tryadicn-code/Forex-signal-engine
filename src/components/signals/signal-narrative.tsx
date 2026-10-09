@@ -346,20 +346,10 @@ function activeStageNarrative(
 
 function regimeSummary(result: SymbolScanResult): string | null {
   const routing = result.strategyRouting;
-  if (!routing) return null;
-  const parts: string[] = [];
-  if (routing.regime) {
-    parts.push("Regime " + routing.regime);
-  }
-  if (routing.selectedStrategyId) {
-    parts.push("Active " + routing.selectedStrategyId);
-  } else if (routing.preferredStrategyId) {
-    parts.push("Preferred " + routing.preferredStrategyId);
-  }
-  if (routing.mode) {
-    parts.push("Route " + routing.mode);
-  }
-  return parts.length > 0 ? parts.join(" \u00B7 ") : null;
+  if (!routing || !routing.regime) return null;
+  const active = routing.selectedStrategyId ?? routing.preferredStrategyId;
+  if (!active) return routing.regime;
+  return routing.regime + " \u2192 " + active;
 }
 
 function gatesSummary(result: SymbolScanResult): string | null {
@@ -375,13 +365,7 @@ function gatesSummary(result: SymbolScanResult): string | null {
     pending.length > 2
       ? pending.slice(0, 2).join(", ") + " +" + (pending.length - 2)
       : pending.join(", ");
-  return (
-    passed +
-    " / " +
-    total +
-    " gates passed \u00B7 waiting on " +
-    pendingText
-  );
+  return passed + " / " + total + " passed \u00B7 pending " + pendingText;
 }
 
 function PlannedCell({ label, value }: { label: string; value: string }) {
@@ -479,10 +463,29 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
             />
           </div>
         )}
-        {gates && (
-          <div className="mt-2 font-mono text-[11px] text-zinc-500">
-            {gates}
-          </div>
+        {(gates || routing) && (
+          <dl className="mt-3 space-y-1.5 border-t border-zinc-800/70 pt-3">
+            {gates && (
+              <div className="grid grid-cols-[4rem_1fr] gap-x-2">
+                <dt className="pt-px text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+                  Gates
+                </dt>
+                <dd className="font-mono text-[11px] leading-relaxed text-zinc-400">
+                  {gates}
+                </dd>
+              </div>
+            )}
+            {routing && (
+              <div className="grid grid-cols-[4rem_1fr] gap-x-2">
+                <dt className="pt-px text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+                  Regime
+                </dt>
+                <dd className="font-mono text-[11px] leading-relaxed text-zinc-400">
+                  {routing}
+                </dd>
+              </div>
+            )}
+          </dl>
         )}
         {routing && (
           <div className="mt-1 font-mono text-[11px] text-zinc-500">

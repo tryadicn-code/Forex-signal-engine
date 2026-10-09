@@ -79,15 +79,18 @@ describe("SignalNarrative", () => {
       />
     );
 
-    expect(screen.getByText(/Regime TREND_DOWN/)).toBeInTheDocument();
-    expect(screen.getByText(/Active TREND_PULLBACK/)).toBeInTheDocument();
-    expect(screen.getByText(/Route REGIME_MATCH/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/TREND_DOWN/, { selector: "dd" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/TREND_PULLBACK/, { selector: "dd" })
+    ).toBeInTheDocument();
   });
 
   it("hides the regime routing line when strategyRouting is null", () => {
     render(<SignalNarrative result={result()} />);
 
-    expect(screen.queryByText(/Regime /)).not.toBeInTheDocument();
+    expect(screen.queryByText("Regime")).not.toBeInTheDocument();
   });
 
   it("renders the gates summary line when some gates are pending", () => {
@@ -110,10 +113,12 @@ describe("SignalNarrative", () => {
     );
 
     expect(
-      screen.getByText(/2 \/ 4 gates passed/)
+      screen.getByText(/2 \/ 4 passed/, { selector: "dd" })
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/trigger_confirmed, risk_approved/)
+      screen.getByText(/pending trigger_confirmed, risk_approved/, {
+        selector: "dd",
+      })
     ).toBeInTheDocument();
   });
 
@@ -134,7 +139,7 @@ describe("SignalNarrative", () => {
       />
     );
 
-    expect(screen.queryByText(/gates passed/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Gates")).not.toBeInTheDocument();
   });
 
   it("renders the planned levels grid inside the hero card", () => {
