@@ -104,13 +104,7 @@ export function PaperTradingPanel({
               <h2 id="paper-portfolio-title" className="text-[15px] font-semibold leading-tight text-zinc-100 sm:text-base">
                 Paper portfolio
               </h2>
-              <span className="rounded-full border border-amber-700/50 bg-amber-950/15 px-1.5 py-0.5 font-mono text-[11px] font-semibold tracking-[0.08em] text-amber-300">
-                PAPER
-              </span>
             </div>
-            <p className="mt-1 text-[11px] leading-snug text-zinc-500 sm:text-[11px]">
-              Simulation only · no broker orders or real funds.
-            </p>
           </div>
           <button
             type="button"

@@ -85,9 +85,6 @@ export function PaperTradingOverlay({
           <div className="flex items-center justify-between px-4 py-3">
             <div>
               <div className="text-sm font-semibold text-zinc-100">{title}</div>
-              <div className="mt-0.5 text-[11px] uppercase tracking-[0.14em] text-zinc-600">
-                Simulated execution · no real funds
-              </div>
             </div>
             <ModalCloseButton onClick={onClose} />
           </div>
