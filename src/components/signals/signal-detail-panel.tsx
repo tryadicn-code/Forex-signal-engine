@@ -153,7 +153,6 @@ export function SignalDetailPanel({
 
             <SignalNarrative result={result} />
 
-            <SignalNarrative result={result} />
 
             <details className="rounded-lg border border-zinc-800 bg-zinc-900/25">
               <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-200 sm:px-4">
