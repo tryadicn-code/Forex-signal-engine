@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { PaperDashboardData } from "@/paper/types";
-import { formatDuration, formatPrice, formatTimeShort } from "@/lib/format";
+import { formatDateTimeShort, formatDuration, formatPrice, formatTimeShort } from "@/lib/format";
 
 function money(value: number, currency: string): string {
   if (!Number.isFinite(value)) return "—";
@@ -449,7 +449,7 @@ export function PaperTradingPanel({
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-[11px] text-zinc-600">
-                    {formatTimeShort(trade.closedAt)}
+                    {formatDateTimeShort(trade.closedAt)}
                   </div>
                   <div
                     className={

@@ -106,6 +106,25 @@ export function formatTimeShort(epoch: number | null | undefined): string {
   return pad2(d.getUTCHours()) + ":" + pad2(d.getUTCMinutes());
 }
 
+export function formatDateTimeShort(epoch: number | null | undefined): string {
+  if (epoch === null || epoch === undefined || !Number.isFinite(epoch)) {
+    return NOT_AVAILABLE;
+  }
+  const d = witaDate(epoch);
+  if (Number.isNaN(d.getTime())) return NOT_AVAILABLE;
+  return (
+    pad2(d.getUTCDate()) +
+    "/" +
+    pad2(d.getUTCMonth() + 1) +
+    "/" +
+    String(d.getUTCFullYear()) +
+    " " +
+    pad2(d.getUTCHours()) +
+    ":" +
+    pad2(d.getUTCMinutes())
+  );
+}
+
 export function formatDuration(ms: number | null | undefined): string {
   if (ms === null || ms === undefined || !Number.isFinite(ms)) {
     return NOT_AVAILABLE;
