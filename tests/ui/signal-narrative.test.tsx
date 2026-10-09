@@ -96,7 +96,7 @@ describe("SignalNarrative", () => {
     expect(screen.queryByText("Route")).not.toBeInTheDocument();
   });
 
-  it("renders the gates summary line when some gates are pending", () => {
+  it("renders the gates bar and counter when some gates are pending", () => {
     render(
       <SignalNarrative
         result={result({
@@ -115,13 +115,12 @@ describe("SignalNarrative", () => {
       />
     );
 
+    expect(screen.getByText(/2 \/ 4 gates passed/)).toBeInTheDocument();
     expect(
-      screen.getByText(/2 \/ 4 passed/, { selector: "dd" })
+      screen.getByText(/pending trigger_confirmed, risk_approved/)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/pending trigger_confirmed, risk_approved/, {
-        selector: "dd",
-      })
+      screen.getByRole("img", { name: "2 of 4 gates passed" })
     ).toBeInTheDocument();
   });
 
@@ -142,7 +141,7 @@ describe("SignalNarrative", () => {
       />
     );
 
-    expect(screen.queryByText("Gates")).not.toBeInTheDocument();
+    expect(screen.queryByText(/gates passed/)).not.toBeInTheDocument();
   });
 
   it("renders the planned levels grid inside the hero card", () => {

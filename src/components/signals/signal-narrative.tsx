@@ -394,7 +394,13 @@ function regimeBox(result: SymbolScanResult): RegimeBoxData | null {
   };
 }
 
-function gatesSummary(result: SymbolScanResult): string | null {
+interface GatesData {
+  passed: number;
+  total: number;
+  pendingText: string;
+}
+
+function gatesData(result: SymbolScanResult): GatesData | null {
   const detail = result.executionDetail;
   if (!detail || detail.conditions.length === 0) return null;
   const total = detail.conditions.length;
@@ -407,7 +413,27 @@ function gatesSummary(result: SymbolScanResult): string | null {
     pending.length > 2
       ? pending.slice(0, 2).join(", ") + " +" + (pending.length - 2)
       : pending.join(", ");
-  return passed + " / " + total + " passed \u00B7 pending " + pendingText;
+  return { passed, total, pendingText };
+}
+
+function GatesBar({ passed, total }: { passed: number; total: number }) {
+  return (
+    <div
+      className="flex h-1.5 items-stretch gap-px"
+      role="img"
+      aria-label={passed + " of " + total + " gates passed"}
+    >
+      {Array.from({ length: total }).map((_, i) => (
+        <div
+          key={i}
+          className={cn(
+            "flex-1 rounded-[1px]",
+            i < passed ? "bg-emerald-400" : "bg-zinc-700"
+          )}
+        />
+      ))}
+    </div>
+  );
 }
 
 function PlannedCell({ label, value }: { label: string; value: string }) {
@@ -430,7 +456,7 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
   const biasLabel = result.bias ? result.bias.replace(/_/g, " ") : null;
   const biasScore = result.biasScore;
   const planned = result.plannedLevels ?? null;
-  const gates = gatesSummary(result);
+  const gates = gatesData(result);
   const regime = regimeBox(result);
   const dq = dataQualityBanner(result);
 
@@ -563,16 +589,17 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
           </div>
         )}
         {gates && (
-          <dl className="mt-3 border-t border-zinc-800/70 pt-3">
-            <div className="grid grid-cols-[4rem_1fr] gap-x-2">
-              <dt className="pt-px text-[10px] font-medium uppercase tracking-wide text-zinc-600">
-                Gates
-              </dt>
-              <dd className="font-mono text-[11px] leading-relaxed text-zinc-400">
-                {gates}
-              </dd>
+          <div className="mt-3 border-t border-zinc-800/70 pt-3">
+            <GatesBar passed={gates.passed} total={gates.total} />
+            <div className="mt-1.5 font-mono text-[10px] leading-relaxed text-zinc-500">
+              <span className="tabular-nums">
+                {gates.passed} / {gates.total} gates passed
+              </span>
+              <span className="text-zinc-600">
+                {" \u00B7 "}pending {gates.pendingText}
+              </span>
             </div>
-          </dl>
+          </div>
         )}
       </section>
 
