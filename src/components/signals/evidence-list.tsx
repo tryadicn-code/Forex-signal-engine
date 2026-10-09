@@ -29,18 +29,23 @@ function classify(code: string): { key: string; label: string } {
   if (code.startsWith("BIAS_") || code === "WEIGHTED_SUM") {
     return { key: "bias", label: "Bias components" };
   }
-  if (code.startsWith("STRUCTURE_POINT_")) {
+  if (
+    code === "STRUCTURE_HH" ||
+    code === "STRUCTURE_HL" ||
+    code === "STRUCTURE_LH" ||
+    code === "STRUCTURE_LL"
+  ) {
     return { key: "structure-points", label: "Structure points" };
   }
   if (
-    code === "BREAK_OF_STRUCTURE" ||
-    code === "CHANGE_OF_CHARACTER" ||
-    code === "STRUCTURAL_BREAKS" ||
-    code.startsWith("SWING_")
+    code === "BOS" ||
+    code === "CHOCH" ||
+    code === "BREAK_EVENTS" ||
+    code === "SWING_COUNT"
   ) {
     return { key: "structure-events", label: "Structural events" };
   }
-  if (code === "EQUAL_HIGHS" || code === "EQUAL_LOWS") {
+  if (code === "EQUAL_HIGH" || code === "EQUAL_LOW") {
     return { key: "liquidity", label: "Liquidity levels" };
   }
   return { key: "other", label: "Other evidence" };
