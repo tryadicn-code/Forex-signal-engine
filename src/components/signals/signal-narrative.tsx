@@ -344,6 +344,24 @@ function activeStageNarrative(
   return base;
 }
 
+function regimeSummary(result: SymbolScanResult): string | null {
+  const routing = result.strategyRouting;
+  if (!routing) return null;
+  const parts: string[] = [];
+  if (routing.regime) {
+    parts.push("Regime " + routing.regime);
+  }
+  if (routing.selectedStrategyId) {
+    parts.push("Active " + routing.selectedStrategyId);
+  } else if (routing.preferredStrategyId) {
+    parts.push("Preferred " + routing.preferredStrategyId);
+  }
+  if (routing.mode) {
+    parts.push("Route " + routing.mode);
+  }
+  return parts.length > 0 ? parts.join(" \u00B7 ") : null;
+}
+
 function gatesSummary(result: SymbolScanResult): string | null {
   const detail = result.executionDetail;
   if (!detail || detail.conditions.length === 0) return null;
@@ -387,6 +405,7 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
   const biasScore = result.biasScore;
   const planned = result.plannedLevels ?? null;
   const gates = gatesSummary(result);
+  const routing = regimeSummary(result);
 
   return (
     <>
@@ -463,6 +482,11 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
         {gates && (
           <div className="mt-2 font-mono text-[11px] text-zinc-500">
             {gates}
+          </div>
+        )}
+        {routing && (
+          <div className="mt-1 font-mono text-[11px] text-zinc-500">
+            {routing}
           </div>
         )}
       </section>

@@ -61,6 +61,35 @@ describe("SignalNarrative", () => {
     expect(screen.getByText(/25 pips below/)).toBeInTheDocument();
   });
 
+  it("renders the regime routing line when strategyRouting is present", () => {
+    render(
+      <SignalNarrative
+        result={result({
+          strategyRouting: {
+            regime: "TREND_DOWN",
+            regimeStrength: 39,
+            regimeConfidence: null,
+            preferredStrategyId: "TREND_PULLBACK",
+            selectedStrategyId: "TREND_PULLBACK",
+            mode: "REGIME_MATCH",
+            reasonCode: "TREND_REGIME",
+            reason: "Trend regime prefers trend pullback.",
+          },
+        })}
+      />
+    );
+
+    expect(screen.getByText(/Regime TREND_DOWN/)).toBeInTheDocument();
+    expect(screen.getByText(/Active TREND_PULLBACK/)).toBeInTheDocument();
+    expect(screen.getByText(/Route REGIME_MATCH/)).toBeInTheDocument();
+  });
+
+  it("hides the regime routing line when strategyRouting is null", () => {
+    render(<SignalNarrative result={result()} />);
+
+    expect(screen.queryByText(/Regime /)).not.toBeInTheDocument();
+  });
+
   it("renders the gates summary line when some gates are pending", () => {
     render(
       <SignalNarrative
