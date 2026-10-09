@@ -153,72 +153,86 @@ export function SignalDetailPanel({
 
             <SignalNarrative result={result} />
 
-            <SignalExecutiveSummary result={result} paper={paper} />
+            <SignalNarrative result={result} />
 
-            <section aria-labelledby="execution-title">
-              <SectionTitle id="execution-title">Execution gates</SectionTitle>
-              <ExecutionDetail result={result} />
-            </section>
+            <details className="rounded-lg border border-zinc-800 bg-zinc-900/25">
+              <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-200 sm:px-4">
+                <span className="flex items-center justify-between">
+                  Raw data
+                  <span aria-hidden="true" className="font-mono text-zinc-600">
+                    {"\u25BE"}
+                  </span>
+                </span>
+              </summary>
+              <div className="space-y-4 border-t border-zinc-800 p-3 sm:p-4">
+                <SignalExecutiveSummary result={result} paper={paper} />
 
-            <section aria-labelledby="risk-title">
-              <SectionTitle id="risk-title">Risk</SectionTitle>
-              <RiskDetail result={result} />
-            </section>
+                <section aria-labelledby="execution-title">
+                  <SectionTitle id="execution-title">Execution gates</SectionTitle>
+                  <ExecutionDetail result={result} />
+                </section>
 
-            <section aria-labelledby="mtf-title">
-              <SectionTitle id="mtf-title">Multi-timeframe context</SectionTitle>
-              <div className="mt-2">
-                <MtfContext timeframes={result.timeframes} />
+                <section aria-labelledby="risk-title">
+                  <SectionTitle id="risk-title">Risk</SectionTitle>
+                  <RiskDetail result={result} />
+                </section>
+
+                <section aria-labelledby="mtf-title">
+                  <SectionTitle id="mtf-title">Multi-timeframe context</SectionTitle>
+                  <div className="mt-2">
+                    <MtfContext timeframes={result.timeframes} />
+                  </div>
+                </section>
+
+                <section aria-labelledby="lifecycle-title">
+                  <SectionTitle id="lifecycle-title">Signal lifecycle</SectionTitle>
+                  <div className="mt-2">
+                    <SignalLifecycle state={result.signalState} />
+                  </div>
+                  {signal && (
+                    <dl className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+                      <SmallDatum label="Origin timeframe" value={signal.originTimeframe} />
+                      <SmallDatum label="Origin time" value={formatTime(signal.originTimestamp)} />
+                      <SmallDatum label="Created" value={formatTime(signal.createdAt)} />
+                      <SmallDatum
+                        label="Transitions"
+                        value={String(signal.transitionCount)}
+                      />
+                    </dl>
+                  )}
+                  <div className="mt-3">
+                    <TransitionHistory transitions={transitions} />
+                  </div>
+                </section>
+
+                <PaperExecutionDetail
+                  result={result}
+                  paper={paper}
+                  onRefresh={onRefresh}
+                  refreshing={refreshing}
+                />
+
+                <section aria-labelledby="explain-title">
+                  <SectionTitle id="explain-title">Explainability</SectionTitle>
+                  <div className="mt-2 grid gap-3 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                    <div>
+                      <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                        Evidence
+                      </h3>
+                      <EvidenceList evidence={result.evidence} />
+                    </div>
+                    <div>
+                      <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                        Conflicts
+                      </h3>
+                      <ConflictList conflicts={result.conflicts} />
+                    </div>
+                  </div>
+                </section>
+
+                <DataQuality result={result} />
               </div>
-            </section>
-
-            <section aria-labelledby="lifecycle-title">
-              <SectionTitle id="lifecycle-title">Signal lifecycle</SectionTitle>
-              <div className="mt-2">
-                <SignalLifecycle state={result.signalState} />
-              </div>
-              {signal && (
-                <dl className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
-                  <SmallDatum label="Origin timeframe" value={signal.originTimeframe} />
-                  <SmallDatum label="Origin time" value={formatTime(signal.originTimestamp)} />
-                  <SmallDatum label="Created" value={formatTime(signal.createdAt)} />
-                  <SmallDatum
-                    label="Transitions"
-                    value={String(signal.transitionCount)}
-                  />
-                </dl>
-              )}
-              <div className="mt-3">
-                <TransitionHistory transitions={transitions} />
-              </div>
-            </section>
-
-            <PaperExecutionDetail
-              result={result}
-              paper={paper}
-              onRefresh={onRefresh}
-              refreshing={refreshing}
-            />
-
-            <section aria-labelledby="explain-title">
-              <SectionTitle id="explain-title">Explainability</SectionTitle>
-              <div className="mt-2 grid gap-3 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                <div>
-                  <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-                    Evidence
-                  </h3>
-                  <EvidenceList evidence={result.evidence} />
-                </div>
-                <div>
-                  <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-                    Conflicts
-                  </h3>
-                  <ConflictList conflicts={result.conflicts} />
-                </div>
-              </div>
-            </section>
-
-            <DataQuality result={result} />
+            </details>
           </>
         )}
       </div>
