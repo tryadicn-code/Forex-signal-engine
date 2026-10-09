@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { PaperDashboardData } from "@/paper/types";
 import { formatDateTimeShort, formatDuration, formatPrice, formatTimeShort } from "@/lib/format";
+import { BiasBadge, DecisionBadge, FreshnessBadge } from "@/components/common/badges";
 
 function money(value: number, currency: string): string {
   if (!Number.isFinite(value)) return "—";
@@ -481,60 +482,120 @@ export function PaperTradingPanel({
         ) : (
           <div className="divide-y divide-zinc-800 border-t border-zinc-800">
             {paper.recentTrades.map((trade) => (
-              <article
+              <details
                 key={trade.id}
-                className="grid grid-cols-[1fr_auto] gap-3 px-3 py-3"
+                className="group"
               >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-zinc-100">{trade.symbol}</span>
-                    <span className="font-mono text-[11px] text-zinc-500">{trade.side}</span>
-                    <span className="rounded border border-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500">
-                      {trade.closeReason}
-                    </span>
+                <summary className="grid cursor-pointer list-none grid-cols-[1fr_auto] gap-3 px-3 py-3 [&::-webkit-details-marker]:hidden">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span aria-hidden="true" className="font-mono text-[10px] text-zinc-600 transition-transform group-open:rotate-90">▸</span>
+                      <span className="font-medium text-zinc-100">{trade.symbol}</span>
+                      <span className="font-mono text-[11px] text-zinc-500">{trade.side}</span>
+                      <span className="rounded border border-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500">
+                        {trade.closeReason}
+                      </span>
+                    </div>
+                    <div className="mt-1 font-mono text-[11px] text-zinc-600">
+                      {formatPrice(trade.symbol, trade.entryPrice)} → {formatPrice(trade.symbol, trade.exitPrice)}
+                      {" · "}
+                      {formatDuration(trade.holdingDurationMs)}
+                    </div>
+                    <div className="mt-1 font-mono text-[11px] text-zinc-500">
+                      {trade.plannedRR !== null && "Planned 1:" + trade.plannedRR.toFixed(2) + " · "}MFE {(trade.maxFavorableR ?? 0) >= 0 ? "+" : ""}
+                      {(trade.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
+                      {(trade.maxAdverseR ?? 0).toFixed(2)}R
+                    </div>
                   </div>
-                  <div className="mt-1 font-mono text-[11px] text-zinc-600">
-                    {formatPrice(trade.symbol, trade.entryPrice)} → {formatPrice(trade.symbol, trade.exitPrice)}
-                    {" · "}
-                    {formatDuration(trade.holdingDurationMs)}
+                  <div className="text-right">
+                    <div className="font-mono text-[11px] text-zinc-600">
+                      {formatDateTimeShort(trade.closedAt)}
+                    </div>
+                    <div
+                      className={
+                        "font-mono text-sm font-semibold " +
+                        (trade.realizedPnL > 0
+                          ? "text-emerald-300"
+                          : trade.realizedPnL < 0
+                            ? "text-red-300"
+                            : "text-zinc-100")
+                      }
+                    >
+                      {money(trade.realizedPnL, account.currency)}
+                    </div>
+                    <div
+                      className={
+                        "font-mono text-[11px] " +
+                        (trade.realizedR > 0
+                          ? "text-emerald-400"
+                          : trade.realizedR < 0
+                            ? "text-red-400"
+                            : "text-zinc-500")
+                      }
+                    >
+                      {trade.realizedR >= 0 ? "+" : ""}
+                      {trade.realizedR.toFixed(2)}R
+                    </div>
                   </div>
-                  <div className="mt-1 font-mono text-[11px] text-zinc-500">
-                    {trade.plannedRR !== null && "Planned 1:" + trade.plannedRR.toFixed(2) + " \u00B7 "}MFE {(trade.maxFavorableR ?? 0) >= 0 ? "+" : ""}
-                    {(trade.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
-                    {(trade.maxAdverseR ?? 0).toFixed(2)}R
+                </summary>
+
+                <div className="space-y-3 border-t border-zinc-800 bg-zinc-950/40 px-3 py-3">
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Engine context</div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <BiasBadge bias={trade.engine.bias} />
+                      <DecisionBadge decision={trade.engine.executionDecision} />
+                      <FreshnessBadge status={trade.engine.freshness} />
+                    </div>
+                    <div className="mt-1.5 font-mono text-[11px] text-zinc-500">
+                      Setup score: {trade.engine.setupScore === null ? "—" : trade.engine.setupScore.toFixed(0)}
+                    </div>
+                    <div className="font-mono text-[10px] text-zinc-600 truncate" title={trade.engine.engineVersion}>
+                      {trade.engine.engineVersion}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Planned vs realized</div>
+                    <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] text-zinc-400">
+                      <div>Planned</div>
+                      <div className="text-right text-zinc-200">
+                        {trade.plannedRR === null ? "—" : "1:" + trade.plannedRR.toFixed(2)}
+                      </div>
+                      <div>Realized</div>
+                      <div
+                        className={
+                          "text-right " +
+                          (trade.realizedR > 0
+                            ? "text-emerald-300"
+                            : trade.realizedR < 0
+                              ? "text-red-300"
+                              : "text-zinc-300")
+                        }
+                      >
+                        {trade.realizedR >= 0 ? "+" : ""}
+                        {trade.realizedR.toFixed(2)}R
+                      </div>
+                      <div>Risk</div>
+                      <div className="text-right text-zinc-300">
+                        {money(trade.riskAmount, account.currency)} ({trade.riskPercent.toFixed(2)}%)
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">Timing</div>
+                    <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[11px] text-zinc-400">
+                      <div>Opened</div>
+                      <div className="text-right text-zinc-200">{formatDateTimeShort(trade.openedAt)}</div>
+                      <div>Closed</div>
+                      <div className="text-right text-zinc-200">{formatDateTimeShort(trade.closedAt)}</div>
+                      <div>Hold</div>
+                      <div className="text-right text-zinc-200">{formatDuration(trade.holdingDurationMs)}</div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-mono text-[11px] text-zinc-600">
-                    {formatDateTimeShort(trade.closedAt)}
-                  </div>
-                  <div
-                    className={
-                      "font-mono text-sm font-semibold " +
-                      (trade.realizedPnL > 0
-                        ? "text-emerald-300"
-                        : trade.realizedPnL < 0
-                          ? "text-red-300"
-                          : "text-zinc-100")
-                    }
-                  >
-                    {money(trade.realizedPnL, account.currency)}
-                  </div>
-                  <div
-                    className={
-                      "font-mono text-[11px] " +
-                      (trade.realizedR > 0
-                        ? "text-emerald-400"
-                        : trade.realizedR < 0
-                          ? "text-red-400"
-                          : "text-zinc-500")
-                    }
-                  >
-                    {trade.realizedR >= 0 ? "+" : ""}
-                    {trade.realizedR.toFixed(2)}R
-                  </div>
-                </div>
-              </article>
+              </details>
             ))}
           </div>
         )}
