@@ -160,38 +160,6 @@ export function SignalDetailPanel({
           <span className="shrink-0 font-mono text-base font-semibold tabular-nums text-zinc-100">
             {formatPrice(result.symbol, result.latestPrice)}
           </span>
-          <a
-            href="/system"
-            aria-label="Open system page"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900/40 text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 20 20"
-              fill="none"
-              className="h-3.5 w-3.5"
-            >
-              <path
-                d="M9 5H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-              <path
-                d="M13 3h4v4"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M11 9l6-6"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-              />
-            </svg>
-          </a>
           <ModalCloseButton onClick={onClose} label="Close detail" style={{ height: "2rem" }} />
         </div>
         {result.status !== "ANALYSED" && (
