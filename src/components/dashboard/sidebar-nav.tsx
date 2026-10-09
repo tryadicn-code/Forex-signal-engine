@@ -4,13 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-type PaperOverlayWindow = Window & {
-  __fseOpenPaper?: (view: "portfolio" | "journal") => void;
-};
-
 const NAV_ITEMS = [
   { kind: "link", href: "/#overview", label: "Home", desktopLabel: "Dashboard", icon: "home" },
-  { kind: "paper", label: "Porto", desktopLabel: "Portfolio", icon: "wallet" },
+  { kind: "link", href: "/portfolio", label: "Porto", desktopLabel: "Portfolio", icon: "wallet" },
   { kind: "signal", label: "Signal", desktopLabel: "Signal", icon: "signal" },
   { kind: "link", href: "/backtest", label: "Backtest", desktopLabel: "Backtest", icon: "backtest" },
   { kind: "link", href: "/system", label: "System", desktopLabel: "System", icon: "system" },
@@ -96,18 +92,6 @@ export function SidebarNav() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const openPortfolio = () => {
-    const browserWindow = window as PaperOverlayWindow;
-    if (browserWindow.__fseOpenPaper) {
-      browserWindow.__fseOpenPaper("portfolio");
-      return;
-    }
-
-    window.dispatchEvent(
-      new CustomEvent("fse:open-paper", { detail: { view: "portfolio" } })
-    );
-  };
-
   const focusReadySignal = () => {
     if (window.location.pathname !== "/") {
       window.sessionStorage.setItem("fse:focus-ready-signal", "1");
@@ -128,20 +112,6 @@ export function SidebarNav() {
           {NAV_ITEMS.map((item) => {
             const itemClass =
               "relative z-10 flex min-w-0 touch-manipulation select-none flex-col items-center justify-center gap-0.5 px-1 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500";
-
-            if (item.kind === "paper") {
-              return (
-                <button
-                  key="portfolio"
-                  type="button"
-                  onClick={openPortfolio}
-                  aria-label="Open paper portfolio"
-                  className={itemClass}
-                >
-                  <MobileNavLabel icon={item.icon} label={item.label} />
-                </button>
-              );
-            }
 
             if (item.kind === "signal") {
               return (
@@ -179,23 +149,6 @@ export function SidebarNav() {
       >
         {NAV_ITEMS.map((item) => {
           const primary = item.kind === "signal";
-
-          if (item.kind === "paper") {
-            return (
-              <button
-                key="portfolio"
-                type="button"
-                onClick={openPortfolio}
-                aria-label="Open paper portfolio"
-                className="flex min-w-0 items-center justify-start gap-2 rounded px-2.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-800/70 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-              >
-                <DesktopNavLabel
-                  icon={item.icon}
-                  label={item.desktopLabel}
-                />
-              </button>
-            );
-          }
 
           if (item.kind === "signal") {
             return (

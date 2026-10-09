@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { Badge, ProviderStateBadge } from "@/components/common/badges";
-import { GlobalPaperTradingOverlay } from "@/components/paper/global-paper-trading-overlay";
 
 export function DashboardShell({
   children,
@@ -70,7 +69,6 @@ export function DashboardShell({
         <main className="min-w-0 flex-1 pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
       </div>
 
-      <GlobalPaperTradingOverlay />
     </div>
   );
 }

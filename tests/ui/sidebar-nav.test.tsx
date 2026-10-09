@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 
 vi.mock("next/navigation", () => ({
@@ -9,44 +9,14 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
-type PaperOverlayWindow = Window & {
-  __fseOpenPaper?: (view: "portfolio" | "journal") => void;
-};
-
-afterEach(() => {
-  delete (window as PaperOverlayWindow).__fseOpenPaper;
-});
-
-describe("SidebarNav interactions", () => {
-  it("opens Portfolio through the global paper overlay handler when available", () => {
-    const openPaper = vi.fn();
-    (window as PaperOverlayWindow).__fseOpenPaper = openPaper;
-
+describe("SidebarNav portfolio link", () => {
+  it("renders Portfolio as a link to /portfolio", () => {
     render(<SidebarNav />);
 
-    fireEvent.click(
-      screen.getAllByRole("button", { name: "Open paper portfolio" })[0]
-    );
+    const links = screen
+      .getAllByRole("link")
+      .filter((el) => el.getAttribute("href") === "/portfolio");
 
-    expect(openPaper).toHaveBeenCalledWith("portfolio");
-  });
-
-  it("falls back to the paper open event when the direct handler is unavailable", () => {
-    const listener = vi.fn();
-    window.addEventListener("fse:open-paper", listener);
-
-    render(<SidebarNav />);
-
-    fireEvent.click(
-      screen.getAllByRole("button", { name: "Open paper portfolio" })[0]
-    );
-
-    expect(listener).toHaveBeenCalledTimes(1);
-    const event = listener.mock.calls[0][0] as CustomEvent<{
-      view?: "portfolio" | "journal";
-    }>;
-    expect(event.detail?.view).toBe("portfolio");
-
-    window.removeEventListener("fse:open-paper", listener);
+    expect(links.length).toBeGreaterThan(0);
   });
 });

@@ -1,58 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { PaperTradingOverlay } from "@/components/paper/paper-trading-overlay";
+import { useState } from "react";
+import {
+  PaperTradingPanel,
+  type PaperPanelView,
+} from "@/components/paper/paper-trading-panel";
 import type { PaperDashboardData } from "@/paper/types";
 import { apiFetch, ApiError } from "@/lib/api-client";
 
-type PaperOverlayView = "portfolio" | "journal";
-type PaperOverlayWindow = Window & {
-  __fseOpenPaper?: (view: PaperOverlayView) => void;
-};
-
-export function GlobalPaperTradingOverlay() {
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [view, setView] = useState<"portfolio" | "journal">("portfolio");
-  const [paper, setPaper] = useState<PaperDashboardData | undefined>(undefined);
+export function PortfolioWorkspace({
+  initialPaper,
+}: {
+  initialPaper?: PaperDashboardData;
+}) {
+  const [paper, setPaper] = useState(initialPaper);
+  const [activeView, setActiveView] = useState<Exclude<PaperPanelView, "both">>(
+    "portfolio"
+  );
   const [resetting, setResetting] = useState(false);
   const [settingInitialBalance, setSettingInitialBalance] = useState(false);
   const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const openPaperView = (nextView: PaperOverlayView = "portfolio") => {
-      setView(nextView);
-      setOpen(true);
-
-      void apiFetch<PaperDashboardData>("/api/paper", {
-        method: "GET",
-        cache: "no-store",
-        requireSecret: false,
-      })
-        .then((next) => setPaper(next))
-        .catch(() => {
-          // Keep the last good paper snapshot if refresh fails.
-        });
-    };
-
-    const openPaperEvent = (event: Event) => {
-      const detail = (event as CustomEvent<{ view?: PaperOverlayView }>).detail;
-      openPaperView(detail?.view ?? "portfolio");
-    };
-
-    const browserWindow = window as PaperOverlayWindow;
-    browserWindow.__fseOpenPaper = openPaperView;
-    window.addEventListener("fse:open-paper", openPaperEvent);
-
-    return () => {
-      if (browserWindow.__fseOpenPaper === openPaperView) {
-        delete browserWindow.__fseOpenPaper;
-      }
-      window.removeEventListener("fse:open-paper", openPaperEvent);
-    };
-  }, []);
 
   const resetPaper = async () => {
     if (resetting) return;
@@ -125,25 +93,6 @@ export function GlobalPaperTradingOverlay() {
     }
   };
 
-  const openAnalysis = (symbol: string) => {
-    const normalized = symbol.trim().toUpperCase();
-    if (!normalized) return;
-
-    setOpen(false);
-
-    if (window.location.pathname === "/") {
-      window.dispatchEvent(
-        new CustomEvent("fse:open-signal-detail", {
-          detail: { symbol: normalized },
-        })
-      );
-      return;
-    }
-
-    window.sessionStorage.setItem("fse:open-signal-symbol", normalized);
-    router.push("/#scanner");
-  };
-
   const closePosition = async (positionId: string) => {
     if (closingPositionId) return;
     const position = paper?.openPositions.find((item) => item.id === positionId);
@@ -182,19 +131,68 @@ export function GlobalPaperTradingOverlay() {
   };
 
   return (
-    <PaperTradingOverlay
-      open={open}
-      view={view}
-      paper={paper}
-      onClose={() => setOpen(false)}
-      onReset={resetPaper}
-      resetting={resetting}
-      onClosePosition={closePosition}
-      onOpenAnalysis={openAnalysis}
-      closingPositionId={closingPositionId}
-      onSetInitialBalance={setInitialBalance}
-      settingInitialBalance={settingInitialBalance}
-      externalError={error}
-    />
+    <div className="mx-auto w-full max-w-[1500px] space-y-4 p-3 sm:p-4 lg:p-5">
+      <header>
+        <p className="text-xs font-medium text-sky-300">Porto</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-100">
+          Paper portfolio
+        </h1>
+        <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
+          Review paper positions, orders, and account balance.
+        </p>
+      </header>
+
+      {error && (
+        <div role="alert" className="rounded-lg border border-red-900/60 bg-red-950/20 px-3 py-2.5 text-xs text-red-200">
+          {error}
+        </div>
+      )}
+
+      <div
+        role="tablist"
+        aria-label="Paper trading views"
+        className="grid grid-cols-2 overflow-hidden rounded-lg border border-zinc-800"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeView === "portfolio"}
+          onClick={() => setActiveView("portfolio")}
+          className={
+            "border-r border-zinc-800 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors " +
+            (activeView === "portfolio"
+              ? "bg-emerald-950/20 text-emerald-300"
+              : "text-zinc-600 hover:bg-zinc-900/60 hover:text-zinc-300")
+          }
+        >
+          Portfolio
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeView === "journal"}
+          onClick={() => setActiveView("journal")}
+          className={
+            "px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors " +
+            (activeView === "journal"
+              ? "bg-emerald-950/20 text-emerald-300"
+              : "text-zinc-600 hover:bg-zinc-900/60 hover:text-zinc-300")
+          }
+        >
+          Journal
+        </button>
+      </div>
+
+      <PaperTradingPanel
+        paper={paper}
+        onReset={resetPaper}
+        resetting={resetting}
+        onClosePosition={closePosition}
+        closingPositionId={closingPositionId}
+        onSetInitialBalance={setInitialBalance}
+        settingInitialBalance={settingInitialBalance}
+        view={activeView}
+      />
+    </div>
   );
 }

@@ -150,6 +150,7 @@ export function JournalWorkspace({
         closingPositionId={closingPositionId}
         onSetInitialBalance={setInitialBalance}
         settingInitialBalance={settingInitialBalance}
+        view="journal"
       />
     </div>
   );
