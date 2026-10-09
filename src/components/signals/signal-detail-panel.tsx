@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Badge,
-  DirectionBadge,
 } from "@/components/common/badges";
 import { ConflictList } from "@/components/signals/conflict-list";
 import { EvidenceList } from "@/components/signals/evidence-list";
@@ -155,7 +154,25 @@ export function SignalDetailPanel({
                 result.freshness === null && "bg-zinc-600"
               )}
             />
-            <DirectionBadge direction={result.biasDirection} />
+            <span
+              role="img"
+              aria-label={"Direction: " + (result.biasDirection ?? "unknown")}
+              title={"Direction: " + (result.biasDirection ?? "unknown")}
+              className={cn(
+                "inline-flex h-5 w-5 shrink-0 items-center justify-center font-mono text-base leading-none",
+                result.biasDirection === "LONG" && "text-emerald-400",
+                result.biasDirection === "SHORT" && "text-red-400",
+                (result.biasDirection === "NEUTRAL" ||
+                  result.biasDirection === null) &&
+                  "text-zinc-500"
+              )}
+            >
+              {result.biasDirection === "LONG" && "\u25B2"}
+              {result.biasDirection === "SHORT" && "\u25BC"}
+              {(result.biasDirection === "NEUTRAL" ||
+                result.biasDirection === null) &&
+                "\u2014"}
+            </span>
           </div>
           <span className="shrink-0 font-mono text-base font-semibold tabular-nums text-zinc-100">
             {formatPrice(result.symbol, result.latestPrice)}
