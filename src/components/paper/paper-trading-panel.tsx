@@ -15,6 +15,11 @@ function pct(value: number | null): string {
   return value.toFixed(2) + "%";
 }
 
+function pnlTone(value: number | null): "neutral" | "positive" | "negative" {
+  if (value === null || !Number.isFinite(value) || value === 0) return "neutral";
+  return value > 0 ? "positive" : "negative";
+}
+
 function riskReward(
   entryPrice: number,
   takeProfit: number | null,
@@ -425,7 +430,7 @@ export function PaperTradingPanel({
                 ? "—"
                 : money(performance.bestTrade, account.currency),
               undefined,
-              "positive"
+              pnlTone(performance.bestTrade)
             )}
             {metric(
               "Worst",
@@ -433,7 +438,7 @@ export function PaperTradingPanel({
                 ? "—"
                 : money(performance.worstTrade, account.currency),
               undefined,
-              "negative"
+              pnlTone(performance.worstTrade)
             )}
             {metric(
               "Profit factor",
