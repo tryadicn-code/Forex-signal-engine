@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Badge,
   DirectionBadge,
-  FreshnessBadge,
 } from "@/components/common/badges";
 import { ConflictList } from "@/components/signals/conflict-list";
 import { EvidenceList } from "@/components/signals/evidence-list";
@@ -132,26 +131,72 @@ export function SignalDetailPanel({
       )}
     >
       <header
-        className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14] px-3 py-2.5 sm:px-4 xl:bg-zinc-900/95"
+        className="sticky top-0 z-30 flex flex-col gap-1.5 border-b border-zinc-800 bg-[#0b0e14] px-3 py-2.5 sm:px-4 xl:bg-zinc-900/95"
         onTouchStart={onHandleTouchStart}
         onTouchMove={onHandleTouchMove}
         onTouchEnd={onHandleTouchEnd}
         onTouchCancel={onHandleTouchEnd}
         style={{ touchAction: "pan-x" }}
       >
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <h2 className="font-mono text-base font-semibold tracking-wide text-zinc-100">
               {result.symbol}
             </h2>
+            <span
+              role="img"
+              aria-label={"Freshness: " + (result.freshness ?? "unknown")}
+              title={"Freshness: " + (result.freshness ?? "unknown")}
+              className={cn(
+                "inline-block h-2 w-2 shrink-0 rounded-full",
+                result.freshness === "FRESH" && "bg-emerald-400",
+                result.freshness === "DELAYED" && "bg-amber-400",
+                result.freshness === "STALE" && "bg-red-400",
+                result.freshness === null && "bg-zinc-600"
+              )}
+            />
             <DirectionBadge direction={result.biasDirection} />
-            <FreshnessBadge status={result.freshness} />
           </div>
-          {result.status !== "ANALYSED" && (
-            <p className="mt-1 text-xs leading-relaxed text-zinc-500">{result.reason}</p>
-          )}
+          <span className="shrink-0 font-mono text-base font-semibold tabular-nums text-zinc-100">
+            {formatPrice(result.symbol, result.latestPrice)}
+          </span>
+          <a
+            href="/system"
+            aria-label="Open system page"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900/40 text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              className="h-3.5 w-3.5"
+            >
+              <path
+                d="M9 5H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-4"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+              <path
+                d="M13 3h4v4"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M11 9l6-6"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </a>
+          <ModalCloseButton onClick={onClose} label="Close detail" style={{ height: "2rem" }} />
         </div>
-        <ModalCloseButton onClick={onClose} label="Close detail" style={{ height: "2rem" }} />
+        {result.status !== "ANALYSED" && (
+          <p className="text-xs leading-relaxed text-zinc-500">{result.reason}</p>
+        )}
       </header>
 
       <div className="space-y-4 p-3 sm:p-4">
