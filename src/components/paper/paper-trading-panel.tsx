@@ -229,92 +229,6 @@ function EquityCurve({
     </div>
   );
 }
-interface SymbolStat {
-  symbol: string;
-  trades: number;
-  wins: number;
-  losses: number;
-  netPnL: number;
-}
-
-function perSymbolStats(trades: PaperTrade[]): SymbolStat[] {
-  const map = new Map<string, SymbolStat>();
-  for (const trade of trades) {
-    const existing = map.get(trade.symbol) ?? {
-      symbol: trade.symbol,
-      trades: 0,
-      wins: 0,
-      losses: 0,
-      netPnL: 0,
-    };
-    existing.trades += 1;
-    if (trade.realizedPnL > 0) existing.wins += 1;
-    else if (trade.realizedPnL < 0) existing.losses += 1;
-    existing.netPnL += trade.realizedPnL;
-    map.set(trade.symbol, existing);
-  }
-  return Array.from(map.values()).sort((a, b) => b.netPnL - a.netPnL);
-}
-
-function SymbolBreakdown({
-  trades,
-  currency,
-}: {
-  trades: PaperTrade[];
-  currency: string;
-}) {
-  if (trades.length === 0) return null;
-  const stats = perSymbolStats(trades);
-
-  return (
-    <div className="border-t border-zinc-800">
-      <div className="flex items-center justify-between px-3 py-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-          Per-symbol
-        </h3>
-        <span className="font-mono text-[11px] text-zinc-600">
-          {stats.length} {stats.length === 1 ? "symbol" : "symbols"}
-        </span>
-      </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_40px_60px_minmax(90px,auto)] gap-2 border-t border-zinc-800 bg-zinc-950/40 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600">
-        <span>Symbol</span>
-        <span className="text-right">N</span>
-        <span className="text-right">Win%</span>
-        <span className="text-right">Net</span>
-      </div>
-      <div className="divide-y divide-zinc-800">
-        {stats.map((s) => {
-          const winRate = s.trades > 0 ? (s.wins / s.trades) * 100 : 0;
-          const netClass =
-            s.netPnL > 0
-              ? "text-emerald-300"
-              : s.netPnL < 0
-                ? "text-red-300"
-                : "text-zinc-300";
-          return (
-            <div
-              key={s.symbol}
-              className="grid grid-cols-[minmax(0,1fr)_40px_60px_minmax(90px,auto)] items-center gap-2 px-3 py-2 font-mono text-[11px]"
-            >
-              <span className="truncate font-semibold text-zinc-200">
-                {s.symbol}
-              </span>
-              <span className="text-right tabular-nums text-zinc-500">
-                {s.trades}
-              </span>
-              <span className="text-right tabular-nums text-zinc-400">
-                {winRate.toFixed(0)}%
-              </span>
-              <span className={"text-right tabular-nums font-semibold " + netClass}>
-                {money(s.netPnL, currency)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function csvEscape(value: string): string {
   if (value.includes(",") || value.includes('"') || value.includes("\n") || value.includes("\r")) {
@@ -334,7 +248,7 @@ function isoWita(epoch: number): string {
   return yyyy + "-" + mm + "-" + dd + "T" + hh + ":" + mi + ":" + ss + "+08:00";
 }
 
-function tradesToCsv(trades: PaperTrade[]): string {
+export function tradesToCsv(trades: PaperTrade[]): string {
   const headers = [
     "id", "symbol", "side", "closeReason",
     "entryPrice", "exitPrice", "stopLoss", "takeProfit",
@@ -378,7 +292,7 @@ function tradesToCsv(trades: PaperTrade[]): string {
   return [headers.join(","), ...rows].join("\r\n") + "\r\n";
 }
 
-function downloadCsv(filename: string, content: string): void {
+export function downloadCsv(filename: string, content: string): void {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -390,7 +304,7 @@ function downloadCsv(filename: string, content: string): void {
   URL.revokeObjectURL(url);
 }
 
-function csvFilename(): string {
+export function csvFilename(): string {
   const d = new Date();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -490,6 +404,7 @@ export function PaperTradingPanel({
 }) {
   const [tradeFilter, setTradeFilter] = useState<TradeFilterState>(DEFAULT_TRADE_FILTER);
   const [ordersView, setOrdersView] = useState<OrdersView>({ mode: "collapsed" });
+  const [filterExpanded, setFilterExpanded] = useState(false);
 
   if (!paper) return null;
 
@@ -498,6 +413,8 @@ export function PaperTradingPanel({
     matchesTradeFilter(trade, tradeFilter)
   );
   const filterActive = isTradeFilterActive(tradeFilter);
+  const filterChipCount =
+    Number(tradeFilter.outcome !== "ALL") + Number(tradeFilter.side !== "ALL");
   const sortedOrders = sortOrdersByRequestedAt(paper.recentOrders);
   const shownOrders = visibleOrders(sortedOrders, ordersView);
   const totalOrderPages = ordersTotalPages(sortedOrders.length);
@@ -507,31 +424,9 @@ export function PaperTradingPanel({
       {view !== "journal" && (
       <section
         id="portfolio"
-        aria-labelledby="paper-portfolio-title"
+        aria-label="Paper portfolio"
         className="scroll-mt-16 rounded-lg border border-zinc-800 bg-zinc-900/30"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5 sm:items-center sm:px-4 sm:py-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h2 id="paper-portfolio-title" className="text-[15px] font-semibold leading-tight text-zinc-100 sm:text-base">
-                Paper portfolio
-              </h2>
-            </div>
-          </div>
-          <button
-            type="button"
-            disabled={resetting}
-            onClick={() => void onReset()}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-red-900/60 bg-red-950/15 px-2.5 text-[11px] font-medium text-red-300 transition-colors hover:border-red-800/70 hover:bg-red-950/30 hover:text-red-200 disabled:opacity-50"
-          >
-            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
-              <path d="M15.5 6.5A6 6 0 1 0 16 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M15.5 3.5v3h-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span>{resetting ? "Resetting..." : "Reset"}</span>
-          </button>
-        </header>
-
         {onSetInitialBalance && (
           <InitialBalanceControl
             key={account.initialBalance}
@@ -539,6 +434,8 @@ export function PaperTradingPanel({
             currency={account.currency}
             onApply={onSetInitialBalance}
             applying={settingInitialBalance}
+            onReset={onReset}
+            resetting={resetting}
           />
         )}
 
@@ -863,40 +760,15 @@ export function PaperTradingPanel({
       {view !== "portfolio" && (
       <section
         id="journal"
-        aria-labelledby="paper-journal-title"
+        aria-label="Paper journal & performance"
         className="scroll-mt-16 rounded-lg border border-zinc-800 bg-zinc-900/30"
       >
-        <header className="flex items-start justify-between gap-2 border-b border-zinc-800 px-3 py-2.5 sm:px-4 sm:py-3">
-          <div className="min-w-0">
-            <h2 id="paper-journal-title" className="text-sm font-semibold text-zinc-100">
-              Paper journal & performance
-            </h2>
-            <p className="mt-0.5 text-[11px] text-zinc-500">
-              Metrics are derived only from persisted closed paper trades.
-            </p>
-          </div>
-          {paper.recentTrades.length > 0 && (
-            <button
-              type="button"
-              onClick={() => downloadCsv(csvFilename(), tradesToCsv(paper.recentTrades))}
-              aria-label="Export closed paper trades as CSV"
-              className="shrink-0 rounded border border-zinc-800 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-            >
-              Export CSV
-            </button>
-          )}
-        </header>
-
         <EquityCurve
           trades={paper.recentTrades}
           initialBalance={account.initialBalance}
           currency={account.currency}
         />
 
-        <SymbolBreakdown
-          trades={paper.recentTrades}
-          currency={account.currency}
-        />
 
         <div>
           <div className="flex items-center justify-between px-3 pt-2 pb-1">
@@ -995,60 +867,88 @@ export function PaperTradingPanel({
                 </span>
               </div>
               <div className="space-y-2 px-3 pb-2.5">
-                <label className="relative block">
-                  <span className="sr-only">Search trades by symbol</span>
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-600"
+                <div className="flex gap-2">
+                  <label className="relative min-w-0 flex-1">
+                    <span className="sr-only">Search trades by symbol</span>
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-600"
+                    >
+                      <circle cx="8.5" cy="8.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="m12 12 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                    <input
+                      type="search"
+                      value={tradeFilter.query}
+                      onChange={(event) =>
+                        setTradeFilter((prev) => ({ ...prev, query: event.target.value }))
+                      }
+                      placeholder="Search symbol"
+                      aria-label="Search trades by symbol"
+                      className="h-9 w-full rounded-md border border-zinc-800 bg-[#0b0e14] pl-9 pr-3 font-mono text-[11px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    aria-expanded={filterExpanded}
+                    aria-controls="trade-filter-chips"
+                    onClick={() => setFilterExpanded((value) => !value)}
+                    aria-label="Toggle trade filters"
+                    className={cn(
+                      "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors",
+                      filterExpanded || filterChipCount > 0
+                        ? "border-emerald-700/60 bg-emerald-950/20 text-emerald-300"
+                        : "border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
+                    )}
                   >
-                    <circle cx="8.5" cy="8.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="m12 12 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                  <input
-                    type="search"
-                    value={tradeFilter.query}
-                    onChange={(event) =>
-                      setTradeFilter((prev) => ({ ...prev, query: event.target.value }))
-                    }
-                    placeholder="Search symbol"
-                    aria-label="Search trades by symbol"
-                    className="h-9 w-full rounded-md border border-zinc-800 bg-[#0b0e14] pl-9 pr-3 font-mono text-[11px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
-                  />
-                </label>
-                <div className="flex items-center gap-2">
-                  <span className="w-12 shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
-                    Result
-                  </span>
-                  <div className="flex flex-1 gap-1.5 overflow-x-auto scrollbar-none">
-                    {(["ALL", "WIN", "LOSS", "BE"] as const).map((chip) => (
-                      <TradeFilterChip
-                        key={chip}
-                        active={tradeFilter.outcome === chip}
-                        onClick={() => setTradeFilter((prev) => ({ ...prev, outcome: chip }))}
-                      >
-                        {chip === "ALL" ? "All" : chip === "WIN" ? "Wins" : chip === "LOSS" ? "Losses" : "BE"}
-                      </TradeFilterChip>
-                    ))}
-                  </div>
+                    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+                      <path d="M3 5h14M5.5 10h9M8 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                    {filterChipCount > 0 && (
+                      <span className="absolute right-0.5 top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-emerald-500 px-1 font-mono text-[9px] font-semibold leading-none text-zinc-950">
+                        {filterChipCount}
+                      </span>
+                    )}
+                  </button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-12 shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
-                    Side
-                  </span>
-                  <div className="flex flex-1 gap-1.5 overflow-x-auto scrollbar-none">
-                    {(["ALL", "LONG", "SHORT"] as const).map((chip) => (
-                      <TradeFilterChip
-                        key={chip}
-                        active={tradeFilter.side === chip}
-                        onClick={() => setTradeFilter((prev) => ({ ...prev, side: chip }))}
-                      >
-                        {chip === "ALL" ? "Any" : chip}
-                      </TradeFilterChip>
-                    ))}
+                {filterExpanded && (
+                  <div id="trade-filter-chips" className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-12 shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+                        Result
+                      </span>
+                      <div className="flex flex-1 gap-1.5 overflow-x-auto scrollbar-none">
+                        {(["ALL", "WIN", "LOSS", "BE"] as const).map((chip) => (
+                          <TradeFilterChip
+                            key={chip}
+                            active={tradeFilter.outcome === chip}
+                            onClick={() => setTradeFilter((prev) => ({ ...prev, outcome: chip }))}
+                          >
+                            {chip === "ALL" ? "All" : chip === "WIN" ? "Wins" : chip === "LOSS" ? "Losses" : "BE"}
+                          </TradeFilterChip>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-12 shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+                        Side
+                      </span>
+                      <div className="flex flex-1 gap-1.5 overflow-x-auto scrollbar-none">
+                        {(["ALL", "LONG", "SHORT"] as const).map((chip) => (
+                          <TradeFilterChip
+                            key={chip}
+                            active={tradeFilter.side === chip}
+                            onClick={() => setTradeFilter((prev) => ({ ...prev, side: chip }))}
+                          >
+                            {chip === "ALL" ? "Any" : chip}
+                          </TradeFilterChip>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
             {filteredTrades.length === 0 ? (
@@ -1196,11 +1096,15 @@ function InitialBalanceControl({
   currency,
   onApply,
   applying,
+  onReset,
+  resetting,
 }: {
   initialBalance: number;
   currency: string;
   onApply: (initialBalance: number) => Promise<void>;
   applying: boolean;
+  onReset?: () => Promise<void>;
+  resetting?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [balanceInput, setBalanceInput] = useState(String(initialBalance));
@@ -1222,18 +1126,35 @@ function InitialBalanceControl({
             {currency} {initialBalance.toFixed(2)}
           </span>
         </div>
-        <button
-          type="button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((value) => !value)}
-          className="inline-flex h-10 shrink-0 items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900/40 px-2 text-[11px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
-        >
-          <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3 w-3">
-            <path d="m4 14.5-.5 2.5 2.5-.5L15 7.5 12.5 5 4 14.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-            <path d="m11.5 6 2.5 2.5" stroke="currentColor" strokeWidth="1.4" />
-          </svg>
-          <span>{expanded ? "Hide" : "Edit"}</span>
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-md border border-zinc-700 bg-zinc-900/40 px-2 text-[11px] font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-200"
+          >
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3 w-3">
+              <path d="m4 14.5-.5 2.5 2.5-.5L15 7.5 12.5 5 4 14.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+              <path d="m11.5 6 2.5 2.5" stroke="currentColor" strokeWidth="1.4" />
+            </svg>
+            <span>{expanded ? "Hide" : "Edit"}</span>
+          </button>
+          {onReset && (
+            <button
+              type="button"
+              disabled={resetting}
+              onClick={() => void onReset()}
+              aria-label="Reset paper account"
+              title="Reset paper account"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-red-900/60 bg-red-950/15 text-red-300 transition-colors hover:border-red-800/70 hover:bg-red-950/30 hover:text-red-200 disabled:opacity-50"
+            >
+              <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+                <path d="M15.5 6.5A6 6 0 1 0 16 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M15.5 3.5v3h-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {expanded && (

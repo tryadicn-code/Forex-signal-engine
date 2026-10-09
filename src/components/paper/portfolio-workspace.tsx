@@ -4,6 +4,9 @@ import { useState } from "react";
 import {
   PaperTradingPanel,
   type PaperPanelView,
+  csvFilename,
+  downloadCsv,
+  tradesToCsv,
 } from "@/components/paper/paper-trading-panel";
 import type { PaperDashboardData } from "@/paper/types";
 import { apiFetch, ApiError } from "@/lib/api-client";
@@ -132,14 +135,26 @@ export function PortfolioWorkspace({
 
   return (
     <div className="mx-auto w-full max-w-[1500px] space-y-4 p-3 sm:p-4 lg:p-5">
-      <header>
-        <p className="text-xs font-medium text-sky-300">Porto</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-100">
-          Paper portfolio
-        </h1>
-        <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
-          Review paper positions, orders, and account balance.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-sky-300">Porto</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-100">
+            Paper portfolio
+          </h1>
+          <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
+            Review paper positions, orders, and account balance.
+          </p>
+        </div>
+        {paper && paper.recentTrades.length > 0 && (
+          <button
+            type="button"
+            onClick={() => downloadCsv(csvFilename(), tradesToCsv(paper.recentTrades))}
+            aria-label="Export closed paper trades as CSV"
+            className="shrink-0 rounded border border-zinc-800 px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+          >
+            Export CSV
+          </button>
+        )}
       </header>
 
       {error && (
