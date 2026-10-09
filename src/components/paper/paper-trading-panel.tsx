@@ -963,10 +963,17 @@ export function PaperTradingPanel({
                 ? "—"
                 : formatDuration(performance.averageHoldingTimeMs)
             )}
-            {metric(
-              "W/L streak",
-              `${performance.consecutiveWins} / ${performance.consecutiveLosses}`
-            )}
+            {(() => {
+              const w = performance.consecutiveWins;
+              const l = performance.consecutiveLosses;
+              if (w > 0) {
+                return metric("Win streak", String(w), undefined, "positive");
+              }
+              if (l > 0) {
+                return metric("Loss streak", String(l), undefined, "negative");
+              }
+              return metric("Streak", "—");
+            })()}
           </div>
         </div>
 
