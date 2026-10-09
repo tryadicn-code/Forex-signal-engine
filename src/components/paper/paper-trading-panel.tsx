@@ -397,24 +397,76 @@ export function PaperTradingPanel({
           </p>
         </header>
 
-        <div className="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 lg:grid-cols-8">
-          {metric("Trades", String(performance.totalTrades))}
-          {metric("Win rate", pct(performance.winRate))}
-          {metric(
-            "Profit factor",
-            performance.profitFactor === null ? "—" : performance.profitFactor.toFixed(2)
-          )}
-          {metric(
-            "Expectancy",
-            performance.expectancyR === null ? "—" : performance.expectancyR.toFixed(2) + "R"
-          )}
-          {metric(
-            "Avg R",
-            performance.averageR === null ? "—" : performance.averageR.toFixed(2) + "R"
-          )}
-          {metric("Max DD", pct(performance.maxDrawdownPercent))}
-          {metric("Win streak", String(performance.consecutiveWins))}
-          {metric("Loss streak", String(performance.consecutiveLosses))}
+        <div>
+          <div className="flex items-center justify-between px-3 pt-2 pb-1">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Edge
+            </h3>
+            <span className="font-mono text-[11px] text-zinc-600">
+              R-based
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 px-3 pb-3 sm:grid-cols-6">
+            {metric(
+              "Expectancy",
+              performance.expectancyR === null ? "—" : performance.expectancyR.toFixed(2) + "R"
+            )}
+            {metric(
+              "Avg R",
+              performance.averageR === null ? "—" : performance.averageR.toFixed(2) + "R"
+            )}
+            {metric(
+              "Median R",
+              performance.medianR === null ? "—" : performance.medianR.toFixed(2) + "R"
+            )}
+            {metric(
+              "Best",
+              performance.bestTrade === null
+                ? "—"
+                : money(performance.bestTrade, account.currency),
+              undefined,
+              "positive"
+            )}
+            {metric(
+              "Worst",
+              performance.worstTrade === null
+                ? "—"
+                : money(performance.worstTrade, account.currency),
+              undefined,
+              "negative"
+            )}
+            {metric(
+              "Profit factor",
+              performance.profitFactor === null ? "—" : performance.profitFactor.toFixed(2)
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-zinc-800">
+          <div className="flex items-center justify-between px-3 py-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Activity & risk
+            </h3>
+            <span className="font-mono text-[11px] text-zinc-600">
+              {performance.totalTrades} closed
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 px-3 pb-3 sm:grid-cols-6">
+            {metric("Trades", String(performance.totalTrades))}
+            {metric("Win rate", pct(performance.winRate))}
+            {metric("Current DD", pct(performance.currentDrawdownPercent))}
+            {metric("Max DD", pct(performance.maxDrawdownPercent))}
+            {metric(
+              "Avg hold",
+              performance.averageHoldingTimeMs === null
+                ? "—"
+                : formatDuration(performance.averageHoldingTimeMs)
+            )}
+            {metric(
+              "W/L streak",
+              `${performance.consecutiveWins} / ${performance.consecutiveLosses}`
+            )}
+          </div>
         </div>
 
         {paper.recentTrades.length === 0 ? (
