@@ -19,7 +19,7 @@
 
 import type { SymbolScanResult } from "@/scanner/scanner-result";
 import { SYMBOL_METADATA } from "@/config/scanner";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatRatio } from "@/lib/format";
 import {
   stageGlyph,
   workstationStages,
@@ -344,12 +344,26 @@ function activeStageNarrative(
   return base;
 }
 
+function PlannedCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-[#0b0e14] px-2.5 py-2">
+      <div className="text-[10px] uppercase tracking-wide text-zinc-600">
+        {label}
+      </div>
+      <div className="mt-0.5 font-mono text-xs tabular-nums text-zinc-200">
+        {value}
+      </div>
+    </div>
+  );
+}
+
 export function SignalNarrative({ result }: { result: SymbolScanResult }) {
   const stages = workstationStages(result);
   const active = activeStageNarrative(result, stages);
   const reasons = biasReasons(result);
   const biasLabel = result.bias ? result.bias.replace(/_/g, " ") : null;
   const biasScore = result.biasScore;
+  const planned = result.plannedLevels ?? null;
 
   return (
     <>
@@ -401,6 +415,26 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
             <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
               {active.body}
             </p>
+          </div>
+        )}
+        {planned && (
+          <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded border border-zinc-800 bg-zinc-800">
+            <PlannedCell
+              label="Entry"
+              value={formatPrice(result.symbol, planned.entry)}
+            />
+            <PlannedCell
+              label="Stop"
+              value={formatPrice(result.symbol, planned.stop)}
+            />
+            <PlannedCell
+              label="Target"
+              value={formatPrice(result.symbol, planned.takeProfit)}
+            />
+            <PlannedCell
+              label="Min R:R"
+              value={formatRatio(planned.rr)}
+            />
           </div>
         )}
       </section>

@@ -61,6 +61,18 @@ describe("SignalNarrative", () => {
     expect(screen.getByText(/25 pips below/)).toBeInTheDocument();
   });
 
+  it("renders the planned levels grid inside the hero card", () => {
+    render(<SignalNarrative result={result()} />);
+
+    expect(screen.getByText("Entry")).toBeInTheDocument();
+    expect(screen.getByText("Stop")).toBeInTheDocument();
+    expect(screen.getByText("Target")).toBeInTheDocument();
+    expect(screen.getByText("Min R:R")).toBeInTheDocument();
+    expect(screen.getByText(/1\.12250/)).toBeInTheDocument();
+    expect(screen.getByText(/1\.12550/)).toBeInTheDocument();
+    expect(screen.getByText(/1\.11650/)).toBeInTheDocument();
+  });
+
   it("renders the Bias section with expanded abbreviations and strength label", () => {
     render(<SignalNarrative result={result()} />);
 
