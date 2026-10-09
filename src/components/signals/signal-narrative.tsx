@@ -74,6 +74,9 @@ function expandBiasText(text: string): string {
     const re = new RegExp("\\b" + abbr + "\\b", "g");
     out = out.replace(re, full);
   }
+  // Drop the strength qualifier entirely when the engine reported 0
+  // (e.g. "Structure trend NEUTRAL at strength 0" -> "Structure trend NEUTRAL").
+  out = out.replace(/ at strength 0(?=[,.\s]|$)/g, "");
   out = out.replace(/strength (\d+)/g, (_, raw) => {
     const num = parseInt(raw, 10);
     return "strength " + num + " (" + qualitativeStrength(num) + ")";
