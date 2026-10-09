@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { PaperDashboardData } from "@/paper/types";
-import { formatDuration, formatPrice } from "@/lib/format";
+import { formatDuration, formatPrice, formatTimeShort } from "@/lib/format";
 
 function money(value: number, currency: string): string {
   if (!Number.isFinite(value)) return "—";
@@ -290,6 +290,92 @@ export function PaperTradingPanel({
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-zinc-800">
+          <div className="flex items-center justify-between px-3 py-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Recent orders
+            </h3>
+            <span className="font-mono text-[11px] text-zinc-600">
+              {paper.recentOrders.length} total
+            </span>
+          </div>
+
+          {paper.recentOrders.length === 0 ? (
+            <p className="border-t border-zinc-800 px-3 py-4 text-center text-xs text-zinc-600">
+              No paper orders recorded yet.
+            </p>
+          ) : (
+            <div className="divide-y divide-zinc-800 border-t border-zinc-800">
+              {paper.recentOrders
+                .slice()
+                .sort((a, b) => b.requestedAt - a.requestedAt)
+                .slice(0, 5)
+                .map((order) => (
+                  <article key={order.id} className="px-3 py-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-sm font-semibold text-zinc-100">
+                        {order.symbol}
+                      </span>
+                      <span
+                        className={
+                          "rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold " +
+                          (order.side === "LONG"
+                            ? "border-emerald-800/70 bg-emerald-950/20 text-emerald-300"
+                            : "border-rose-800/70 bg-rose-950/20 text-rose-300")
+                        }
+                      >
+                        {order.side}
+                      </span>
+                      <span
+                        className={
+                          "rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold " +
+                          (order.status === "FILLED"
+                            ? "border-emerald-800/70 bg-emerald-950/20 text-emerald-300"
+                            : "border-red-800/70 bg-red-950/20 text-red-300")
+                        }
+                      >
+                        {order.status}
+                      </span>
+                      <span className="ml-auto font-mono text-[11px] tabular-nums text-zinc-600">
+                        {formatTimeShort(order.requestedAt)}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-4 gap-2 text-[11px]">
+                      <InlineDatum
+                        label="Entry"
+                        value={formatPrice(
+                          order.symbol,
+                          order.fillPrice ?? order.requestedEntry
+                        )}
+                      />
+                      <InlineDatum
+                        label="SL"
+                        value={formatPrice(order.symbol, order.stopLoss)}
+                        tone="negative"
+                      />
+                      <InlineDatum
+                        label="TP"
+                        value={formatPrice(order.symbol, order.takeProfit)}
+                        tone="positive"
+                      />
+                      <InlineDatum
+                        label="Size"
+                        value={order.positionSize.toFixed(2)}
+                      />
+                    </div>
+
+                    {order.status === "REJECTED" && order.rejectionReason && (
+                      <div className="mt-1.5 font-mono text-[11px] text-red-300/80">
+                        Rejected: {order.rejectionReason}
+                      </div>
+                    )}
+                  </article>
+                ))}
             </div>
           )}
         </div>
