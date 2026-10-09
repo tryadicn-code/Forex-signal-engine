@@ -51,7 +51,7 @@ function metric(
         : "text-zinc-100";
 
   return (
-    <div className="rounded-md border border-zinc-800 bg-zinc-900/35 px-2.5 py-2">
+    <div className="rounded-md border border-zinc-800 bg-zinc-900/35 px-3 py-2.5">
       <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
         {label}
       </div>
@@ -96,9 +96,9 @@ export function PaperTradingPanel({
       <section
         id="portfolio"
         aria-labelledby="paper-portfolio-title"
-        className="scroll-mt-16 rounded-md border border-zinc-800 bg-zinc-900/30"
+        className="scroll-mt-16 rounded-lg border border-zinc-800 bg-zinc-900/30"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5 sm:items-center">
+        <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5 sm:items-center sm:px-4 sm:py-3">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h2 id="paper-portfolio-title" className="text-[15px] font-semibold leading-tight text-zinc-100 sm:text-base">
@@ -177,7 +177,7 @@ export function PaperTradingPanel({
           </div>
 
           {paper.openPositions.length === 0 ? (
-            <p className="border-t border-zinc-800 px-3 py-5 text-center text-xs text-zinc-600">
+            <p className="border-t border-zinc-800 px-3 py-4 text-center text-xs text-zinc-600">
               No paper positions are open. Only genuine EXECUTE signals can create one.
             </p>
           ) : (
@@ -306,9 +306,9 @@ export function PaperTradingPanel({
       <section
         id="journal"
         aria-labelledby="paper-journal-title"
-        className="scroll-mt-16 rounded-md border border-zinc-800 bg-zinc-900/30"
+        className="scroll-mt-16 rounded-lg border border-zinc-800 bg-zinc-900/30"
       >
-        <header className="border-b border-zinc-800 px-3 py-3">
+        <header className="border-b border-zinc-800 px-3 py-2.5 sm:px-4 sm:py-3">
           <h2 id="paper-journal-title" className="text-sm font-semibold text-zinc-100">
             Paper journal & performance
           </h2>
@@ -338,7 +338,7 @@ export function PaperTradingPanel({
         </div>
 
         {paper.recentTrades.length === 0 ? (
-          <p className="border-t border-zinc-800 px-3 py-5 text-center text-xs text-zinc-600">
+          <p className="border-t border-zinc-800 px-3 py-4 text-center text-xs text-zinc-600">
             Journal is empty. Results will appear after paper positions close.
           </p>
         ) : (
