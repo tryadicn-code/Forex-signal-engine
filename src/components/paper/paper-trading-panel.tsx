@@ -195,6 +195,93 @@ function EquityCurve({
   );
 }
 
+interface SymbolStat {
+  symbol: string;
+  trades: number;
+  wins: number;
+  losses: number;
+  netPnL: number;
+}
+
+function perSymbolStats(trades: PaperTrade[]): SymbolStat[] {
+  const map = new Map<string, SymbolStat>();
+  for (const trade of trades) {
+    const existing = map.get(trade.symbol) ?? {
+      symbol: trade.symbol,
+      trades: 0,
+      wins: 0,
+      losses: 0,
+      netPnL: 0,
+    };
+    existing.trades += 1;
+    if (trade.realizedPnL > 0) existing.wins += 1;
+    else if (trade.realizedPnL < 0) existing.losses += 1;
+    existing.netPnL += trade.realizedPnL;
+    map.set(trade.symbol, existing);
+  }
+  return Array.from(map.values()).sort((a, b) => b.netPnL - a.netPnL);
+}
+
+function SymbolBreakdown({
+  trades,
+  currency,
+}: {
+  trades: PaperTrade[];
+  currency: string;
+}) {
+  if (trades.length === 0) return null;
+  const stats = perSymbolStats(trades);
+
+  return (
+    <div className="border-t border-zinc-800">
+      <div className="flex items-center justify-between px-3 py-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          Per-symbol
+        </h3>
+        <span className="font-mono text-[11px] text-zinc-600">
+          {stats.length} {stats.length === 1 ? "symbol" : "symbols"}
+        </span>
+      </div>
+      <div className="grid grid-cols-[minmax(0,1fr)_40px_60px_minmax(90px,auto)] gap-2 border-t border-zinc-800 bg-zinc-950/40 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+        <span>Symbol</span>
+        <span className="text-right">N</span>
+        <span className="text-right">Win%</span>
+        <span className="text-right">Net</span>
+      </div>
+      <div className="divide-y divide-zinc-800">
+        {stats.map((s) => {
+          const winRate = s.trades > 0 ? (s.wins / s.trades) * 100 : 0;
+          const netClass =
+            s.netPnL > 0
+              ? "text-emerald-300"
+              : s.netPnL < 0
+                ? "text-red-300"
+                : "text-zinc-300";
+          return (
+            <div
+              key={s.symbol}
+              className="grid grid-cols-[minmax(0,1fr)_40px_60px_minmax(90px,auto)] items-center gap-2 px-3 py-2 font-mono text-[11px]"
+            >
+              <span className="truncate font-semibold text-zinc-200">
+                {s.symbol}
+              </span>
+              <span className="text-right tabular-nums text-zinc-500">
+                {s.trades}
+              </span>
+              <span className="text-right tabular-nums text-zinc-400">
+                {winRate.toFixed(0)}%
+              </span>
+              <span className={"text-right tabular-nums font-semibold " + netClass}>
+                {money(s.netPnL, currency)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function money(value: number, currency: string): string {
   if (!Number.isFinite(value)) return "—";
   const sign = value > 0 ? "+" : "";
@@ -672,6 +759,11 @@ export function PaperTradingPanel({
         <EquityCurve
           trades={paper.recentTrades}
           initialBalance={account.initialBalance}
+          currency={account.currency}
+        />
+
+        <SymbolBreakdown
+          trades={paper.recentTrades}
           currency={account.currency}
         />
 
