@@ -4,7 +4,69 @@ import { useState } from "react";
 import type { PaperDashboardData } from "@/paper/types";
 import { formatDateTimeShort, formatDuration, formatPrice, formatTimeShort } from "@/lib/format";
 import { BiasBadge, DecisionBadge, FreshnessBadge } from "@/components/common/badges";
+import { cn } from "@/lib/utils";
 
+type TradeOutcomeFilter = "ALL" | "WIN" | "LOSS" | "BE";
+type TradeSideFilter = "ALL" | "LONG" | "SHORT";
+
+interface TradeFilterState {
+  query: string;
+  outcome: TradeOutcomeFilter;
+  side: TradeSideFilter;
+}
+
+const DEFAULT_TRADE_FILTER: TradeFilterState = {
+  query: "",
+  outcome: "ALL",
+  side: "ALL",
+};
+
+function isTradeFilterActive(filter: TradeFilterState): boolean {
+  return (
+    filter.query.trim() !== "" ||
+    filter.outcome !== "ALL" ||
+    filter.side !== "ALL"
+  );
+}
+
+function matchesTradeFilter(
+  trade: { symbol: string; side: "LONG" | "SHORT"; realizedR: number },
+  filter: TradeFilterState
+): boolean {
+  if (filter.side !== "ALL" && trade.side !== filter.side) return false;
+  if (filter.outcome === "WIN" && trade.realizedR <= 0) return false;
+  if (filter.outcome === "LOSS" && trade.realizedR >= 0) return false;
+  if (filter.outcome === "BE" && trade.realizedR !== 0) return false;
+  const q = filter.query.trim().toLowerCase();
+  if (q !== "" && !trade.symbol.toLowerCase().includes(q)) return false;
+  return true;
+}
+
+function TradeFilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "shrink-0 rounded-md border px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-wide transition-colors",
+        active
+          ? "border-emerald-700/60 bg-emerald-950/30 text-emerald-300"
+          : "border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 function money(value: number, currency: string): string {
   if (!Number.isFinite(value)) return "—";
   const sign = value > 0 ? "+" : "";
@@ -92,9 +154,15 @@ export function PaperTradingPanel({
   settingInitialBalance?: boolean;
   view?: PaperPanelView;
 }) {
+  const [tradeFilter, setTradeFilter] = useState<TradeFilterState>(DEFAULT_TRADE_FILTER);
+
   if (!paper) return null;
 
   const { account, performance } = paper;
+  const filteredTrades = paper.recentTrades.filter((trade) =>
+    matchesTradeFilter(trade, tradeFilter)
+  );
+  const filterActive = isTradeFilterActive(tradeFilter);
 
   return (
     <div className="space-y-4">
@@ -480,8 +548,89 @@ export function PaperTradingPanel({
             Journal is empty. Results will appear after paper positions close.
           </p>
         ) : (
-          <div className="divide-y divide-zinc-800 border-t border-zinc-800">
-            {paper.recentTrades.map((trade) => (
+          <>
+            <div className="border-t border-zinc-800">
+              <div className="flex items-center justify-between px-3 py-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                  Trades
+                </h3>
+                <span className="font-mono text-[11px] text-zinc-600">
+                  {filterActive
+                    ? `${filteredTrades.length} of ${paper.recentTrades.length}`
+                    : `${paper.recentTrades.length} total`}
+                </span>
+              </div>
+              <div className="space-y-2 px-3 pb-2.5">
+                <label className="relative block">
+                  <span className="sr-only">Search trades by symbol</span>
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-600"
+                  >
+                    <circle cx="8.5" cy="8.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="m12 12 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                  <input
+                    type="search"
+                    value={tradeFilter.query}
+                    onChange={(event) =>
+                      setTradeFilter((prev) => ({ ...prev, query: event.target.value }))
+                    }
+                    placeholder="Search symbol"
+                    aria-label="Search trades by symbol"
+                    className="h-9 w-full rounded-md border border-zinc-800 bg-[#0b0e14] pl-9 pr-3 font-mono text-[11px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
+                  />
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="w-12 shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+                    Result
+                  </span>
+                  <div className="flex flex-1 gap-1.5 overflow-x-auto scrollbar-none">
+                    {(["ALL", "WIN", "LOSS", "BE"] as const).map((chip) => (
+                      <TradeFilterChip
+                        key={chip}
+                        active={tradeFilter.outcome === chip}
+                        onClick={() => setTradeFilter((prev) => ({ ...prev, outcome: chip }))}
+                      >
+                        {chip === "ALL" ? "All" : chip === "WIN" ? "Wins" : chip === "LOSS" ? "Losses" : "BE"}
+                      </TradeFilterChip>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-12 shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+                    Side
+                  </span>
+                  <div className="flex flex-1 gap-1.5 overflow-x-auto scrollbar-none">
+                    {(["ALL", "LONG", "SHORT"] as const).map((chip) => (
+                      <TradeFilterChip
+                        key={chip}
+                        active={tradeFilter.side === chip}
+                        onClick={() => setTradeFilter((prev) => ({ ...prev, side: chip }))}
+                      >
+                        {chip === "ALL" ? "Any" : chip}
+                      </TradeFilterChip>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {filteredTrades.length === 0 ? (
+              <div className="border-t border-zinc-800 px-3 py-4 text-center">
+                <p className="text-xs text-zinc-600">No trades match the current filter.</p>
+                <button
+                  type="button"
+                  onClick={() => setTradeFilter(DEFAULT_TRADE_FILTER)}
+                  className="mt-2 rounded-md border border-zinc-800 px-2.5 py-1 font-mono text-[11px] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                >
+                  Clear filter
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-zinc-800 border-t border-zinc-800">
+            {filteredTrades.map((trade) => (
               <details
                 key={trade.id}
                 className="group"
@@ -598,6 +747,8 @@ export function PaperTradingPanel({
               </details>
             ))}
           </div>
+            )}
+          </>
         )}
       </section>
       )}
