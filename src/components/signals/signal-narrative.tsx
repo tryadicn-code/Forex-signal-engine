@@ -157,17 +157,23 @@ function setupBody(result: SymbolScanResult, state: string): string {
   }
   let text = "Waiting for price to reach " + zoneName + " " + zoneStr + ".";
   if (price !== null && pipSize !== null && pipSize > 0) {
-    const edge =
-      price < planned.zoneLow ? planned.zoneLow : planned.zoneHigh;
+    const edge = price < planned.zoneLow ? planned.zoneLow : planned.zoneHigh;
     const distance = Math.round(Math.abs(edge - price) / pipSize);
-    const rel = price < planned.zoneLow ? "below" : "above";
+    let positionText: string;
+    if (distance === 0) {
+      positionText = "at the zone edge";
+    } else if (distance <= 2) {
+      positionText =
+        price < planned.zoneLow ? "just below the zone" : "just above the zone";
+    } else {
+      positionText =
+        distance + " pips " + (price < planned.zoneLow ? "below" : "above");
+    }
     text +=
       " Current price " +
       formatPrice(result.symbol, price) +
       " (" +
-      distance +
-      " pips " +
-      rel +
+      positionText +
       ").";
   }
   return text;
