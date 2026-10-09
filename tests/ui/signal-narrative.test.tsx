@@ -61,6 +61,53 @@ describe("SignalNarrative", () => {
     expect(screen.getByText(/25 pips below/)).toBeInTheDocument();
   });
 
+  it("renders the gates summary line when some gates are pending", () => {
+    render(
+      <SignalNarrative
+        result={result({
+          executionDetail: {
+            decision: "WAIT",
+            conditions: [
+              { name: "bias_valid", passed: true, detail: "ok" },
+              { name: "setup_valid", passed: true, detail: "ok" },
+              { name: "trigger_confirmed", passed: false, detail: "waiting" },
+              { name: "risk_approved", passed: false, detail: "waiting" },
+            ],
+            triggeredVetoes: [],
+            reasons: [],
+          },
+        })}
+      />
+    );
+
+    expect(
+      screen.getByText(/2 \/ 4 gates passed/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/trigger_confirmed, risk_approved/)
+    ).toBeInTheDocument();
+  });
+
+  it("hides the gates summary when all gates pass", () => {
+    render(
+      <SignalNarrative
+        result={result({
+          executionDetail: {
+            decision: "WAIT",
+            conditions: [
+              { name: "bias_valid", passed: true, detail: "ok" },
+              { name: "setup_valid", passed: true, detail: "ok" },
+            ],
+            triggeredVetoes: [],
+            reasons: [],
+          },
+        })}
+      />
+    );
+
+    expect(screen.queryByText(/gates passed/)).not.toBeInTheDocument();
+  });
+
   it("renders the planned levels grid inside the hero card", () => {
     render(<SignalNarrative result={result()} />);
 

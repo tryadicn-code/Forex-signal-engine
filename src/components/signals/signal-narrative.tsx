@@ -344,6 +344,28 @@ function activeStageNarrative(
   return base;
 }
 
+function gatesSummary(result: SymbolScanResult): string | null {
+  const detail = result.executionDetail;
+  if (!detail || detail.conditions.length === 0) return null;
+  const total = detail.conditions.length;
+  const passed = detail.conditions.filter((c) => c.passed).length;
+  const pending = detail.conditions
+    .filter((c) => !c.passed)
+    .map((c) => c.name);
+  if (pending.length === 0) return null;
+  const pendingText =
+    pending.length > 2
+      ? pending.slice(0, 2).join(", ") + " +" + (pending.length - 2)
+      : pending.join(", ");
+  return (
+    passed +
+    " / " +
+    total +
+    " gates passed \u00B7 waiting on " +
+    pendingText
+  );
+}
+
 function PlannedCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-[#0b0e14] px-2.5 py-2">
@@ -364,6 +386,7 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
   const biasLabel = result.bias ? result.bias.replace(/_/g, " ") : null;
   const biasScore = result.biasScore;
   const planned = result.plannedLevels ?? null;
+  const gates = gatesSummary(result);
 
   return (
     <>
@@ -435,6 +458,11 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
               label="Min R:R"
               value={formatRatio(planned.rr)}
             />
+          </div>
+        )}
+        {gates && (
+          <div className="mt-2 font-mono text-[11px] text-zinc-500">
+            {gates}
           </div>
         )}
       </section>
