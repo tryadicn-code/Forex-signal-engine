@@ -487,11 +487,6 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
             )}
           </dl>
         )}
-        {routing && (
-          <div className="mt-1 font-mono text-[11px] text-zinc-500">
-            {routing}
-          </div>
-        )}
       </section>
 
       {biasLabel && biasScore !== null && (
