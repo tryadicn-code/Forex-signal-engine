@@ -74,6 +74,25 @@ describe("SignalNarrative", () => {
     expect(screen.queryByText(/\bCHOCH\b/)).not.toBeInTheDocument();
   });
 
+  it("shows awaiting-confirmation body when price is inside the zone but state is SETUP", () => {
+    render(
+      <SignalNarrative
+        result={result({
+          setupState: "SETUP",
+          signalState: "SETUP",
+          latestPrice: 1.1235,
+        })}
+      />
+    );
+
+    expect(
+      screen.getByText(/Price inside supply zone/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Awaiting confirmation to arm/)
+    ).toBeInTheDocument();
+  });
+
   it("shows setup narrative with no-zone body when plannedLevels is null", () => {
     render(
       <SignalNarrative

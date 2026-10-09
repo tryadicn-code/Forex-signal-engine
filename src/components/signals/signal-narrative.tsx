@@ -136,35 +136,39 @@ function setupBody(result: SymbolScanResult, state: string): string {
     formatPrice(result.symbol, planned.zoneLow) +
     " \u2013 " +
     formatPrice(result.symbol, planned.zoneHigh);
-  let text: string;
-  if (state === "ARMED") {
-    text = "Price inside " + zoneName + " " + zoneStr + ". Awaiting trigger.";
-  } else {
-    text = "Waiting for price to reach " + zoneName + " " + zoneStr + ".";
-  }
   const price = result.latestPrice;
   const pipSize = pipSizeFor(result.symbol);
+  const inside =
+    price !== null && price >= planned.zoneLow && price <= planned.zoneHigh;
+
+  if (state === "ARMED") {
+    return (
+      "Price inside " + zoneName + " " + zoneStr + ". Awaiting trigger candle."
+    );
+  }
+  if (state === "SETUP" && inside) {
+    return (
+      "Price inside " +
+      zoneName +
+      " " +
+      zoneStr +
+      ". Awaiting confirmation to arm (structural break, momentum, or volume)."
+    );
+  }
+  let text = "Waiting for price to reach " + zoneName + " " + zoneStr + ".";
   if (price !== null && pipSize !== null && pipSize > 0) {
-    const inside = price >= planned.zoneLow && price <= planned.zoneHigh;
-    if (inside && state !== "ARMED") {
-      text +=
-        " Current price " +
-        formatPrice(result.symbol, price) +
-        " is inside the zone.";
-    } else if (!inside) {
-      const edge =
-        price < planned.zoneLow ? planned.zoneLow : planned.zoneHigh;
-      const distance = Math.round(Math.abs(edge - price) / pipSize);
-      const rel = price < planned.zoneLow ? "below" : "above";
-      text +=
-        " Current price " +
-        formatPrice(result.symbol, price) +
-        " (" +
-        distance +
-        " pips " +
-        rel +
-        ").";
-    }
+    const edge =
+      price < planned.zoneLow ? planned.zoneLow : planned.zoneHigh;
+    const distance = Math.round(Math.abs(edge - price) / pipSize);
+    const rel = price < planned.zoneLow ? "below" : "above";
+    text +=
+      " Current price " +
+      formatPrice(result.symbol, price) +
+      " (" +
+      distance +
+      " pips " +
+      rel +
+      ").";
   }
   return text;
 }
