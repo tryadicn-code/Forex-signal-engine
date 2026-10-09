@@ -15,7 +15,7 @@ function result(overrides: Partial<SymbolScanResult> = {}): SymbolScanResult {
     setupState: "WATCH",
     setupScore: 45,
     triggerState: "WAITING",
-    triggerScore: 0,
+    triggerScore: 25,
     executionDecision: "WAIT",
     signalState: "WATCH",
     freshness: "FRESH",
@@ -123,8 +123,8 @@ describe("SignalNarrative", () => {
     render(<SignalNarrative result={result()} />);
 
     expect(screen.getByText(/Setup —/)).toBeInTheDocument();
-    expect(screen.getByText(/WATCH/)).toBeInTheDocument();
-    expect(screen.getByText(/45 \/ 60/)).toBeInTheDocument();
+    expect(screen.getByText(/FORMING/)).toBeInTheDocument();
+    expect(screen.getByText(/45 \(min 60\)/)).toBeInTheDocument();
     expect(
       screen.getByText(/Waiting for price to reach supply zone/)
     ).toBeInTheDocument();
@@ -135,7 +135,7 @@ describe("SignalNarrative", () => {
 
     expect(screen.getByText(/Trigger —/)).toBeInTheDocument();
     expect(screen.getByText(/WAITING/)).toBeInTheDocument();
-    expect(screen.getByText(/0 \/ 80/)).toBeInTheDocument();
+    expect(screen.getByText(/25 \(min 80\)/)).toBeInTheDocument();
   });
 
   it("renders the Risk card as PENDING when no risk has been evaluated", () => {

@@ -77,21 +77,26 @@ function watchingNarrative(
   let text = "Waiting for price to reach the " + zoneName + " " + zoneStr + ".";
   const price = result.latestPrice;
   if (price !== null && pipSize !== null && pipSize > 0) {
-    const near =
-      planned.direction === "SHORT" ? planned.zoneLow : planned.zoneHigh;
-    const distance = Math.round(Math.abs(near - price) / pipSize);
-    const rel =
-      price < near ? "below" : price > near ? "above" : "at";
-    text +=
-      " Current price " +
-      formatPrice(result.symbol, price) +
-      " (" +
-      distance +
-      " pips " +
-      rel +
-      ").";
-  }
-  if (result.setupScore !== null && Number.isFinite(result.setupScore)) {
+    const inside = price >= planned.zoneLow && price <= planned.zoneHigh;
+    if (inside) {
+      text +=
+        " Current price " +
+        formatPrice(result.symbol, price) +
+        " (inside the zone).";
+    } else {
+      const edge = price < planned.zoneLow ? planned.zoneLow : planned.zoneHigh;
+      const distance = Math.round(Math.abs(edge - price) / pipSize);
+      const rel = price < planned.zoneLow ? "below" : "above";
+      text +=
+        " Current price " +
+        formatPrice(result.symbol, price) +
+        " (" +
+        distance +
+        " pips " +
+        rel +
+        ").";
+    }
+  }  if (result.setupScore !== null && Number.isFinite(result.setupScore)) {
     text += " Setup score " + Math.round(result.setupScore) + "/60.";
   }
   return text;
@@ -200,6 +205,34 @@ interface NarrativeSection {
   body: string;
 }
 
+function formatSetupState(state: string): string {
+  switch (state) {
+    case "WATCH":
+      return "FORMING";
+    case "SETUP":
+      return "IN ZONE";
+    case "ARMED":
+      return "ARMED";
+    case "INVALIDATED":
+      return "INVALIDATED";
+    default:
+      return state;
+  }
+}
+
+function formatTriggerState(state: string): string {
+  switch (state) {
+    case "WAITING":
+      return "WAITING";
+    case "CONFIRMED":
+      return "CONFIRMED";
+    case "INVALIDATED":
+      return "INVALIDATED";
+    default:
+      return state;
+  }
+}
+
 function setupSection(result: SymbolScanResult): NarrativeSection | null {
   const state = result.setupState;
   if (state === null || state === "NONE") return null;
@@ -209,7 +242,7 @@ function setupSection(result: SymbolScanResult): NarrativeSection | null {
   else if (state === "INVALIDATED") stateTone = "blocked";
   const meta =
     result.setupScore !== null && Number.isFinite(result.setupScore)
-      ? Math.round(result.setupScore) + " / 60"
+      ? Math.round(result.setupScore) + " (min 60)"
       : null;
   let body: string;
   if (!planned) {
@@ -226,7 +259,7 @@ function setupSection(result: SymbolScanResult): NarrativeSection | null {
       body = "Waiting for price to reach " + zoneName + " " + zoneStr + ".";
     }
   }
-  return { state, stateTone, meta, body };
+  return { state: formatSetupState(state), stateTone, meta, body };
 }
 
 function triggerSection(result: SymbolScanResult): NarrativeSection | null {
@@ -237,7 +270,7 @@ function triggerSection(result: SymbolScanResult): NarrativeSection | null {
   else if (state === "INVALIDATED") stateTone = "blocked";
   const meta =
     result.triggerScore !== null && Number.isFinite(result.triggerScore)
-      ? Math.round(result.triggerScore) + " / 80"
+      ? Math.round(result.triggerScore) + " (min 80)"
       : null;
   let body: string;
   if (state === "CONFIRMED") {
@@ -248,7 +281,7 @@ function triggerSection(result: SymbolScanResult): NarrativeSection | null {
     body =
       "Awaiting a confirmation candle in the setup zone (structural break, momentum, or volume expansion).";
   }
-  return { state, stateTone, meta, body };
+  return { state: formatTriggerState(state), stateTone, meta, body };
 }
 
 function riskSection(result: SymbolScanResult): NarrativeSection | null {
