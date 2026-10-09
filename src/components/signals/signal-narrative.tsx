@@ -210,7 +210,7 @@ function formatSetupState(state: string): string {
     case "WATCH":
       return "FORMING";
     case "SETUP":
-      return "IN ZONE";
+      return "APPROACHING";
     case "ARMED":
       return "ARMED";
     case "INVALIDATED":
