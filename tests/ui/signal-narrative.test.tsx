@@ -248,6 +248,75 @@ describe("SignalNarrative", () => {
     expect(screen.getByText(/Entry 1\.12250/)).toBeInTheDocument();
   });
 
+  it("renders the data quality banner when issues exist", () => {
+    render(
+      <SignalNarrative
+        result={result({
+          issues: [
+            {
+              code: "MISSING_INTERVAL",
+              symbol: "EURUSD",
+              timeframe: "M15",
+              message: "Gap at 04:30.",
+            },
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByText(/1 data issue/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/MISSING_INTERVAL: Gap at 04:30\./)
+    ).toBeInTheDocument();
+  });
+
+  it("renders the data quality banner when errors exist", () => {
+    render(
+      <SignalNarrative result={result({ errors: ["provider failure"] })} />
+    );
+
+    expect(screen.getByText(/1 data issue/)).toBeInTheDocument();
+    expect(screen.getByText("provider failure")).toBeInTheDocument();
+  });
+
+  it("caps the visible data quality items at 2 with a +N more hint", () => {
+    render(
+      <SignalNarrative
+        result={result({
+          issues: [
+            {
+              code: "MISSING_INTERVAL",
+              symbol: "EURUSD",
+              timeframe: "M15",
+              message: "a",
+            },
+            {
+              code: "OUT_OF_ORDER",
+              symbol: "EURUSD",
+              timeframe: "M15",
+              message: "b",
+            },
+            {
+              code: "STALE_DATA",
+              symbol: "EURUSD",
+              timeframe: "M15",
+              message: "c",
+            },
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByText(/3 data issues/)).toBeInTheDocument();
+    expect(screen.getByText(/\+1 more/)).toBeInTheDocument();
+  });
+
+  it("hides the data quality banner when there are no issues or errors", () => {
+    render(<SignalNarrative result={result()} />);
+
+    expect(screen.queryByText(/data issue/)).not.toBeInTheDocument();
+  });
+
   it("omits the Bias section when bias is null", () => {
     render(
       <SignalNarrative result={result({ bias: null, biasScore: null })} />

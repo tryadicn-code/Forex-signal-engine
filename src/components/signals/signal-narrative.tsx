@@ -353,6 +353,29 @@ function activeStageNarrative(
   return base;
 }
 
+interface DataQualityBanner {
+  count: number;
+  visible: string[];
+  hiddenCount: number;
+}
+
+function dataQualityBanner(result: SymbolScanResult): DataQualityBanner | null {
+  const items: string[] = [];
+  for (const issue of result.issues) {
+    items.push(issue.code + ": " + issue.message);
+  }
+  for (const err of result.errors) {
+    items.push(err);
+  }
+  if (items.length === 0) return null;
+  const visible = items.slice(0, 2);
+  return {
+    count: items.length,
+    visible,
+    hiddenCount: Math.max(0, items.length - 2),
+  };
+}
+
 function regimeSummary(result: SymbolScanResult): string | null {
   const routing = result.strategyRouting;
   if (!routing || !routing.regime) return null;
@@ -399,6 +422,7 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
   const planned = result.plannedLevels ?? null;
   const gates = gatesSummary(result);
   const routing = regimeSummary(result);
+  const dq = dataQualityBanner(result);
 
   return (
     <>
@@ -406,6 +430,27 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
         aria-label="Signal pipeline and status"
         className="rounded border border-zinc-800 bg-zinc-900/30 px-3 py-3"
       >
+        {dq && (
+          <div className="mb-3 rounded border border-amber-900/50 bg-amber-950/15 px-2.5 py-2 text-[11px] leading-relaxed text-amber-200">
+            <div className="font-semibold text-amber-300">
+              {"\u26A0 "}
+              {dq.count} data {dq.count === 1 ? "issue" : "issues"}
+            </div>
+            <ul className="mt-1 space-y-0.5 text-amber-200/80">
+              {dq.visible.map((item, index) => (
+                <li key={index} className="flex gap-1.5">
+                  <span aria-hidden="true">{"\u2022"}</span>
+                  <span className="min-w-0 break-words">{item}</span>
+                </li>
+              ))}
+              {dq.hiddenCount > 0 && (
+                <li className="text-amber-200/60">
+                  {"\u2022"} +{dq.hiddenCount} more
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
         <div className="grid grid-cols-5 gap-1">
           {stages.map((stage) => (
             <div key={stage.label} className="min-w-0">
