@@ -52,6 +52,8 @@ describe("mobile scanner filters", () => {
       target: { value: "LONG" },
     });
 
-    expect(screen.getByRole("button", { name: "Filters 1" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Filters (1 active)" })
+    ).toBeInTheDocument();
   });
 });

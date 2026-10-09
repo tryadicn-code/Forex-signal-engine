@@ -25,7 +25,7 @@ export function MarketHealthPanel({
       aria-labelledby="market-health-title"
       className="rounded-md border border-zinc-800 bg-zinc-900/30"
     >
-      <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-2.5">
+      <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-2.5 sm:px-4 sm:py-3">
         <div className="min-w-0">
           <h2 id="market-health-title" className="text-sm font-semibold text-zinc-100">
             Market data health
@@ -37,7 +37,7 @@ export function MarketHealthPanel({
         <ProviderStateBadge state={provider?.state ?? null} />
       </header>
 
-      <div className="flex flex-wrap gap-2 px-3 py-3">
+      <div className="flex flex-wrap gap-2 p-3 sm:p-4">
         <FreshnessCount label="FRESH" count={freshness.FRESH} />
         <FreshnessCount label="DELAYED" count={freshness.DELAYED} />
         <FreshnessCount label="STALE" count={freshness.STALE} />
@@ -95,7 +95,7 @@ export function MarketHealthPanel({
         </dl>
       </details>
 
-      <div className="space-y-3 px-3 py-3">
+      <div className="space-y-3 p-3 sm:p-4">
         <div className="hidden sm:block">
           <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
             Provider timestamps

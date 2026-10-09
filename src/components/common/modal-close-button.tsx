@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,11 +19,14 @@ export function ModalCloseButton({
   label = "Close",
   variant = "text",
   className,
+  style,
 }: {
   onClick: () => void;
   label?: string;
   variant?: "text" | "icon";
   className?: string;
+  /** Optional inline style escape hatch (e.g. height override). */
+  style?: CSSProperties;
 }) {
   const base =
     "inline-flex h-10 shrink-0 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900/40 text-xs font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600";
@@ -34,6 +38,7 @@ export function ModalCloseButton({
         onClick={onClick}
         aria-label={label}
         className={cn(base, "w-10", className)}
+        style={style}
       >
         <svg
           aria-hidden="true"
@@ -58,6 +63,7 @@ export function ModalCloseButton({
       onClick={onClick}
       aria-label={label}
       className={cn(base, "px-3", className)}
+      style={style}
     >
       {label}
     </button>

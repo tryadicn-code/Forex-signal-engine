@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Badge,
-  DirectionBadge,
-  FreshnessBadge,
 } from "@/components/common/badges";
 import { ConflictList } from "@/components/signals/conflict-list";
 import { EvidenceList } from "@/components/signals/evidence-list";
@@ -13,6 +11,7 @@ import { SignalLifecycle } from "@/components/signals/signal-lifecycle";
 import { TransitionHistory } from "@/components/signals/transition-history";
 import { PriceChart } from "@/components/signals/price-chart";
 import { SignalExecutiveSummary } from "@/components/signals/signal-executive-summary";
+import { SignalNarrative } from "@/components/signals/signal-narrative";
 import {
   formatFixed,
   formatPrice,
@@ -24,6 +23,23 @@ import type { SignalStateTransition } from "@/types/market-data";
 import type { PaperDashboardData } from "@/paper/types";
 import { cn } from "@/lib/utils";
 import { ModalCloseButton } from "@/components/common/modal-close-button";
+
+function paperHasAction(
+  result: SymbolScanResult,
+  paper?: PaperDashboardData
+): boolean {
+  if (!result.signalId || !paper) return false;
+  if (paper.openPositions.some((p) => p.signalId === result.signalId)) {
+    return true;
+  }
+  if (paper.recentTrades.some((t) => t.signalId === result.signalId)) {
+    return true;
+  }
+  if (paper.recentOrders.some((o) => o.signalId === result.signalId)) {
+    return true;
+  }
+  return false;
+}
 
 export function SignalDetailPanel({
   result,
@@ -101,39 +117,71 @@ export function SignalDetailPanel({
     result.status !== "ANALYSED_PARTIAL";
   const detailLabel = "Signal detail for " + result.symbol;
 
+  const hasPaperAction = paperHasAction(result, paper);
+
   return (
     <aside
       role="complementary"
       aria-label={detailLabel}
       style={dragY > 0 ? { transform: `translateY(${dragY}px)` } : undefined}
       className={cn(
-        "fixed inset-x-0 bottom-0 top-12 z-40 overflow-y-auto border-t border-zinc-700 bg-[#0b0e14] shadow-2xl",
-        "xl:sticky xl:top-16 xl:z-0 xl:max-h-[calc(100vh-5rem)] xl:rounded xl:border xl:border-zinc-800 xl:bg-zinc-900/30 xl:shadow-none"
+        "fixed inset-x-0 top-12 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-40 overflow-y-auto border-t border-zinc-700 bg-[#0b0e14] shadow-2xl",
+        "xl:sticky xl:top-16 xl:bottom-auto xl:z-0 xl:max-h-[calc(100vh-5rem)] xl:rounded xl:border xl:border-zinc-800 xl:bg-zinc-900/30 xl:shadow-none"
       )}
     >
-      <div
-        className="sticky top-0 z-20 flex justify-center bg-[#0b0e14]/95 pb-1 pt-2 backdrop-blur xl:hidden"
+      <header
+        className="sticky top-0 z-30 flex flex-col gap-1.5 border-b border-zinc-800 bg-[#0b0e14] px-3 py-2.5 sm:px-4 xl:bg-zinc-900/95"
         onTouchStart={onHandleTouchStart}
         onTouchMove={onHandleTouchMove}
         onTouchEnd={onHandleTouchEnd}
         onTouchCancel={onHandleTouchEnd}
-        style={{ touchAction: "none" }}
-        aria-hidden="true"
+        style={{ touchAction: "pan-x" }}
       >
-        <div className="h-1 w-10 rounded-full bg-zinc-700" aria-hidden="true" />
-      </div>
-      <header className="sticky top-[1.5rem] z-10 flex items-start justify-between gap-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-4 py-3 backdrop-blur xl:top-0 xl:bg-zinc-900/95">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <h2 className="font-mono text-base font-semibold tracking-wide text-zinc-100">
               {result.symbol}
             </h2>
-            <DirectionBadge direction={result.biasDirection} />
-            <FreshnessBadge status={result.freshness} />
+            <span
+              role="img"
+              aria-label={"Freshness: " + (result.freshness ?? "unknown")}
+              title={"Freshness: " + (result.freshness ?? "unknown")}
+              className={cn(
+                "inline-block h-2 w-2 shrink-0 rounded-full",
+                result.freshness === "FRESH" && "bg-emerald-400",
+                result.freshness === "DELAYED" && "bg-amber-400",
+                result.freshness === "STALE" && "bg-red-400",
+                result.freshness === null && "bg-zinc-600"
+              )}
+            />
+            <span
+              role="img"
+              aria-label={"Direction: " + (result.biasDirection ?? "unknown")}
+              title={"Direction: " + (result.biasDirection ?? "unknown")}
+              className={cn(
+                "inline-flex h-5 w-5 shrink-0 items-center justify-center font-mono text-base leading-none",
+                result.biasDirection === "LONG" && "text-emerald-400",
+                result.biasDirection === "SHORT" && "text-red-400",
+                (result.biasDirection === "NEUTRAL" ||
+                  result.biasDirection === null) &&
+                  "text-zinc-500"
+              )}
+            >
+              {result.biasDirection === "LONG" && "\u25B2"}
+              {result.biasDirection === "SHORT" && "\u25BC"}
+              {(result.biasDirection === "NEUTRAL" ||
+                result.biasDirection === null) &&
+                "\u2014"}
+            </span>
           </div>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-500">{result.reason}</p>
+          <span className="shrink-0 font-mono text-base font-semibold tabular-nums text-zinc-100">
+            {formatPrice(result.symbol, result.latestPrice)}
+          </span>
+          <ModalCloseButton onClick={onClose} label="Close detail" style={{ height: "2rem" }} />
         </div>
-        <ModalCloseButton onClick={onClose} label="Close signal detail" />
+        {result.status !== "ANALYSED" && (
+          <p className="text-xs leading-relaxed text-zinc-500">{result.reason}</p>
+        )}
       </header>
 
       <div className="space-y-4 p-3 sm:p-4">
@@ -148,72 +196,97 @@ export function SignalDetailPanel({
               </div>
             </section>
 
-            <SignalExecutiveSummary result={result} paper={paper} />
+            <SignalNarrative result={result} />
 
-            <PaperExecutionDetail
-              result={result}
-              paper={paper}
-              onRefresh={onRefresh}
-              refreshing={refreshing}
-            />
+            {hasPaperAction && (
+              <PaperExecutionDetail
+                result={result}
+                paper={paper}
+                onRefresh={onRefresh}
+                refreshing={refreshing}
+              />
+            )}
 
-            <section aria-labelledby="mtf-title">
-              <SectionTitle id="mtf-title">Multi-timeframe context</SectionTitle>
-              <div className="mt-2">
-                <MtfContext timeframes={result.timeframes} />
-              </div>
-            </section>
+            <details className="rounded-lg border border-zinc-800 bg-zinc-900/25">
+              <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-200 sm:px-4">
+                <span className="flex items-center justify-between">
+                  Raw data
+                  <span aria-hidden="true" className="font-mono text-zinc-600">
+                    {"\u25BE"}
+                  </span>
+                </span>
+              </summary>
+              <div className="space-y-4 border-t border-zinc-800 p-3 sm:p-4">
+                <SignalExecutiveSummary result={result} paper={paper} />
 
-            <section aria-labelledby="lifecycle-title">
-              <SectionTitle id="lifecycle-title">Signal lifecycle</SectionTitle>
-              <div className="mt-2">
-                <SignalLifecycle state={result.signalState} />
-              </div>
-              {signal && (
-                <dl className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
-                  <SmallDatum label="Origin timeframe" value={signal.originTimeframe} />
-                  <SmallDatum label="Origin time" value={formatTime(signal.originTimestamp)} />
-                  <SmallDatum label="Created" value={formatTime(signal.createdAt)} />
-                  <SmallDatum
-                    label="Transitions"
-                    value={String(signal.transitionCount)}
+                <section aria-labelledby="execution-title">
+                  <SectionTitle id="execution-title">Execution gates</SectionTitle>
+                  <ExecutionDetail result={result} />
+                </section>
+
+                <section aria-labelledby="risk-title">
+                  <SectionTitle id="risk-title">Risk</SectionTitle>
+                  <RiskDetail result={result} />
+                </section>
+
+                <section aria-labelledby="mtf-title">
+                  <SectionTitle id="mtf-title">Multi-timeframe context</SectionTitle>
+                  <div className="mt-2">
+                    <MtfContext timeframes={result.timeframes} />
+                  </div>
+                </section>
+
+                <section aria-labelledby="lifecycle-title">
+                  <SectionTitle id="lifecycle-title">Signal lifecycle</SectionTitle>
+                  <div className="mt-2">
+                    <SignalLifecycle state={result.signalState} />
+                  </div>
+                  {signal && (
+                    <dl className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+                      <SmallDatum label="Origin timeframe" value={signal.originTimeframe} />
+                      <SmallDatum label="Origin time" value={formatTime(signal.originTimestamp)} />
+                      <SmallDatum label="Created" value={formatTime(signal.createdAt)} />
+                      <SmallDatum
+                        label="Transitions"
+                        value={String(signal.transitionCount)}
+                      />
+                    </dl>
+                  )}
+                  <div className="mt-3">
+                    <TransitionHistory transitions={transitions} />
+                  </div>
+                </section>
+
+                {!hasPaperAction && (
+                  <PaperExecutionDetail
+                    result={result}
+                    paper={paper}
+                    onRefresh={onRefresh}
+                    refreshing={refreshing}
                   />
-                </dl>
-              )}
-              <div className="mt-3">
-                <TransitionHistory transitions={transitions} />
+                )}
+
+                <section aria-labelledby="explain-title">
+                  <SectionTitle id="explain-title">Explainability</SectionTitle>
+                  <div className="mt-2 grid gap-3 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                    <div>
+                      <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                        Evidence
+                      </h3>
+                      <EvidenceList evidence={result.evidence} />
+                    </div>
+                    <div>
+                      <h3 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
+                        Conflicts
+                      </h3>
+                      <ConflictList conflicts={result.conflicts} />
+                    </div>
+                  </div>
+                </section>
+
+                <DataQuality result={result} />
               </div>
-            </section>
-
-            <section aria-labelledby="execution-title">
-              <SectionTitle id="execution-title">Execution gates</SectionTitle>
-              <ExecutionDetail result={result} />
-            </section>
-
-            <section aria-labelledby="risk-title">
-              <SectionTitle id="risk-title">Risk</SectionTitle>
-              <RiskDetail result={result} />
-            </section>
-
-            <section aria-labelledby="explain-title">
-              <SectionTitle id="explain-title">Explainability</SectionTitle>
-              <div className="mt-2 grid gap-3 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                <div>
-                  <h3 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                    Evidence
-                  </h3>
-                  <EvidenceList evidence={result.evidence} />
-                </div>
-                <div>
-                  <h3 className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                    Conflicts
-                  </h3>
-                  <ConflictList conflicts={result.conflicts} />
-                </div>
-              </div>
-            </section>
-
-            <DataQuality result={result} />
+            </details>
           </>
         )}
       </div>
@@ -278,6 +351,17 @@ function PaperExecutionDetail({
     glyph = "!";
     note =
       "The engine decision is EXECUTE, but the signal lifecycle is not executable. No paper position will be opened.";
+  }
+
+  if (label === "NO PAPER ACTION") {
+    return (
+      <section aria-labelledby="paper-execution-title">
+        <SectionTitle id="paper-execution-title">Paper execution</SectionTitle>
+        <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
+          No action {"\u2014"} this signal has not produced a paper execution.
+        </p>
+      </section>
+    );
   }
 
   return (
@@ -397,24 +481,6 @@ function ExecutionDetail({ result }: { result: SymbolScanResult }) {
           </ul>
         </div>
       )}
-
-      <div>
-        <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-          Engine reasons
-        </div>
-        {detail.reasons.length > 0 ? (
-          <ul className="mt-1 space-y-1 text-[11px] leading-relaxed text-zinc-400">
-            {detail.reasons.map((reason, index) => (
-              <li key={reason + index} className="flex gap-2">
-                <span aria-hidden="true" className="text-zinc-600">•</span>
-                <span>{reason}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-1 text-xs text-zinc-600">No execution reasons recorded.</p>
-        )}
-      </div>
     </div>
   );
 }
@@ -422,7 +488,7 @@ function ExecutionDetail({ result }: { result: SymbolScanResult }) {
 function RiskDetail({ result }: { result: SymbolScanResult }) {
   const risk = result.riskDetail;
   if (!risk) {
-    return <p className="mt-2 text-xs text-zinc-600">Risk was not evaluated.</p>;
+    return <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">Not evaluated {"\u2014"} the trigger is waiting.</p>;
   }
 
   return (

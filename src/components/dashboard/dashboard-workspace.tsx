@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
-import { SignalFunnelPanel } from "@/components/analytics/signal-funnel-panel";
+import { SignalFunnelSummary } from "@/components/analytics/signal-funnel-summary";
 import { ScannerCards } from "@/components/scanner/scanner-cards";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
@@ -18,6 +18,7 @@ import {
   type ScannerSort,
 } from "@/lib/scanner-query";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import type { DashboardData, DownstreamStatus } from "@/types/dashboard";
 
 const DASHBOARD_READ_TIMEOUT_MS = 10_000;
@@ -49,10 +50,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   const [sort, setSort] = useState<ScannerSort>(DEFAULT_SORT);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [resettingFunnel, setResettingFunnel] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [clockNow, setClockNow] = useState<number | null>(null);
-  const restoredSelectionRef = useRef(false);
   const scanInFlightRef = useRef(false);
 
   const allResults = useMemo(() => data.snapshot?.results ?? [], [data.snapshot]);
@@ -71,23 +69,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     selectedResult?.signalId
       ? data.signalHistory[selectedResult.signalId] ?? []
       : [];
-
-  useEffect(() => {
-    if (restoredSelectionRef.current || allResults.length === 0) return;
-    restoredSelectionRef.current = true;
-
-    const saved = window.localStorage.getItem("fse:selected-symbol");
-    if (saved && allResults.some((result) => result.symbol === saved)) {
-      const restore = window.setTimeout(() => setSelectedSymbol(saved), 0);
-      return () => window.clearTimeout(restore);
-    }
-  }, [allResults]);
-
-  useEffect(() => {
-    if (selectedSymbol) {
-      window.localStorage.setItem("fse:selected-symbol", selectedSymbol);
-    }
-  }, [selectedSymbol]);
 
   useEffect(() => {
     const openSignalDetail = (symbol: string): boolean => {
@@ -164,19 +145,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   useEffect(() => {
     if (!data.automation?.enabled) return;
 
-    const tick = () => setClockNow(Date.now());
-    const initialTick = window.setTimeout(tick, 0);
-    const timer = window.setInterval(tick, 1_000);
-
-    return () => {
-      window.clearTimeout(initialTick);
-      window.clearInterval(timer);
-    };
-  }, [data.automation?.enabled]);
-
-  useEffect(() => {
-    if (!data.automation?.enabled) return;
-
     const intervalMs = Math.max(5_000, data.automation.dashboardSyncIntervalMs);
     let inFlight = false;
 
@@ -207,19 +175,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     return () => window.clearInterval(timer);
   }, [data.automation?.dashboardSyncIntervalMs, data.automation?.enabled]);
 
-  const scanIntervalMs = data.automation?.scanIntervalMs ?? null;
-  const lastScanCompletedAt = data.health?.lastScanCompletedAt ?? null;
-  const nextScanAt =
-    data.automation?.nextScanAt ??
-    (data.automation?.enabled &&
-    scanIntervalMs !== null &&
-    lastScanCompletedAt !== null
-      ? lastScanCompletedAt + scanIntervalMs
-      : null);
-  const countdownSeconds =
-    clockNow !== null && nextScanAt !== null
-      ? Math.max(0, Math.ceil((nextScanAt - clockNow) / 1000))
-      : null;
 
   const clearFilters = () => {
     setQuery(DEFAULT_QUERY);
@@ -273,35 +228,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       setRefreshing(false);
     }
   };
-  const resetFunnel = async () => {
-    if (resettingFunnel) return;
-    const confirmed = window.confirm(
-      "Reset signal funnel? Semua observasi yang tersimpan akan dihapus permanen. Tindakan ini tidak dapat dibatalkan."
-    );
-    if (!confirmed) return;
-
-    setResettingFunnel(true);
-    setRequestError(null);
-    try {
-      await apiFetch("/api/analytics/signal-funnel", { method: "DELETE" });
-      // Refresh dashboard view only \u2014 do NOT trigger a new scan.
-      const next = await requestDashboard("GET", DASHBOARD_READ_TIMEOUT_MS);
-      setData(next);
-    } catch (error) {
-      if (error instanceof ApiError && error.code === "UNAUTHORIZED") {
-        setRequestError(
-          "Approval secret is required to reset the signal funnel. Set it from the dialog, then try again."
-        );
-      } else {
-        setRequestError(
-          error instanceof Error ? error.message : String(error)
-        );
-      }
-    } finally {
-      setResettingFunnel(false);
-    }
-  };
-
   const errorMessage = requestError ?? data.scanError;
   const runtimeIssue =
     data.releaseRuntime && data.releaseRuntime.status !== "ACTIVE"
@@ -315,38 +241,13 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   return (
     <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4 lg:p-5">
       <section id="overview" aria-label="Market overview" className="scroll-mt-20">
-        <div className="mb-2 flex justify-end">
-          <div className="flex items-center justify-end gap-2 text-xs">
-            {data.automation?.enabled ? (
-              <div className="flex items-center gap-1.5 rounded-md border border-zinc-800 bg-zinc-900/50 px-2.5 py-1.5">
-                <span className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">
-                  Auto sync
-                </span>
-                <span className="font-mono tabular-nums text-emerald-300">
-                  {countdownSeconds ?? "\u2014"}s
-                </span>
-              </div>
-            ) : (
-              <span className="text-[11px] uppercase tracking-wide text-zinc-600">
-                Auto sync off
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={refresh}
-              disabled={refreshing}
-              aria-label="Refresh scan"
-              className="rounded-md border border-zinc-700 bg-zinc-900/60 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-emerald-700/60 hover:text-emerald-300 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-            >
-              {refreshing ? "Syncing\u2026" : "Refresh"}
-            </button>
-          </div>
-        </div>
-
         <DashboardSummary
           snapshot={data.snapshot}
           health={data.health}
-          activeSignals={data.activeSignals}
+          liveMarketData={Boolean(data.liveMarketData)}
+          providerId={data.providerId ?? null}
+          onRefresh={refresh}
+          refreshing={refreshing}
           onFilter={(state) => {
             setQuery({ ...DEFAULT_QUERY, state });
             const target = document.getElementById("scanner");
@@ -359,7 +260,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         {runtimeIssue && (
           <a
             href="/system"
-            className="mt-2 flex items-center justify-between gap-3 rounded-md border border-amber-900/50 bg-amber-950/10 px-3 py-2 text-[11px] sm:text-xs"
+            className="mt-4 flex items-center justify-between gap-3 rounded-md border border-amber-900/50 bg-amber-950/10 px-3 py-2 text-[11px] sm:text-xs"
           >
             <span className="min-w-0 truncate">
               <strong className="text-amber-300">{"\u26A0 "}{runtimeIssueTitle}</strong>
@@ -461,7 +362,10 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
         <div
           id="signals"
-          className="min-w-0 scroll-mt-20 xl:sticky xl:top-[4.5rem] xl:self-start"
+          className={cn(
+            "min-w-0 scroll-mt-20 xl:sticky xl:top-[4.5rem] xl:self-start",
+            !selectedResult && "hidden xl:block"
+          )}
         >
           <SignalDetailPanel
             result={selectedResult}
@@ -475,12 +379,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         </div>
       </div>
 
-      <SignalFunnelPanel
-        analytics={data.signalFunnel}
-        persistenceError={data.signalFunnelError}
-        onReset={resetFunnel}
-        resetting={resettingFunnel}
-      />
+      <SignalFunnelSummary analytics={data.signalFunnel} />
 
       <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
 

@@ -91,21 +91,26 @@ export function ScannerFilters({
             aria-expanded={mobileFiltersOpen}
             aria-controls="mobile-scanner-filters"
             onClick={() => setMobileFiltersOpen((open) => !open)}
+            aria-label={`Filters${advancedCount > 0 ? ` (${advancedCount} active)` : ""}`}
             className={cn(
-              "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border px-3 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
+              "relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
               mobileFiltersOpen || advancedCount > 0
                 ? "border-emerald-700/60 bg-emerald-950/20 text-emerald-300"
                 : "border-zinc-700 bg-zinc-900 text-zinc-300"
             )}
           >
-            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4">
               <path d="M3 5h14M5.5 10h9M8 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-            <span>Filters{advancedCount > 0 ? ` ${advancedCount}` : ""}</span>
+            {advancedCount > 0 && (
+              <span className="absolute right-0.5 top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-emerald-500 px-1 font-mono text-[9px] font-semibold leading-none text-zinc-950">
+                {advancedCount}
+              </span>
+            )}
           </button>
         </div>
 
-        <div className="-mx-0.5 flex gap-2 overflow-x-auto px-0.5 pb-1 scrollbar-none">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {MOBILE_STATE_FILTERS.map((chip) => (
             <StateChip
               key={chip}
@@ -317,8 +322,8 @@ function StateChip({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full border font-mono font-medium uppercase tracking-[0.08em] transition-colors",
-        mobile ? "h-11 min-h-[44px] px-3 text-[11px]" : "px-2 py-0.5 text-[11px]",
+        "rounded-md border font-mono text-[11px] font-semibold uppercase transition-colors text-center",
+        mobile ? "flex-1 min-w-0 h-11 min-h-[44px] px-2 text-[11px]" : "shrink-0 px-2 py-0.5 text-[11px]",
         active
           ? "border-emerald-600/60 bg-emerald-600/15 text-emerald-300"
           : "border-zinc-700 text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-200"
