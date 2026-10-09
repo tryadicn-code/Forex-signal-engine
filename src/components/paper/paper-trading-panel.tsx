@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { PaperDashboardData, PaperOrder } from "@/paper/types";
+import type { PaperDashboardData, PaperOrder, PaperTrade } from "@/paper/types";
 import { formatDateTimeShort, formatDuration, formatPrice, formatTimeShort } from "@/lib/format";
 import { BiasBadge, DecisionBadge, FreshnessBadge } from "@/components/common/badges";
 import { cn } from "@/lib/utils";
@@ -89,6 +89,112 @@ function visibleOrders(sorted: PaperOrder[], view: OrdersView): PaperOrder[] {
 function ordersTotalPages(count: number): number {
   return Math.max(1, Math.ceil(count / ORDERS_PAGE_SIZE));
 }
+
+function equityCurvePoints(
+  trades: PaperTrade[],
+  initialBalance: number
+): { t: number; equity: number }[] {
+  const sorted = [...trades].sort((a, b) => a.closedAt - b.closedAt);
+  const points: { t: number; equity: number }[] = [
+    { t: 0, equity: initialBalance },
+  ];
+  let cumulative = initialBalance;
+  for (const trade of sorted) {
+    cumulative += trade.realizedPnL;
+    points.push({ t: points.length, equity: cumulative });
+  }
+  return points;
+}
+
+function EquityCurve({
+  trades,
+  initialBalance,
+  currency,
+}: {
+  trades: PaperTrade[];
+  initialBalance: number;
+  currency: string;
+}) {
+  if (trades.length < 2) {
+    return (
+      <div className="border-t border-zinc-800 px-3 py-3 text-center text-[11px] text-zinc-600">
+        Equity curve appears after 2+ closed trades.
+      </div>
+    );
+  }
+
+  const points = equityCurvePoints(trades, initialBalance);
+  const width = 300;
+  const height = 80;
+  const pad = 6;
+  const values = points.map((p) => p.equity);
+  const min = Math.min(...values, initialBalance);
+  const max = Math.max(...values, initialBalance);
+  const range = max - min || 1;
+  const maxT = points.length - 1 || 1;
+  const finalEquity = points[points.length - 1].equity;
+  const positive = finalEquity >= initialBalance;
+  const strokeColor = positive ? "rgb(52 211 153)" : "rgb(248 113 113)";
+  const baselineY =
+    height - pad - ((initialBalance - min) / range) * (height - pad * 2);
+
+  const path = points
+    .map((p, i) => {
+      const x = pad + (p.t / maxT) * (width - pad * 2);
+      const y = height - pad - ((p.equity - min) / range) * (height - pad * 2);
+      return (i === 0 ? "M" : "L") + x.toFixed(2) + " " + y.toFixed(2);
+    })
+    .join(" ");
+
+  return (
+    <div className="border-t border-zinc-800">
+      <div className="flex items-center justify-between px-3 py-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+          Equity curve
+        </h3>
+        <span className="font-mono text-[11px] text-zinc-600">
+          {currency} {min.toFixed(2)} → {currency} {max.toFixed(2)}
+        </span>
+      </div>
+      <div className="px-3 pb-3">
+        <svg
+          viewBox={"0 0 " + width + " " + height}
+          role="img"
+          aria-label="Paper trading equity curve derived from closed trades"
+          className="h-20 w-full"
+          preserveAspectRatio="none"
+        >
+          <line
+            x1={pad}
+            y1={baselineY}
+            x2={width - pad}
+            y2={baselineY}
+            stroke="rgb(63 63 70)"
+            strokeWidth="1"
+            strokeDasharray="3 3"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={path}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+        <div className="mt-1 flex justify-between font-mono text-[10px] text-zinc-600">
+          <span>
+            Initial {currency} {initialBalance.toFixed(2)}
+          </span>
+          <span className={positive ? "text-emerald-300" : "text-red-300"}>
+            Now {currency} {finalEquity.toFixed(2)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function money(value: number, currency: string): string {
   if (!Number.isFinite(value)) return "—";
   const sign = value > 0 ? "+" : "";
@@ -562,6 +668,12 @@ export function PaperTradingPanel({
             Metrics are derived only from persisted closed paper trades.
           </p>
         </header>
+
+        <EquityCurve
+          trades={paper.recentTrades}
+          initialBalance={account.initialBalance}
+          currency={account.currency}
+        />
 
         <div>
           <div className="flex items-center justify-between px-3 pt-2 pb-1">
