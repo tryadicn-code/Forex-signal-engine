@@ -26,6 +26,23 @@ import type { PaperDashboardData } from "@/paper/types";
 import { cn } from "@/lib/utils";
 import { ModalCloseButton } from "@/components/common/modal-close-button";
 
+function paperHasAction(
+  result: SymbolScanResult,
+  paper?: PaperDashboardData
+): boolean {
+  if (!result.signalId || !paper) return false;
+  if (paper.openPositions.some((p) => p.signalId === result.signalId)) {
+    return true;
+  }
+  if (paper.recentTrades.some((t) => t.signalId === result.signalId)) {
+    return true;
+  }
+  if (paper.recentOrders.some((o) => o.signalId === result.signalId)) {
+    return true;
+  }
+  return false;
+}
+
 export function SignalDetailPanel({
   result,
   signal,
@@ -102,6 +119,8 @@ export function SignalDetailPanel({
     result.status !== "ANALYSED_PARTIAL";
   const detailLabel = "Signal detail for " + result.symbol;
 
+  const hasPaperAction = paperHasAction(result, paper);
+
   return (
     <aside
       role="complementary"
@@ -149,6 +168,14 @@ export function SignalDetailPanel({
 
             <SignalNarrative result={result} />
 
+            {hasPaperAction && (
+              <PaperExecutionDetail
+                result={result}
+                paper={paper}
+                onRefresh={onRefresh}
+                refreshing={refreshing}
+              />
+            )}
 
             <details className="rounded-lg border border-zinc-800 bg-zinc-900/25">
               <summary className="cursor-pointer list-none rounded-lg px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-200 sm:px-4">
@@ -200,12 +227,14 @@ export function SignalDetailPanel({
                   </div>
                 </section>
 
-                <PaperExecutionDetail
-                  result={result}
-                  paper={paper}
-                  onRefresh={onRefresh}
-                  refreshing={refreshing}
-                />
+                {!hasPaperAction && (
+                  <PaperExecutionDetail
+                    result={result}
+                    paper={paper}
+                    onRefresh={onRefresh}
+                    refreshing={refreshing}
+                  />
+                )}
 
                 <section aria-labelledby="explain-title">
                   <SectionTitle id="explain-title">Explainability</SectionTitle>
