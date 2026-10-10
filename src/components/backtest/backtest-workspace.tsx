@@ -249,7 +249,7 @@ export function BacktestWorkspace() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-4">
+    <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 pb-32 sm:p-4 md:pb-20">
       <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
         <header className="border-b border-zinc-800 px-3 py-3">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
@@ -451,40 +451,7 @@ export function BacktestWorkspace() {
               </div>
             </PersistedDetails>
 
-            <div className="border-t border-zinc-800 pt-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  disabled={running || files.length === 0}
-                  onClick={runBacktest}
-                  className="rounded-md border border-emerald-700/70 bg-emerald-950/30 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {running
-                    ? jobId
-                      ? "Replaying..."
-                      : "Validating..."
-                    : "Validate & run backtest"}
-                </button>
-                {jobId && (
-                  <button
-                    type="button"
-                    disabled={cancelling}
-                    onClick={cancelJob}
-                    className="rounded-md border border-red-800 bg-red-950/30 px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] text-red-300 transition-colors hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {cancelling ? "Cancelling..." : "Cancel"}
-                  </button>
-                )}
-              </div>
-              <p className="mt-1.5 text-[11px] text-zinc-600">
-                Runs in the background. You can leave this page and come back. Synchronous safety limit: 50,000 M15 replay steps.
-              </p>
-              {!running && files.length > 0 && (
-                <p className="mt-1.5 text-[11px] text-amber-500/80">
-                  Rough estimate: 50-100 ms per M15 step. A 1-month window (~2,900 steps) typically takes 3-5 minutes; a 6-month window (~17,500 steps) can take 20-35 minutes.
-                </p>
-              )}
-            </div>
+
           </div>
 
           <RecentRuns
@@ -494,6 +461,36 @@ export function BacktestWorkspace() {
           />
         </div>
       </section>
+
+      <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-30 border-t border-zinc-800 bg-[#0b0e14]/95 backdrop-blur md:bottom-0 md:left-52">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-2 px-3 py-2 sm:px-4">
+          <button
+            type="button"
+            disabled={running || files.length === 0}
+            onClick={runBacktest}
+            className="rounded-md border border-emerald-700/70 bg-emerald-950/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {running
+              ? jobId
+                ? "Replaying..."
+                : "Validating..."
+              : "Validate & run backtest"}
+          </button>
+          {jobId && (
+            <button
+              type="button"
+              disabled={cancelling}
+              onClick={cancelJob}
+              className="rounded-md border border-red-800 bg-red-950/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-red-300 transition-colors hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {cancelling ? "Cancelling..." : "Cancel"}
+            </button>
+          )}
+          <span className="ml-auto font-mono text-[11px] text-zinc-600">
+            {files.length} files {files.length > 0 ? "· " + riskPercent + "% risk" : "· no files"}
+          </span>
+        </div>
+      </div>
 
       {jobSnapshot &&
         (jobSnapshot.status === "RUNNING" ||
