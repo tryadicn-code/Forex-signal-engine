@@ -1,0 +1,2 @@
+export const inputClass =
+  "mt-1 w-full rounded border border-zinc-800 bg-zinc-950/60 px-2.5 py-2 text-xs text-zinc-200 outline-none transition-colors focus:border-emerald-700 focus:ring-1 focus:ring-emerald-800";

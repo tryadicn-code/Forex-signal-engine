@@ -2,15 +2,36 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { BacktestRunArtifact, BacktestRunListItem } from "@/replay/backtest-run-types";
+import type {
+  BacktestRunArtifact,
+  BacktestRunListItem,
+} from "@/replay/backtest-run-types";
 import type { HistoricalDatasetValidation } from "@/replay/import-types";
 import type { BacktestJobSnapshot } from "@/server/backtest-job-registry";
 import { ValidationWorkbench } from "@/components/backtest/validation-workbench";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { BacktestStepNav } from "./backtest-workspace/components/backtest-step-nav";
+import { PersistedDetails } from "./backtest-workspace/components/persisted-details";
+import { FileUploadSection } from "./backtest-workspace/components/file-upload-section";
+import { SourceFormSection } from "./backtest-workspace/components/source-form-section";
+import { ReplayFormSection } from "./backtest-workspace/components/replay-form-section";
+import { FormIssuesBanner } from "./backtest-workspace/components/form-issues-banner";
+import { BottomActionBar } from "./backtest-workspace/components/bottom-action-bar";
+import { BacktestErrorBanner } from "./backtest-workspace/components/backtest-error-banner";
+import { ValidationPanel } from "./backtest-workspace/components/validation-panel";
+import { BacktestResultHeader } from "./backtest-workspace/components/backtest-result-header";
+import { BacktestMetrics } from "./backtest-workspace/components/backtest-metrics";
+import { EquityCurve } from "./backtest-workspace/components/equity-curve";
+import { RecentRuns } from "./backtest-workspace/components/recent-runs";
+import { JobProgressPanel } from "./backtest-workspace/components/job-progress-panel";
+import {
+  PRESETS,
+  type BacktestPreset,
+} from "./backtest-workspace/lib/presets";
 
 type ApiRunResponse =
-  | { ok: true; job: BacktestJobSnapshot }
   | { ok: true; artifact: BacktestRunArtifact }
+  | { ok: true; job: BacktestJobSnapshot }
   | {
       ok: false;
       error: string;
@@ -41,11 +62,6 @@ export function BacktestWorkspace() {
   const [recentRuns, setRecentRuns] = useState<BacktestRunListItem[]>([]);
   const [loadingRunId, setLoadingRunId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-
-  const totalBytes = useMemo(
-    () => files.reduce((sum, file) => sum + file.size, 0),
-    [files]
-  );
 
   const formIssues = useMemo(() => {
     const issues: string[] = [];
@@ -86,14 +102,6 @@ export function BacktestWorkspace() {
     maxOpenPositions,
     maxTotalRisk,
   ]);
-
-  const applyPreset = (key: BacktestPreset) => {
-    const p = PRESETS[key];
-    setInitialBalance(p.balance);
-    setRiskPercent(p.riskPercent);
-    setMaxOpenPositions(p.maxOpenPositions);
-    setMaxTotalRisk(p.maxTotalRisk);
-  };
 
   const refreshRecent = async () => {
     try {
@@ -192,9 +200,6 @@ export function BacktestWorkspace() {
       if (startDate) form.set("startAt", startDate);
       if (endDate) form.set("endAt", endDate);
 
-      // apiFetch attaches the approval secret when available. A 4xx/5xx
-      // throws an ApiError whose .body still carries the structured payload
-      // so the validation issues survive the migration.
       const payload = await apiFetch<ApiRunResponse>("/api/backtest/run", {
         method: "POST",
         body: form,
@@ -304,6 +309,14 @@ export function BacktestWorkspace() {
     URL.revokeObjectURL(url);
   };
 
+  const applyPreset = (key: BacktestPreset) => {
+    const p = PRESETS[key];
+    setInitialBalance(p.balance);
+    setRiskPercent(p.riskPercent);
+    setMaxOpenPositions(p.maxOpenPositions);
+    setMaxTotalRisk(p.maxTotalRisk);
+  };
+
   return (
     <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 pb-32 sm:p-4 md:pb-20">
       <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
@@ -345,202 +358,53 @@ export function BacktestWorkspace() {
 
         <div className="grid gap-4 p-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
           <div className="space-y-3">
-            <section id="backtest-step-1">
-              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
-                1 · Historical files
-              </h2>
-              <label
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setDragActive(true);
-                }}
-                onDragLeave={() => setDragActive(false)}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  setDragActive(false);
-                  const dropped = Array.from(event.dataTransfer.files ?? []);
-                  if (dropped.length > 0) setFiles(dropped);
-                }}
-                className={
-                  "mt-2 block cursor-pointer rounded-md border border-dashed p-4 text-center transition-colors " +
-                  (dragActive
-                    ? "border-emerald-500 bg-emerald-950/30"
-                    : "border-zinc-700 bg-zinc-950/40 hover:border-emerald-800")
-                }
-              >
-                <input
-                  type="file"
-                  multiple
-                  accept=".csv,.txt,text/csv,text/plain"
-                  className="sr-only"
-                  onChange={(event) =>
-                    setFiles(Array.from(event.target.files ?? []))
-                  }
-                />
-                <span className="block text-sm font-medium text-zinc-200">
-                  Select MT5 CSV/TXT files
-                </span>
-                <span className="mt-1 block text-[11px] leading-relaxed text-zinc-600">
-                  File name must include symbol + timeframe, e.g. EURUSD_D1.csv, EURUSD_H4.csv, EURUSD_H1.csv, EURUSD_M15.csv.
-                </span>
-              </label>
+            <FileUploadSection
+              files={files}
+              dragActive={dragActive}
+              onFilesChange={setFiles}
+              onDragActiveChange={setDragActive}
+            />
 
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500">
-                <span>{files.length} files</span>
-                <span>{formatBytes(totalBytes)}</span>
-                <span>D1 · H4 · H1 · M15 required per pair</span>
-              </div>
-
-              {files.length > 0 && (
-                <div className="mt-2 max-h-28 overflow-auto rounded border border-zinc-800 bg-zinc-950/30 p-2">
-                  <div className="grid gap-1 font-mono text-[11px] text-zinc-500 sm:grid-cols-2">
-                    {files.map((file) => (
-                      <div key={file.name} className="truncate">
-                        {file.name} · {formatBytes(file.size)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </section>
-
-            <PersistedDetails id="source" anchorId="backtest-step-2" title="2 - Source normalization">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <Field label="Dataset id">
-                  <input
-                    value={datasetId}
-                    onChange={(event) => setDatasetId(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Source label">
-                  <input
-                    value={source}
-                    onChange={(event) => setSource(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Source UTC offset · minutes"
-                  hint="120 = UTC+2, 180 = UTC+3. MT5 export often uses broker-server time."
-                >
-                  <input
-                    type="number"
-                    min={-840}
-                    max={840}
-                    step={30}
-                    value={utcOffsetMinutes}
-                    onChange={(event) => setUtcOffsetMinutes(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Assumed spread · pips"
-                  hint="Deterministic static assumption; no random spread."
-                >
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.1}
-                    value={spreadPips}
-                    onChange={(event) => setSpreadPips(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-              </div>
-            
+            <PersistedDetails
+              id="source"
+              anchorId="backtest-step-2"
+              title="2 - Source normalization"
+            >
+              <SourceFormSection
+                datasetId={datasetId}
+                source={source}
+                utcOffsetMinutes={utcOffsetMinutes}
+                spreadPips={spreadPips}
+                onDatasetId={setDatasetId}
+                onSource={setSource}
+                onUtcOffsetMinutes={setUtcOffsetMinutes}
+                onSpreadPips={setSpreadPips}
+              />
             </PersistedDetails>
 
-            <PersistedDetails id="replay" anchorId="backtest-step-3" title="3 - Replay window and risk">
-              <div className="mb-3 flex flex-wrap items-center gap-1.5">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-600">
-                  Preset
-                </span>
-                {(["demo", "conservative", "aggressive"] as const).map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => applyPreset(key)}
-                    className="rounded-md border border-zinc-800 bg-zinc-900/40 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
-                  >
-                    {PRESETS[key].label}
-                  </button>
-                ))}
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                <Field label="Start date" hint="Blank = common coverage start">
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(event) => setStartDate(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="End date" hint="Blank = common coverage end">
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(event) => setEndDate(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Initial balance">
-                  <input
-                    type="number"
-                    min={1}
-                    value={initialBalance}
-                    onChange={(event) => setInitialBalance(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Risk / trade · %">
-                  <input
-                    type="number"
-                    min={0.01}
-                    step={0.1}
-                    value={riskPercent}
-                    onChange={(event) => setRiskPercent(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Max open positions">
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={maxOpenPositions}
-                    onChange={(event) => setMaxOpenPositions(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field label="Max total risk · %">
-                  <input
-                    type="number"
-                    min={0.1}
-                    step={0.5}
-                    value={maxTotalRisk}
-                    onChange={(event) => setMaxTotalRisk(event.target.value)}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field
-                  label="Same-bar SL/TP"
-                  hint="STOP_FIRST is the conservative default."
-                >
-                  <select
-                    value={policy}
-                    onChange={(event) => setPolicy(event.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="STOP_FIRST">STOP_FIRST</option>
-                    <option value="TARGET_FIRST">TARGET_FIRST</option>
-                    <option value="REJECT_AMBIGUOUS">REJECT_AMBIGUOUS</option>
-                  </select>
-                </Field>
-              </div>
+            <PersistedDetails
+              id="replay"
+              anchorId="backtest-step-3"
+              title="3 - Replay window and risk"
+            >
+              <ReplayFormSection
+                startDate={startDate}
+                endDate={endDate}
+                initialBalance={initialBalance}
+                riskPercent={riskPercent}
+                maxOpenPositions={maxOpenPositions}
+                maxTotalRisk={maxTotalRisk}
+                policy={policy}
+                onStartDate={setStartDate}
+                onEndDate={setEndDate}
+                onInitialBalance={setInitialBalance}
+                onRiskPercent={setRiskPercent}
+                onMaxOpenPositions={setMaxOpenPositions}
+                onMaxTotalRisk={setMaxTotalRisk}
+                onPolicy={setPolicy}
+                onApplyPreset={applyPreset}
+              />
             </PersistedDetails>
-
-
           </div>
 
           <RecentRuns
@@ -551,52 +415,17 @@ export function BacktestWorkspace() {
         </div>
       </section>
 
-      {formIssues.length > 0 && (
-        <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom)+4rem)] z-30 mx-auto w-full max-w-[1600px] px-3 sm:px-4 md:bottom-[4rem]">
-          <div className="rounded-md border border-amber-800/60 bg-amber-950/80 px-3 py-2 backdrop-blur">
-            <div className="flex items-start gap-2">
-              <span aria-hidden="true" className="font-mono text-[11px] font-semibold text-amber-400">
-                ⚠
-              </span>
-              <ul className="space-y-0.5 text-[11px] leading-snug text-amber-200">
-                {formIssues.map((issue) => (
-                  <li key={issue}>{issue}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
+      <FormIssuesBanner issues={formIssues} />
 
-      <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-30 border-t border-zinc-800 bg-[#0b0e14]/95 backdrop-blur md:bottom-0 md:left-52">
-        <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-2 px-3 py-2 sm:px-4">
-          <button
-            type="button"
-            disabled={running || files.length === 0}
-            onClick={runBacktest}
-            className="rounded-md border border-emerald-700/70 bg-emerald-950/30 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-300 transition-colors hover:bg-emerald-900/30 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {running
-              ? jobId
-                ? "Replaying..."
-                : "Validating..."
-              : "Validate & run backtest"}
-          </button>
-          {jobId && (
-            <button
-              type="button"
-              disabled={cancelling}
-              onClick={cancelJob}
-              className="rounded-md border border-red-800 bg-red-950/30 px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-red-300 transition-colors hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {cancelling ? "Cancelling..." : "Cancel"}
-            </button>
-          )}
-          <span className="ml-auto font-mono text-[11px] text-zinc-600">
-            {files.length} files {files.length > 0 ? "· " + riskPercent + "% risk" : "· no files"}
-          </span>
-        </div>
-      </div>
+      <BottomActionBar
+        running={running}
+        jobId={jobId}
+        cancelling={cancelling}
+        filesCount={files.length}
+        riskPercent={riskPercent}
+        onRun={runBacktest}
+        onCancel={cancelJob}
+      />
 
       {jobSnapshot &&
         (jobSnapshot.status === "RUNNING" ||
@@ -608,15 +437,7 @@ export function BacktestWorkspace() {
           />
         )}
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-md border border-red-800/60 bg-red-950/20 px-3 py-2 text-xs text-red-200"
-        >
-          <span className="font-mono font-semibold">BACKTEST BLOCKED</span>
-          <span className="ml-2 text-red-200/75">{error}</span>
-        </div>
-      )}
+      <BacktestErrorBanner error={error} />
 
       {validation && <ValidationPanel validation={validation} />}
 
@@ -639,714 +460,4 @@ export function BacktestWorkspace() {
       )}
     </div>
   );
-}
-
-const inputClass =
-  "mt-1 w-full rounded border border-zinc-800 bg-zinc-950/60 px-2.5 py-2 text-xs text-zinc-200 outline-none transition-colors focus:border-emerald-700 focus:ring-1 focus:ring-emerald-800";
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block text-[11px] font-medium uppercase tracking-[0.08em] text-zinc-500">
-      {label}
-      {children}
-      {hint && (
-        <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-zinc-500">
-          {hint}
-        </span>
-      )}
-    </label>
-  );
-}
-
-type BacktestPreset = "demo" | "conservative" | "aggressive";
-
-interface PresetConfig {
-  label: string;
-  balance: string;
-  riskPercent: string;
-  maxOpenPositions: string;
-  maxTotalRisk: string;
-}
-
-const PRESETS: Record<BacktestPreset, PresetConfig> = {
-  demo: {
-    label: "Demo",
-    balance: "10000",
-    riskPercent: "0.5",
-    maxOpenPositions: "10",
-    maxTotalRisk: "5",
-  },
-  conservative: {
-    label: "Conservative",
-    balance: "10000",
-    riskPercent: "0.25",
-    maxOpenPositions: "5",
-    maxTotalRisk: "2",
-  },
-  aggressive: {
-    label: "Aggressive",
-    balance: "10000",
-    riskPercent: "1",
-    maxOpenPositions: "20",
-    maxTotalRisk: "10",
-  },
-};
-
-function BacktestStepNav({
-  step1Done,
-  step2Done,
-  step3Done,
-}: {
-  step1Done: boolean;
-  step2Done: boolean;
-  step3Done: boolean;
-}) {
-  const steps = [
-    { id: "backtest-step-1", num: 1, label: "Files", done: step1Done },
-    { id: "backtest-step-2", num: 2, label: "Source", done: step2Done },
-    { id: "backtest-step-3", num: 3, label: "Replay", done: step3Done },
-  ];
-  const scrollTo = (targetId: string) => {
-    document.getElementById(targetId)?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  };
-  return (
-    <div className="sticky top-14 z-20 -mx-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4">
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-        {steps.map((step) => (
-          <button
-            key={step.id}
-            type="button"
-            onClick={() => scrollTo(step.id)}
-            className={
-              "flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors " +
-              (step.done
-                ? "border-emerald-700/60 bg-emerald-950/20 text-emerald-300"
-                : "border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300")
-            }
-          >
-            <span>{step.num}</span>
-            <span>{step.label}</span>
-            <span className="text-[8px]">●</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PersistedDetails({
-  id,
-  anchorId,
-  title,
-  defaultOpen = false,
-  children,
-}: {
-  id: string;
-  anchorId?: string;
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return defaultOpen;
-    const stored = window.localStorage.getItem("fse:backtest:section:" + id);
-    if (stored === "open") return true;
-    if (stored === "closed") return false;
-    return defaultOpen;
-  });
-
-  const onToggle = (event: React.SyntheticEvent<HTMLDetailsElement>) => {
-    const isOpen = event.currentTarget.open;
-    setOpen(isOpen);
-    window.localStorage.setItem(
-      "fse:backtest:section:" + id,
-      isOpen ? "open" : "closed"
-    );
-  };
-
-  return (
-    <details
-      id={anchorId}
-      open={open}
-      onToggle={onToggle}
-      className="group border-t border-zinc-800 pt-3"
-    >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400 hover:text-zinc-200">
-        <span>{title}</span>
-        <span
-          aria-hidden="true"
-          className="font-mono text-[11px] text-zinc-600 transition-transform group-open:rotate-90"
-        >
-          ▸
-        </span>
-      </summary>
-      <div className="mt-2">{children}</div>
-    </details>
-  );
-}
-
-function ValidationPanel({
-  validation,
-}: {
-  validation: HistoricalDatasetValidation;
-}) {
-  const errors = validation.issues.filter((issue) => issue.severity === "ERROR");
-  const warnings = validation.issues.filter(
-    (issue) => issue.severity === "WARNING"
-  );
-
-  return (
-    <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2.5">
-        <div>
-          <h2 className="text-sm font-semibold text-zinc-100">Dataset validation</h2>
-          <p className="mt-0.5 text-[11px] text-zinc-600">
-            {validation.importedFileCount} files · {validation.importedSymbolCount} symbols · {validation.importedSeriesCount} series
-          </p>
-        </div>
-        <span
-          className={
-            "rounded border px-2 py-1 font-mono text-[11px] font-semibold " +
-            (validation.valid
-              ? "border-emerald-800 bg-emerald-950/30 text-emerald-300"
-              : "border-red-800 bg-red-950/30 text-red-300")
-          }
-        >
-          {validation.valid ? "VALID" : "BLOCKED"}
-        </span>
-      </header>
-
-      <div className="grid gap-3 p-3 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <dl className="grid grid-cols-2 gap-2 text-[11px]">
-          <DataItem label="UTC offset" value={formatOffset(validation.sourceUtcOffsetMinutes)} />
-          <DataItem label="Spread" value={validation.assumedSpreadPips + " pips"} />
-          <DataItem label="Common start" value={formatUtc(validation.commonStartAt)} />
-          <DataItem label="Common end" value={formatUtc(validation.commonEndAt)} />
-          <DataItem
-            label="Est. M15 steps"
-            value={
-              validation.estimatedM15Steps === null
-                ? "—"
-                : validation.estimatedM15Steps.toLocaleString()
-            }
-          />
-          <DataItem
-            label="Issues"
-            value={errors.length + " errors · " + warnings.length + " warnings"}
-          />
-        </dl>
-
-        <div className="min-w-0">
-          <div className="overflow-x-auto rounded border border-zinc-800">
-            <table className="w-full min-w-[620px] text-left text-[11px]">
-              <thead className="bg-zinc-950/70 text-zinc-600">
-                <tr>
-                  <th className="px-2 py-1.5">Series</th>
-                  <th className="px-2 py-1.5">Candles</th>
-                  <th className="px-2 py-1.5">Start</th>
-                  <th className="px-2 py-1.5">End</th>
-                  <th className="px-2 py-1.5">Gaps</th>
-                </tr>
-              </thead>
-              <tbody>
-                {validation.series.map((row) => (
-                  <tr
-                    key={row.symbol + row.timeframe}
-                    className="border-t border-zinc-800 text-zinc-400"
-                  >
-                    <td className="px-2 py-1.5 font-mono text-zinc-200">
-                      {row.symbol} · {row.timeframe}
-                    </td>
-                    <td className="px-2 py-1.5 font-mono">{row.candleCount.toLocaleString()}</td>
-                    <td className="px-2 py-1.5 font-mono">{formatUtc(row.startAt)}</td>
-                    <td className="px-2 py-1.5 font-mono">{formatUtc(row.endAt)}</td>
-                    <td className="px-2 py-1.5 font-mono">{row.nonWeekendGapCount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {validation.issues.length > 0 && (
-            <details className="mt-2 rounded border border-zinc-800 bg-zinc-950/30">
-              <summary className="cursor-pointer px-2.5 py-2 text-[11px] font-medium text-zinc-400">
-                Validation issues ({validation.issues.length})
-              </summary>
-              <div className="max-h-48 space-y-1 overflow-auto border-t border-zinc-800 p-2">
-                {validation.issues.map((issue, index) => (
-                  <div
-                    key={issue.code + index}
-                    className={
-                      "text-[11px] leading-relaxed " +
-                      (issue.severity === "ERROR"
-                        ? "text-red-300"
-                        : issue.severity === "WARNING"
-                          ? "text-amber-300"
-                          : "text-zinc-500")
-                    }
-                  >
-                    <span className="font-mono font-semibold">{issue.severity} · {issue.code}</span>
-                    {" · "}
-                    {issue.message}
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function BacktestResultHeader({
-  artifact,
-  onExport,
-}: {
-  artifact: BacktestRunArtifact;
-  onExport: () => void;
-}) {
-  return (
-    <section className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-zinc-800 bg-zinc-900/30 px-3 py-2.5">
-      <div>
-        <p className="font-mono text-[11px] text-zinc-600">{artifact.id}</p>
-        <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
-          {artifact.metadata?.label || "Validation report"}
-        </h2>
-        {artifact.metadata?.tags && artifact.metadata.tags.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1">
-            {artifact.metadata.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[11px] text-zinc-600"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
-        <p className="mt-1 text-[11px] text-zinc-500">
-          {artifact.validation.symbols.join(", ")} · {formatUtc(artifact.config.startAt)} → {formatUtc(artifact.config.endAt)} · {(artifact.durationMs / 1000).toFixed(1)}s
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={onExport}
-        className="rounded border border-zinc-700 px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 hover:border-emerald-800 hover:text-emerald-300"
-      >
-        Export JSON
-      </button>
-    </section>
-  );
-}
-
-function BacktestMetrics({ artifact }: { artifact: BacktestRunArtifact }) {
-  const analytics = artifact.analytics;
-  const metrics = [
-    ["Trades", analytics.sampleSize.toLocaleString()],
-    ["Win rate", formatPercent(analytics.winRate)],
-    ["Net return", signedPercent(analytics.netReturnPercent)],
-    ["Profit factor", formatNumber(analytics.profitFactor, 2)],
-    ["Expectancy R", formatSigned(analytics.expectancyR, 2)],
-    ["Avg R", formatSigned(analytics.averageR, 2)],
-    ["Max equity DD", formatPercent(analytics.maxEquityDrawdownPercent)],
-    ["Net P/L", formatSigned(analytics.netPnL, 2)],
-  ];
-
-  return (
-    <section className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-zinc-800 bg-zinc-800 sm:grid-cols-4 xl:grid-cols-8">
-      {metrics.map(([label, value]) => (
-        <div key={label} className="bg-[#0f131b] px-3 py-2.5">
-          <div className="text-[11px] uppercase tracking-[0.1em] text-zinc-600">
-            {label}
-          </div>
-          <div className="mt-1 font-mono text-sm font-semibold tabular-nums text-zinc-200">
-            {value}
-          </div>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function EquityCurve({ artifact }: { artifact: BacktestRunArtifact }) {
-  const points = artifact.analytics.equityCurve;
-  if (points.length < 2) {
-    return (
-      <section className="rounded-md border border-zinc-800 bg-zinc-900/30 p-3 text-xs text-zinc-600">
-        Equity curve needs at least two replay marks.
-      </section>
-    );
-  }
-
-  const width = 1000;
-  const height = 220;
-  const pad = 12;
-  const values = points.map((point) => point.equity);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = Math.max(1e-9, max - min);
-  const firstAt = points[0].asOf;
-  const lastAt = points[points.length - 1].asOf;
-  const timeRange = Math.max(1, lastAt - firstAt);
-
-  const path = points
-    .map((point, index) => {
-      const x =
-        pad + ((point.asOf - firstAt) / timeRange) * (width - pad * 2);
-      const y =
-        height -
-        pad -
-        ((point.equity - min) / range) * (height - pad * 2);
-      return (index === 0 ? "M" : "L") + x.toFixed(2) + " " + y.toFixed(2);
-    })
-    .join(" ");
-
-  return (
-    <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
-      <header className="flex items-center justify-between border-b border-zinc-800 px-3 py-2.5">
-        <div>
-          <h2 className="text-sm font-semibold text-zinc-100">Equity curve</h2>
-          <p className="mt-0.5 text-[11px] text-zinc-600">
-            Mark-to-market replay equity · includes floating P/L
-          </p>
-        </div>
-        <span className="font-mono text-[11px] text-zinc-500">
-          {formatNumber(min, 2)} → {formatNumber(max, 2)}
-        </span>
-      </header>
-      <div className="overflow-hidden p-2">
-        <svg
-          viewBox={"0 0 " + width + " " + height}
-          role="img"
-          aria-label="Historical mark-to-market equity curve"
-          className="h-48 w-full"
-          preserveAspectRatio="none"
-        >
-          <line
-            x1={pad}
-            y1={height / 2}
-            x2={width - pad}
-            y2={height / 2}
-            stroke="rgb(63 63 70)"
-            strokeWidth="1"
-            vectorEffect="non-scaling-stroke"
-          />
-          <path
-            d={path}
-            fill="none"
-            stroke="rgb(52 211 153)"
-            strokeWidth="1.5"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-      </div>
-    </section>
-  );
-}
-
-function MiniBar({
-  label,
-  value,
-  max,
-  display,
-  tone,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  display: string;
-  tone: "positive" | "negative" | "warn" | "muted";
-}) {
-  const pct = Math.max(0, Math.min(1, Math.abs(value) / max));
-  const fill =
-    tone === "positive"
-      ? "bg-emerald-500"
-      : tone === "negative"
-        ? "bg-red-500"
-        : tone === "warn"
-          ? "bg-amber-500"
-          : "bg-zinc-600";
-  const text =
-    tone === "positive"
-      ? "text-emerald-300"
-      : tone === "negative"
-        ? "text-red-300"
-        : tone === "warn"
-          ? "text-amber-300"
-          : "text-zinc-500";
-  return (
-    <div className="flex items-center gap-2 text-[10px]">
-      <span className="w-7 shrink-0 font-mono uppercase tracking-wider text-zinc-600">
-        {label}
-      </span>
-      <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-800">
-        <div
-          className={"h-full " + fill}
-          style={{ width: (pct * 100).toFixed(1) + "%" }}
-        />
-      </div>
-      <span className={"w-12 shrink-0 text-right font-mono " + text}>
-        {display}
-      </span>
-    </div>
-  );
-}
-
-function toneForExpectancy(v: number | null): "positive" | "negative" | "muted" {
-  if (v === null || !Number.isFinite(v) || v === 0) return "muted";
-  return v > 0 ? "positive" : "negative";
-}
-
-function toneForWinRate(v: number | null): "positive" | "warn" | "muted" {
-  if (v === null || !Number.isFinite(v)) return "muted";
-  return v >= 50 ? "positive" : "warn";
-}
-
-function toneForProfitFactor(
-  v: number | null
-): "positive" | "warn" | "negative" | "muted" {
-  if (v === null || !Number.isFinite(v)) return "muted";
-  if (v >= 2) return "positive";
-  if (v >= 1) return "warn";
-  return "negative";
-}
-
-function RecentRuns({
-  runs,
-  loadingRunId,
-  onLoad,
-}: {
-  runs: BacktestRunListItem[];
-  loadingRunId: string | null;
-  onLoad: (id: string) => void;
-}) {
-  return (
-    <aside className="min-w-0 rounded-md border border-zinc-800 bg-zinc-950/30">
-      <header className="border-b border-zinc-800 px-3 py-2.5">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
-          Recent reports
-        </h2>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
-          Persisted separately under .data/backtest-runs
-        </p>
-      </header>
-      <div className="max-h-[430px] space-y-1.5 overflow-auto p-2">
-        {runs.length === 0 ? (
-          <div className="px-2 py-6 text-center text-[11px] text-zinc-500">
-            No persisted backtest reports yet.
-          </div>
-        ) : (
-          runs.map((run) => (
-            <button
-              key={run.id}
-              type="button"
-              onClick={() => onLoad(run.id)}
-              disabled={loadingRunId !== null}
-              className="w-full rounded border border-zinc-800 bg-zinc-900/30 p-2 text-left hover:border-zinc-700 hover:bg-zinc-900/60 disabled:opacity-50"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-mono text-[11px] font-semibold text-zinc-300">
-                  {run.label || run.datasetId}
-                </span>
-                <div className="flex shrink-0 items-center gap-1">
-                  {run.releaseDecision && (
-                    <span className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[11px] text-zinc-500">
-                      {run.releaseDecision}
-                    </span>
-                  )}
-                  <span className="font-mono text-[11px] text-zinc-600">
-                    N {run.sampleSize}
-                  </span>
-                </div>
-              </div>
-              {run.tags.length > 0 && (
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {run.tags.slice(0, 3).map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded border border-zinc-800 px-1 py-0.5 font-mono text-[11px] text-zinc-600"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-zinc-600">
-                <span>{run.symbols.join(", ")}</span>
-                <span>{signedPercent(run.netReturnPercent)}</span>
-                <span>DD {formatPercent(run.maxDrawdownPercent)}</span>
-              </div>
-              <div className="mt-1.5 space-y-0.5">
-                <MiniBar
-                  label="E[R]"
-                  value={run.expectancyR ?? 0}
-                  max={2}
-                  display={formatSigned(run.expectancyR, 2)}
-                  tone={toneForExpectancy(run.expectancyR)}
-                />
-                <MiniBar
-                  label="Win"
-                  value={run.winRate ?? 0}
-                  max={100}
-                  display={
-                    run.winRate === null || !Number.isFinite(run.winRate)
-                      ? "—"
-                      : run.winRate.toFixed(0) + "%"
-                  }
-                  tone={toneForWinRate(run.winRate)}
-                />
-                <MiniBar
-                  label="PF"
-                  value={run.profitFactor ?? 0}
-                  max={3}
-                  display={
-                    run.profitFactor === null || !Number.isFinite(run.profitFactor)
-                      ? "—"
-                      : run.profitFactor.toFixed(2)
-                  }
-                  tone={toneForProfitFactor(run.profitFactor)}
-                />
-              </div>
-              <div className="mt-1 font-mono text-[11px] text-zinc-500">
-                {loadingRunId === run.id ? "Loading…" : formatUtc(run.completedAt)}
-              </div>
-            </button>
-          ))
-        )}
-      </div>
-    </aside>
-  );
-}
-
-function JobProgressPanel({
-  job,
-  cancelling,
-  onCancel,
-}: {
-  job: BacktestJobSnapshot;
-  cancelling: boolean;
-  onCancel: () => void;
-}) {
-  // Local 1-second tick so elapsed/ETA update on their own without calling
-  // Date.now() during render (react-hooks/purity forbids impure calls in
-  // the render body).
-  const [nowTick, setNowTick] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setNowTick(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [job.id]);
-
-  const total = job.totalSteps > 0 ? job.totalSteps : 0;
-  const done = job.completedSteps;
-  const pct = total > 0 ? Math.min(100, (done / total) * 100) : 0;
-  const now = nowTick || job.createdAt;
-  const elapsedMs = job.startedAt ? now - job.startedAt : now - job.createdAt;
-  const elapsedSec = Math.max(0, Math.floor(elapsedMs / 1000));
-  const stepsPerSec = elapsedSec > 0 ? done / elapsedSec : 0;
-  const remainingSteps = total > 0 ? Math.max(0, total - done) : 0;
-  const etaSec =
-    stepsPerSec > 0 && remainingSteps > 0
-      ? Math.round(remainingSteps / stepsPerSec)
-      : null;
-
-  return (
-    <section className="rounded-md border border-cyan-900/60 bg-cyan-950/10">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-900/40 px-3 py-2.5">
-        <div>
-          <h2 className="text-sm font-semibold text-cyan-100">
-            Backtest running in background
-          </h2>
-          <p className="mt-0.5 font-mono text-[11px] text-cyan-200/60">
-            {job.id}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-[11px] text-cyan-200/80">
-            {elapsedSec}s elapsed
-            {etaSec !== null ? " \u00b7 ~" + etaSec + "s left" : ""}
-          </span>
-          <button
-            type="button"
-            disabled={cancelling}
-            onClick={onCancel}
-            className="rounded border border-red-800 bg-red-950/30 px-2.5 py-1 text-[11px] font-medium text-red-300 hover:bg-red-900/40 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {cancelling ? "Cancelling..." : "Cancel"}
-          </button>
-        </div>
-      </header>
-      <div className="space-y-2 p-3">
-        <div className="flex items-center justify-between text-[11px] text-cyan-200/70">
-          <span>
-            {done.toLocaleString()} / {total > 0 ? total.toLocaleString() : "?"} M15 steps
-          </span>
-          <span className="font-mono">{pct.toFixed(1)}%</span>
-        </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-cyan-950/40">
-          <div
-            className="h-full bg-cyan-500 transition-[width] duration-300"
-            style={{ width: pct + "%" }}
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function DataItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded border border-zinc-800 bg-zinc-950/30 px-2 py-1.5">
-      <dt className="text-[11px] uppercase tracking-[0.1em] text-zinc-500">{label}</dt>
-      <dd className="mt-0.5 font-mono text-[11px] text-zinc-300">{value}</dd>
-    </div>
-  );
-}
-
-function formatUtc(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return "—";
-  return new Date(value).toISOString().replace("T", " ").slice(0, 16) + " UTC";
-}
-
-function formatOffset(minutes: number): string {
-  const sign = minutes >= 0 ? "+" : "-";
-  const absolute = Math.abs(minutes);
-  const hours = Math.floor(absolute / 60);
-  const mins = absolute % 60;
-  return "UTC" + sign + hours + (mins ? ":" + String(mins).padStart(2, "0") : "");
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-}
-
-function formatNumber(value: number | null, digits: number): string {
-  return value === null || !Number.isFinite(value) ? "—" : value.toFixed(digits);
-}
-
-function formatPercent(value: number | null): string {
-  return value === null || !Number.isFinite(value) ? "—" : value.toFixed(2) + "%";
-}
-
-function signedPercent(value: number): string {
-  if (!Number.isFinite(value)) return "—";
-  return (value > 0 ? "+" : "") + value.toFixed(2) + "%";
-}
-
-function formatSigned(value: number | null, digits: number): string {
-  if (value === null || !Number.isFinite(value)) return "—";
-  return (value > 0 ? "+" : "") + value.toFixed(digits);
 }
