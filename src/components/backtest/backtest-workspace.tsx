@@ -244,6 +244,13 @@ export function BacktestWorkspace() {
 
   const cancelJob = async () => {
     if (!jobId || cancelling) return;
+    if (
+      !window.confirm(
+        "Cancel the running backtest? Progress so far will be discarded."
+      )
+    ) {
+      return;
+    }
     setCancelling(true);
     try {
       await fetch("/api/backtest/runs/" + encodeURIComponent(jobId), {
