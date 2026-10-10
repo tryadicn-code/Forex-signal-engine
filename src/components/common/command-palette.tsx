@@ -58,6 +58,67 @@ export function CommandPalette() {
         keywords: ["system", "settings", "health"],
         run: () => router.push("/system"),
       },
+      {
+        id: "nav-scanner",
+        label: "Go to Scanner",
+        hint: "/#scanner",
+        keywords: ["scanner", "signals", "live"],
+        run: () => router.push("/#scanner"),
+      },
+      {
+        id: "action-focus-ready-signal",
+        label: "Focus Ready Signal",
+        hint: "action",
+        keywords: ["focus", "signal", "ready", "scanner"],
+        run: () => {
+          if (window.location.pathname !== "/") {
+            window.sessionStorage.setItem("fse:focus-ready-signal", "1");
+            router.push("/#scanner");
+            return;
+          }
+          window.dispatchEvent(new Event("fse:focus-ready-signal"));
+        },
+      },
+      {
+        id: "action-open-signal",
+        label: "Open Signal Detail\u2026",
+        hint: "action",
+        keywords: ["signal", "detail", "symbol", "open"],
+        run: () => {
+          const input = window.prompt("Symbol to open (e.g. EURUSD)?");
+          if (!input) return;
+          const normalized = input.trim().toUpperCase();
+          if (!normalized) return;
+          if (window.location.pathname === "/") {
+            window.dispatchEvent(
+              new CustomEvent("fse:open-signal-detail", {
+                detail: { symbol: normalized },
+              })
+            );
+            return;
+          }
+          window.sessionStorage.setItem("fse:open-signal-symbol", normalized);
+          router.push("/#scanner");
+        },
+      },
+      {
+        id: "action-approval-secret",
+        label: "Open Approval Secret Dialog",
+        hint: "action",
+        keywords: ["approval", "secret", "auth", "dialog"],
+        run: () => {
+          window.dispatchEvent(new Event("fse:open-approval-secret-dialog"));
+        },
+      },
+      {
+        id: "action-reload",
+        label: "Reload Page",
+        hint: "action",
+        keywords: ["reload", "refresh", "restart"],
+        run: () => {
+          window.location.reload();
+        },
+      },
     ],
     [router]
   );
