@@ -273,9 +273,23 @@ export function BacktestWorkspace() {
           </div>
         </header>
 
+        <BacktestStepNav
+          step1Done={files.length >= 4}
+          step2Done={
+            datasetId !== "mt5-validation" ||
+            source !== "MT5 historical export"
+          }
+          step3Done={
+            Number(initialBalance) > 0 &&
+            Number(riskPercent) > 0 &&
+            Number(maxTotalRisk) > 0 &&
+            Number(maxOpenPositions) > 0
+          }
+        />
+
         <div className="grid gap-4 p-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
           <div className="space-y-3">
-            <section>
+            <section id="backtest-step-1">
               <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
                 1 · Historical files
               </h2>
@@ -316,7 +330,7 @@ export function BacktestWorkspace() {
               )}
             </section>
 
-            <PersistedDetails id="source" title="2 - Source normalization">
+            <PersistedDetails id="source" anchorId="backtest-step-2" title="2 - Source normalization">
               <div className="grid gap-2 sm:grid-cols-2">
                 <Field label="Dataset id">
                   <input
@@ -363,7 +377,7 @@ export function BacktestWorkspace() {
             
             </PersistedDetails>
 
-            <PersistedDetails id="replay" title="3 - Replay window and risk">
+            <PersistedDetails id="replay" anchorId="backtest-step-3" title="3 - Replay window and risk">
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 <Field label="Start date" hint="Blank = common coverage start">
                   <input
@@ -549,13 +563,60 @@ function Field({
   );
 }
 
+function BacktestStepNav({
+  step1Done,
+  step2Done,
+  step3Done,
+}: {
+  step1Done: boolean;
+  step2Done: boolean;
+  step3Done: boolean;
+}) {
+  const steps = [
+    { id: "backtest-step-1", num: 1, label: "Files", done: step1Done },
+    { id: "backtest-step-2", num: 2, label: "Source", done: step2Done },
+    { id: "backtest-step-3", num: 3, label: "Replay", done: step3Done },
+  ];
+  const scrollTo = (targetId: string) => {
+    document.getElementById(targetId)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+  return (
+    <div className="sticky top-14 z-20 -mx-3 border-b border-zinc-800 bg-[#0b0e14]/95 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4">
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        {steps.map((step) => (
+          <button
+            key={step.id}
+            type="button"
+            onClick={() => scrollTo(step.id)}
+            className={
+              "flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors " +
+              (step.done
+                ? "border-emerald-700/60 bg-emerald-950/20 text-emerald-300"
+                : "border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300")
+            }
+          >
+            <span>{step.num}</span>
+            <span>{step.label}</span>
+            <span className="text-[8px]">●</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PersistedDetails({
   id,
+  anchorId,
   title,
   defaultOpen = false,
   children,
 }: {
   id: string;
+  anchorId?: string;
   title: string;
   defaultOpen?: boolean;
   children: React.ReactNode;
@@ -579,6 +640,7 @@ function PersistedDetails({
 
   return (
     <details
+      id={anchorId}
       open={open}
       onToggle={onToggle}
       className="group border-t border-zinc-800 pt-3"
