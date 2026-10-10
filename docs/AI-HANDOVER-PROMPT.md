@@ -955,16 +955,16 @@ Total: 47 file baru di 6 folder co-located. 3669 → 1403 lines di 6 file utama 
 
 | Fase | Scope | Status |
 |---|---|---|
-| A | Hero + bar + Bias | SELESAI (`197c98a`) |
+| A | Hero + bar + Bias | ROLLBACK (`60b65b7`) — duplikasi visual dengan existing |
 | B | + SETUP/TRIGGER/RISK sections | pending review visual Fase A |
 | C | Wrap old sections ke Layer 4 "Raw data" | pending |
 | D | Conditional duplicate removal (Section 5) | not scheduled |
 
-Review gate: user perlu cek panel di real device sebelum lanjut Fase B. Jika duplikasi visual (progress bar + bias tampil 2x) mengganggu, Fase B/C prioritas.
+Review gate: user sudah cek panel di real device. Hasil: duplikasi visual (progress bar + bias tampil 2x) mengganggu dan tidak memberi nilai tambah. Fase A di-rollback di commit `60b65b7`. Fase B/C/D ditunda sampai desain di-revisi.
 
 \*\*Backlog update (sisa):\*\*
 
-1\. Signal Detail Fase B — tambah SETUP/TRIGGER/RISK ke `signal-hero-narrative.tsx`, butuh review visual Fase A dulu.
+1\. Signal Detail Fase B/C/D — ditunda. Fase A di-rollback karena duplikasi. Perlu revisi desain (skip hero, langsung wrap Raw data).
 2\. Signal Detail Fase C — wrap old sections (chart-context strip, MTF, Lifecycle, Execution gates, Regime routing, Paper execution, Evidence/Conflicts, Data quality) ke `<details>` "Raw data". Collapsed by default.
 3\. Command palette enhancement lanjutan.
 4\. Regression test lanjutan (dashboard, portfolio, journal).
@@ -997,13 +997,50 @@ Review gate: user perlu cek panel di real device sebelum lanjut Fase B. Jika dup
 
 \*\*Backlog update (sisa):\*\*
 
-1\. Signal Detail Fase B — tambah SETUP/TRIGGER/RISK ke `signal-hero-narrative.tsx`, butuh review visual Fase A dulu.
+1\. Signal Detail Fase B/C/D — ditunda. Fase A di-rollback karena duplikasi. Perlu revisi desain (skip hero, langsung wrap Raw data).
 2\. Signal Detail Fase C — wrap old sections ke `<details>` "Raw data". Collapsed by default.
 3\. Portfolio + Journal workspace regression test — workspace ada di `src/components/paper/portfolio-workspace.tsx` & `journal-workspace.tsx` (belum di-discovery). Page wrappers (`src/app/{portfolio,journal}/page.tsx`) sudah di-cover existing smoke.
 4\. Dashboard: `system-status-bar.tsx` (async server component, butuh Suspense mock) — skip.
 5\. Command palette enhancement lanjutan.
 6\. Bg variant normalization di backtest workbench.
 7\. VersionCard split lanjutan (jika perlu — sudah di-split 51250bc).
+
+\---
+\### 2026-10-11 — Rollback Signal Detail Fase A
+
+\- \*\*HEAD:\*\* `60b65b7` (revert(signals): rollback Fase A hero narrative (duplicate with existing))
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 100 files / 711 tests pass
+
+\*\*Alasan rollback:\*\*
+
+User review visual di HP (real device). Temuan:
+1\. Hero card "BLOCKED / Ada gate eksekusi yang memblokir sinyal ini" — reason generic, tidak menyebut penyebab spesifik (STALE_DATA). Kontradiksi dengan contoh doc Fase A yang menampilkan alasan spesifik.
+2\. Duplikasi visual nyata: progress bar + BIAS section render 2x (hero baru + existing SignalNarrative). Panel jadi ~2x panjang.
+3\. Existing SignalNarrative di bawah justru lebih lengkap (data issue banner, SETUP BLOCKED, regime, gates bar). Hero card Fase A jadi redundant.
+
+\*\*Aksi:\*\*
+
+\- Delete `src/components/signals/signal-hero-narrative.tsx` (205 lines)
+\- Delete `tests/ui/signal-hero-narrative.test.tsx` (5 test)
+\- Revert 2 baris di `src/components/signals/signal-detail-panel.tsx`
+\- Total: 306 deletions
+
+\*\*Backlog Signal Detail Narrative Redesign:\*\*
+
+| Fase | Scope | Status |
+|---|---|---|
+| A | Hero + bar + Bias | ROLLBACK (`60b65b7`) — duplikasi |
+| B | + SETUP/TRIGGER/RISK sections | ditunda, butuh revisi desain |
+| C | Wrap old sections ke Layer 4 "Raw data" | pending, kandidat Fase pertama untuk redesign |
+| D | Conditional duplicate removal | not scheduled |
+
+\*\*Lesson:\*\*
+
+\- Doc UX (`docs/UIUX-M-SIGNAL-DETAIL-NARRATIVE.md`) adalah design spec, bukan implementation contract. Fase A diimplementasikan terlalu literal tanpa cek duplikasi existing `SignalNarrative` yang sudah punya progress bar + bias.
+\- Future: sebelum implementasi Fase apapun, WAJIB audit existing component dulu (baca file + screenshot di device) untuk cek overlap.
+\- Rekomendasi revisi doc: Fase A baru sebaiknya merge ke `signal-narrative.tsx` existing (rewrite), bukan tambah komponen paralel.
 
 \---
 \## PENUTUP
