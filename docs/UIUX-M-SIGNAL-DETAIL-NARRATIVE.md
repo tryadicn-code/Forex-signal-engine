@@ -127,7 +127,7 @@ same internal shape:
 
 ## 3. Language rules
 
-- Explanatory sentences: Bahasa Indonesia.
+- Explanatory sentences: English.
 - Established trading terms: English (BIAS, SETUP, TRIGGER, RISK,
   ENTRY, SL, TP, EMA, RSI, REGIME).
 - Engine codes in Layer 4 only: UPPER_SNAKE (bias_valid,
@@ -200,7 +200,7 @@ phase until the user has confirmed the current phase looks correct.
 ### Fase A — Reason localization + specificity (update existing)
 
 - Update `signal-narrative.tsx` **in place**. Do NOT add a parallel component.
-- Replace the active-stage reason with Bahasa Indonesia.
+- Reason stays English. Make it specific, not generic.
 - Make reason **specific**: use `workstationStatus().detail` /
   `firstUsefulReason()` instead of generic templates.
   Example: `BLOCKED / STALE_DATA` not `BLOCKED / Ada gate eksekusi`.
@@ -236,7 +236,7 @@ All phases: npm run typecheck, npm run lint, npm test
 
 - Fase A adds one test in `tests/ui/signal-narrative.test.tsx`:
   given a BLOCKED signal with a `STALE_DATA` veto, the panel renders
-  a specific reason (e.g. `STALE_DATA`) in Bahasa Indonesia, not a
+  a specific reason (e.g. `STALE_DATA`) , not a
   generic template.
 - Fase B adds one test: the "Raw data" group is collapsed by default
   and its content is not in the DOM until expanded.
