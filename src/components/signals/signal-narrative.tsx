@@ -11,9 +11,7 @@
  * label ("strength 75 (very strong)"). Expansion applies only to the
  * Bias section; Raw data keeps engine text verbatim for audit.
  *
- * Copy: explanatory sentences are Bahasa Indonesia. Trading terms (BIAS,
- * SETUP, TRIGGER, RISK, EXECUTE, ENTRY, SL, TP) and engine codes stay
- * English. Engine codes and descriptions are shown as-is;
+ * All copy is English. Engine codes and descriptions are shown as-is;
  * the UI never computes or re-weights anything.
  */
 
@@ -133,7 +131,7 @@ function toneClass(tone: StageTone): string {
 function setupBody(result: SymbolScanResult, state: string): string {
   const planned = result.plannedLevels ?? null;
   if (!planned) {
-    return "Engine setup menunggu harga mendekati zona demand atau supply.";
+    return "Setup engine is watching for price to approach a demand or supply zone.";
   }
   const zoneName =
     planned.direction === "SHORT" ? "supply zone" : "demand zone";
@@ -148,34 +146,34 @@ function setupBody(result: SymbolScanResult, state: string): string {
 
   if (state === "ARMED") {
     return (
-      "Harga di dalam " + zoneName + " " + zoneStr + ". Menunggu candle trigger."
+      "Price inside " + zoneName + " " + zoneStr + ". Awaiting trigger candle."
     );
   }
   if (state === "SETUP" && inside) {
     return (
-      "Harga di dalam " +
+      "Price inside " +
       zoneName +
       " " +
       zoneStr +
-      ". Menunggu konfirmasi untuk arm (structural break, momentum, atau volume)."
+      ". Awaiting confirmation to arm (structural break, momentum, or volume)."
     );
   }
-  let text = "Menunggu harga mencapai " + zoneName + " " + zoneStr + ".";
+  let text = "Waiting for price to reach " + zoneName + " " + zoneStr + ".";
   if (price !== null && pipSize !== null && pipSize > 0) {
     const edge = price < planned.zoneLow ? planned.zoneLow : planned.zoneHigh;
     const distance = Math.round(Math.abs(edge - price) / pipSize);
     let positionText: string;
     if (distance === 0) {
-      positionText = "di tepi zona";
+      positionText = "at the zone edge";
     } else if (distance <= 2) {
       positionText =
-        price < planned.zoneLow ? "tepat di bawah zona" : "tepat di atas zona";
+        price < planned.zoneLow ? "just below the zone" : "just above the zone";
     } else {
       positionText =
-        distance + " pips " + (price < planned.zoneLow ? "di bawah" : "di atas");
+        distance + " pips " + (price < planned.zoneLow ? "below" : "above");
     }
     text +=
-      " Harga saat ini " +
+      " Current price " +
       formatPrice(result.symbol, price) +
       " (" +
       positionText +
@@ -192,7 +190,7 @@ function biasStageNarrative(result: SymbolScanResult): ActiveStageNarrative {
     stateTone: "current",
     meta: null,
     body:
-      "Engine bias sedang mengevaluasi struktur, trend, regime, dan momentum.",
+      "Bias engine is evaluating structure, trend, regime, and momentum.",
   };
 }
 
@@ -231,12 +229,12 @@ function triggerStageNarrative(
       : null;
   let body: string;
   if (state === "CONFIRMED") {
-    body = "Trigger terkonfirmasi. Evaluasi risk berikutnya.";
+    body = "Trigger confirmed. Risk evaluation is next.";
   } else if (state === "INVALIDATED") {
-    body = "Trigger tidak valid. Setup tidak lagi memenuhi syarat.";
+    body = "Trigger invalidated. The setup no longer qualifies.";
   } else {
     body =
-      "Menunggu candle konfirmasi di zona setup (structural break, momentum, atau volume expansion).";
+      "Awaiting a confirmation candle in the setup zone (structural break, momentum, or volume expansion).";
   }
   return {
     title: "TRIGGER",
@@ -257,7 +255,7 @@ function riskStageNarrative(
       stateDisplay: "PENDING",
       stateTone: "muted",
       meta: null,
-      body: "Risk akan dievaluasi setelah trigger terkonfirmasi.",
+      body: "Risk will be evaluated after the trigger confirms.",
     };
   }
   if (risk.approved) {
@@ -267,7 +265,7 @@ function riskStageNarrative(
       stateDisplay: "APPROVED",
       stateTone: "done",
       meta: null,
-      body: levels ? "Disetujui. " + levels : "Disetujui.",
+      body: levels ? "Approved. " + levels : "Approved.",
     };
   }
   return {
@@ -276,8 +274,8 @@ function riskStageNarrative(
     stateTone: "blocked",
     meta: null,
     body: risk.rejectionReason
-      ? "Ditolak: " + risk.rejectionReason + "."
-      : "Ditolak oleh risk guard.",
+      ? "Rejected: " + risk.rejectionReason + "."
+      : "Rejected by risk guard.",
   };
 }
 
@@ -290,7 +288,7 @@ function executeStageNarrative(
     stateDisplay: "READY",
     stateTone: "done",
     meta: null,
-    body: levels ? "Semua gate lolos. " + levels : "Semua gate lolos.",
+    body: levels ? "All gates passed. " + levels : "All gates passed.",
   };
 }
 
@@ -348,7 +346,7 @@ function activeStageNarrative(
         ...base,
         stateTone: "blocked",
         stateDisplay: "BLOCKED",
-        body: "Diblokir: " + veto + ". " + base.body,
+        body: "Blocked: " + veto + ". " + base.body,
       };
     }
   }
