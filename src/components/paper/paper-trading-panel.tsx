@@ -23,24 +23,43 @@ interface TradeFilterState {
   query: string;
   outcome: TradeOutcomeFilter;
   side: TradeSideFilter;
+  dateFrom: string;
+  dateTo: string;
 }
 
 const DEFAULT_TRADE_FILTER: TradeFilterState = {
   query: "",
   outcome: "ALL",
   side: "ALL",
+  dateFrom: "",
+  dateTo: "",
 };
 
 function isTradeFilterActive(filter: TradeFilterState): boolean {
   return (
     filter.query.trim() !== "" ||
     filter.outcome !== "ALL" ||
-    filter.side !== "ALL"
+    filter.side !== "ALL" ||
+    filter.dateFrom !== "" ||
+    filter.dateTo !== ""
   );
 }
 
+function witaDateString(epoch: number): string {
+  const d = new Date(epoch + 8 * 60 * 60 * 1000);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return yyyy + "-" + mm + "-" + dd;
+}
+
 function matchesTradeFilter(
-  trade: { symbol: string; side: "LONG" | "SHORT"; realizedR: number },
+  trade: {
+    symbol: string;
+    side: "LONG" | "SHORT";
+    realizedR: number;
+    closedAt: number;
+  },
   filter: TradeFilterState
 ): boolean {
   if (filter.side !== "ALL" && trade.side !== filter.side) return false;
@@ -49,6 +68,11 @@ function matchesTradeFilter(
   if (filter.outcome === "BE" && trade.realizedR !== 0) return false;
   const q = filter.query.trim().toLowerCase();
   if (q !== "" && !trade.symbol.toLowerCase().includes(q)) return false;
+  if (filter.dateFrom !== "" || filter.dateTo !== "") {
+    const tradeDate = witaDateString(trade.closedAt);
+    if (filter.dateFrom !== "" && tradeDate < filter.dateFrom) return false;
+    if (filter.dateTo !== "" && tradeDate > filter.dateTo) return false;
+  }
   return true;
 }
 
@@ -554,7 +578,9 @@ export function PaperTradingPanel({
   const filterActive = isTradeFilterActive(tradeFilter);
   const sortedTrades = sortTrades(filteredTrades, tradeSort);
   const filterChipCount =
-    Number(tradeFilter.outcome !== "ALL") + Number(tradeFilter.side !== "ALL");
+    Number(tradeFilter.outcome !== "ALL") +
+    Number(tradeFilter.side !== "ALL") +
+    Number(tradeFilter.dateFrom !== "" || tradeFilter.dateTo !== "");
   const sortedOrders = sortOrdersByRequestedAt(paper.recentOrders);
   const shownOrders = visibleOrders(sortedOrders, ordersView);
   const totalOrderPages = ordersTotalPages(sortedOrders.length);
@@ -1102,6 +1128,34 @@ export function PaperTradingPanel({
                           </TradeFilterChip>
                         ))}
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-12 shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+                        From
+                      </span>
+                      <input
+                        type="date"
+                        value={tradeFilter.dateFrom}
+                        onChange={(event) =>
+                          setTradeFilter((prev) => ({ ...prev, dateFrom: event.target.value }))
+                        }
+                        aria-label="Filter trades from date"
+                        className="h-9 flex-1 rounded-md border border-zinc-800 bg-[#0b0e14] px-2 font-mono text-[11px] text-zinc-300 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40 [color-scheme:dark]"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-12 shrink-0 font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+                        To
+                      </span>
+                      <input
+                        type="date"
+                        value={tradeFilter.dateTo}
+                        onChange={(event) =>
+                          setTradeFilter((prev) => ({ ...prev, dateTo: event.target.value }))
+                        }
+                        aria-label="Filter trades to date"
+                        className="h-9 flex-1 rounded-md border border-zinc-800 bg-[#0b0e14] px-2 font-mono text-[11px] text-zinc-300 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40 [color-scheme:dark]"
+                      />
                     </div>
                   </div>
                 )}
