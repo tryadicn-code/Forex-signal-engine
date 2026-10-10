@@ -1190,6 +1190,56 @@ User review visual di HP (real device). Temuan:
 \- Signal Detail Narrative Redesign — CLOSED. No further work.
 \- Sisa backlog (unrelated): PaperTradingPanel split (1497 lines), Command palette enhancement, Dashboard system-status-bar test, Full bg normalization (12 → 5), Duplication audit.
 
+\### 2026-10-11 (lanjutan) — PaperTradingPanel split (3 fase, merged via branch)
+
+\- \*\*HEAD:\*\* `d3643bf` (refactor(ui-paper): extract paper-trading-panel sections (Fase 3))
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 102 files / 735 tests pass
+
+\*\*Scope:\*\* split `paper-trading-panel.tsx` (1497 lines) jadi folder co-located `paper-trading-panel/`. Fase 3 dikerjakan di feature branch `refactor/paper-trading-panel-fase-3`, merge fast-forward ke master setelah verified. Branch dihapus (local + remote) setelah merge.
+
+\*\*Hasil per fase:\*\*
+
+| Fase | Before | After | Commit |
+|---|---|---|---|
+| Fase 1: lib extract | 1497 | 1252 | fa3a360 |
+| Fase 2: 7 small components | 1252 | 814 | cc6f16e |
+| Fase 3: 2 sections + rewrite | 814 | 53 | d3643bf |
+| Total | 1497 | 53 | -96.5% |
+
+\*\*File baru (14) di `src/components/paper/paper-trading-panel/`:\*\*
+
+\- `lib/types.ts` (46) — semua type + constant + DEFAULT_*
+\- `lib/filters.ts` (82) — trade filter + sort + order visibility
+\- `lib/csv.ts` (86) — csvEscape + isoWita + tradesToCsv + downloadCsv + csvFilename
+\- `lib/charts.ts` (35) — curvePoints + rDistribution
+\- `lib/formatters.ts` (37) — money + pct + pnlTone + riskReward
+\- `components/trade-filter-chip.tsx` (27)
+\- `components/equity-curve.tsx` (128)
+\- `components/r-distribution.tsx` (87)
+\- `components/copy-trade-button.tsx` (63)
+\- `components/initial-balance-control.tsx` (102)
+\- `components/inline-datum.tsx` (27)
+\- `components/metric.tsx` (25)
+\- `sections/portfolio-section.tsx` (378) — state ordersView pindah ke sini
+\- `sections/journal-section.tsx` (422) — state tradeFilter/filterExpanded/tradeSort pindah ke sini
+
+\*\*Main file (53 lines):\*\* orchestrator tipis, gak punya state. Cuma render 2 section conditional by `view` prop.
+
+\*\*Konvensi (tidak ada drift):\*\*
+
+\- Co-located folder same-name, konsisten 3C
+\- Main orchestrator tipis, re-export public API (`csvFilename`, `downloadCsv`, `tradesToCsv`, `PaperPanelView`, `PaperTradingPanel`)
+\- State lokal pindah ke sub-komponen (sections)
+\- Relative import untuk sub-komponen
+\- Branch workflow: feature branch → verify → fast-forward merge → delete branch
+
+\*\*Backlog update:\*\*
+
+\- PaperTradingPanel split — CLOSED.
+\- Sisa: Command palette enhancement, Dashboard system-status-bar test, Full bg normalization (12 → 5), Duplication audit.
+
 \---
 \## PENUTUP
 
