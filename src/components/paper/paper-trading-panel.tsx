@@ -1,98 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import type { PaperDashboardData, PaperOrder, PaperTrade } from "@/paper/types";
+import type { PaperDashboardData, PaperTrade } from "@/paper/types";
 import { formatDateTimeShort, formatDuration, formatPrice, formatTimeShort } from "@/lib/format";
 import { BiasBadge, DecisionBadge, FreshnessBadge } from "@/components/common/badges";
 import { cn } from "@/lib/utils";
 
-type TradeOutcomeFilter = "ALL" | "WIN" | "LOSS" | "BE";
-type TradeSideFilter = "ALL" | "LONG" | "SHORT";
+import {
+  DEFAULT_TRADE_FILTER,
+  DEFAULT_TRADE_SORT,
+  ORDERS_PREVIEW_COUNT,
+  type EquityCurveMode,
+  type OrdersView,
+  type TradeFilterState,
+  type TradeSort,
+} from "./paper-trading-panel/lib/types";
+import {
+  isTradeFilterActive,
+  matchesTradeFilter,
+  ordersTotalPages,
+  sortOrdersByRequestedAt,
+  sortTrades,
+  visibleOrders,
+} from "./paper-trading-panel/lib/filters";
+import { curvePoints, rDistribution } from "./paper-trading-panel/lib/charts";
+import { money, pct, pnlTone, riskReward } from "./paper-trading-panel/lib/formatters";
+import {
+  csvFilename,
+  downloadCsv,
+  tradesToCsv,
+} from "./paper-trading-panel/lib/csv";
 
-type TradeSort =
-  | "date-desc"
-  | "date-asc"
-  | "r-desc"
-  | "r-asc"
-  | "pnl-desc"
-  | "hold-desc";
+export { csvFilename, downloadCsv, tradesToCsv };
 
-const DEFAULT_TRADE_SORT: TradeSort = "date-desc";
-
-interface TradeFilterState {
-  query: string;
-  outcome: TradeOutcomeFilter;
-  side: TradeSideFilter;
-  dateFrom: string;
-  dateTo: string;
-}
-
-const DEFAULT_TRADE_FILTER: TradeFilterState = {
-  query: "",
-  outcome: "ALL",
-  side: "ALL",
-  dateFrom: "",
-  dateTo: "",
-};
-
-function isTradeFilterActive(filter: TradeFilterState): boolean {
-  return (
-    filter.query.trim() !== "" ||
-    filter.outcome !== "ALL" ||
-    filter.side !== "ALL" ||
-    filter.dateFrom !== "" ||
-    filter.dateTo !== ""
-  );
-}
-
-function witaDateString(epoch: number): string {
-  const d = new Date(epoch + 8 * 60 * 60 * 1000);
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  return yyyy + "-" + mm + "-" + dd;
-}
-
-function matchesTradeFilter(
-  trade: {
-    symbol: string;
-    side: "LONG" | "SHORT";
-    realizedR: number;
-    closedAt: number;
-  },
-  filter: TradeFilterState
-): boolean {
-  if (filter.side !== "ALL" && trade.side !== filter.side) return false;
-  if (filter.outcome === "WIN" && trade.realizedR <= 0) return false;
-  if (filter.outcome === "LOSS" && trade.realizedR >= 0) return false;
-  if (filter.outcome === "BE" && trade.realizedR !== 0) return false;
-  const q = filter.query.trim().toLowerCase();
-  if (q !== "" && !trade.symbol.toLowerCase().includes(q)) return false;
-  if (filter.dateFrom !== "" || filter.dateTo !== "") {
-    const tradeDate = witaDateString(trade.closedAt);
-    if (filter.dateFrom !== "" && tradeDate < filter.dateFrom) return false;
-    if (filter.dateTo !== "" && tradeDate > filter.dateTo) return false;
-  }
-  return true;
-}
-
-function sortTrades(trades: PaperTrade[], sort: TradeSort): PaperTrade[] {
-  const copy = [...trades];
-  switch (sort) {
-    case "date-desc":
-      return copy.sort((a, b) => b.closedAt - a.closedAt);
-    case "date-asc":
-      return copy.sort((a, b) => a.closedAt - b.closedAt);
-    case "r-desc":
-      return copy.sort((a, b) => b.realizedR - a.realizedR);
-    case "r-asc":
-      return copy.sort((a, b) => a.realizedR - b.realizedR);
-    case "pnl-desc":
-      return copy.sort((a, b) => b.realizedPnL - a.realizedPnL);
-    case "hold-desc":
-      return copy.sort((a, b) => b.holdingDurationMs - a.holdingDurationMs);
-  }
-}
 function TradeFilterChip({
   active,
   onClick,
@@ -118,45 +58,6 @@ function TradeFilterChip({
     </button>
   );
 }
-type OrdersView =
-  | { mode: "collapsed" }
-  | { mode: "preview" }
-  | { mode: "paged"; page: number };
-
-const ORDERS_PREVIEW_COUNT = 5;
-const ORDERS_PAGE_SIZE = 10;
-
-function sortOrdersByRequestedAt(orders: PaperOrder[]): PaperOrder[] {
-  return [...orders].sort((a, b) => b.requestedAt - a.requestedAt);
-}
-
-function visibleOrders(sorted: PaperOrder[], view: OrdersView): PaperOrder[] {
-  if (view.mode === "collapsed") return [];
-  if (view.mode === "preview") return sorted.slice(0, ORDERS_PREVIEW_COUNT);
-  const start = (view.page - 1) * ORDERS_PAGE_SIZE;
-  return sorted.slice(start, start + ORDERS_PAGE_SIZE);
-}
-
-function ordersTotalPages(count: number): number {
-  return Math.max(1, Math.ceil(count / ORDERS_PAGE_SIZE));
-}
-
-function curvePoints(
-  trades: PaperTrade[],
-  baseline: number,
-  metric: (trade: PaperTrade) => number
-): { t: number; value: number }[] {
-  const sorted = [...trades].sort((a, b) => a.closedAt - b.closedAt);
-  const points: { t: number; value: number }[] = [{ t: 0, value: baseline }];
-  let cumulative = baseline;
-  for (const trade of sorted) {
-    cumulative += metric(trade);
-    points.push({ t: points.length, value: cumulative });
-  }
-  return points;
-}
-
-type EquityCurveMode = "usd" | "r";
 
 function EquityCurve({
   trades,
@@ -281,31 +182,6 @@ function EquityCurve({
   );
 }
 
-interface RDistributionBucket {
-  label: string;
-  min: number;
-  max: number;
-  count: number;
-  kind: "loss" | "flat" | "win";
-}
-
-function rDistribution(trades: PaperTrade[]): RDistributionBucket[] {
-  const buckets: RDistributionBucket[] = [
-    { label: "≤-3", min: -Infinity, max: -3, count: 0, kind: "loss" },
-    { label: "-2", min: -3, max: -2, count: 0, kind: "loss" },
-    { label: "-1", min: -2, max: -1, count: 0, kind: "loss" },
-    { label: "0", min: -1, max: 1, count: 0, kind: "flat" },
-    { label: "+1", min: 1, max: 2, count: 0, kind: "win" },
-    { label: "+2", min: 2, max: 3, count: 0, kind: "win" },
-    { label: "≥+3", min: 3, max: Infinity, count: 0, kind: "win" },
-  ];
-  for (const trade of trades) {
-    const r = trade.realizedR;
-    const bucket = buckets.find((b) => r >= b.min && r < b.max);
-    if (bucket) bucket.count += 1;
-  }
-  return buckets;
-}
 
 function RDistribution({ trades }: { trades: PaperTrade[] }) {
   if (trades.length < 3) {
@@ -392,90 +268,6 @@ function RDistribution({ trades }: { trades: PaperTrade[] }) {
   );
 }
 
-function csvEscape(value: string): string {
-  if (value.includes(",") || value.includes('"') || value.includes("\n") || value.includes("\r")) {
-    return '"' + value.replace(/"/g, '""') + '"';
-  }
-  return value;
-}
-
-function isoWita(epoch: number): string {
-  const wita = new Date(epoch + 8 * 60 * 60 * 1000);
-  const yyyy = wita.getUTCFullYear();
-  const mm = String(wita.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(wita.getUTCDate()).padStart(2, "0");
-  const hh = String(wita.getUTCHours()).padStart(2, "0");
-  const mi = String(wita.getUTCMinutes()).padStart(2, "0");
-  const ss = String(wita.getUTCSeconds()).padStart(2, "0");
-  return yyyy + "-" + mm + "-" + dd + "T" + hh + ":" + mi + ":" + ss + "+08:00";
-}
-
-export function tradesToCsv(trades: PaperTrade[]): string {
-  const headers = [
-    "id", "symbol", "side", "closeReason",
-    "entryPrice", "exitPrice", "stopLoss", "takeProfit",
-    "positionSize", "riskAmount", "riskPercent", "plannedRR",
-    "realizedPnL", "realizedPnLPercent", "realizedR",
-    "maxFavorableR", "maxAdverseR",
-    "openedAt", "closedAt", "holdingDurationMs",
-    "engineBias", "engineSetupScore", "engineExecutionDecision", "engineFreshness",
-  ];
-  const sorted = [...trades].sort((a, b) => b.closedAt - a.closedAt);
-  const rows = sorted.map((t) =>
-    [
-      t.id,
-      t.symbol,
-      t.side,
-      t.closeReason,
-      t.entryPrice,
-      t.exitPrice,
-      t.stopLoss,
-      t.takeProfit === null ? "" : t.takeProfit,
-      t.positionSize,
-      t.riskAmount,
-      t.riskPercent,
-      t.plannedRR === null ? "" : t.plannedRR,
-      t.realizedPnL,
-      t.realizedPnLPercent,
-      t.realizedR,
-      t.maxFavorableR === undefined ? "" : t.maxFavorableR,
-      t.maxAdverseR === undefined ? "" : t.maxAdverseR,
-      isoWita(t.openedAt),
-      isoWita(t.closedAt),
-      t.holdingDurationMs,
-      t.engine.bias ?? "",
-      t.engine.setupScore === null ? "" : t.engine.setupScore,
-      t.engine.executionDecision ?? "",
-      t.engine.freshness ?? "",
-    ]
-      .map((cell) => csvEscape(String(cell)))
-      .join(",")
-  );
-  return [headers.join(","), ...rows].join("\r\n") + "\r\n";
-}
-
-export function downloadCsv(filename: string, content: string): void {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-export function csvFilename(): string {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  return "paper-trades-" + yyyy + mm + dd + "-" + hh + mi + ss + ".csv";
-}
 
 async function copyText(text: string): Promise<boolean> {
   if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -537,43 +329,6 @@ function CopyTradeButton({ trade }: { trade: PaperTrade }) {
   );
 }
 
-function money(value: number, currency: string): string {
-  if (!Number.isFinite(value)) return "—";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${currency} ${value.toFixed(2)}`;
-}
-
-function pct(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return "—";
-  return value.toFixed(2) + "%";
-}
-
-function pnlTone(value: number | null): "neutral" | "positive" | "negative" {
-  if (value === null || !Number.isFinite(value) || value === 0) return "neutral";
-  return value > 0 ? "positive" : "negative";
-}
-
-function riskReward(
-  entryPrice: number,
-  takeProfit: number | null,
-  stopLoss: number
-): string {
-  if (takeProfit === null) return "—";
-
-  const risk = Math.abs(entryPrice - stopLoss);
-  const reward = Math.abs(takeProfit - entryPrice);
-
-  if (
-    !Number.isFinite(risk) ||
-    !Number.isFinite(reward) ||
-    risk <= 0 ||
-    reward < 0
-  ) {
-    return "—";
-  }
-
-  return `1:${(reward / risk).toFixed(2)}`;
-}
 
 function metric(
   label: string,
