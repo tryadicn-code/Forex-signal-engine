@@ -1104,6 +1104,34 @@ User review visual di HP (real device). Temuan:
 \- Dashboard system-status-bar test — skip (async server component, butuh Suspense mock).
 \- Pattern stub + fixture bisa di-reuse untuk workspace lain yang pakai `PaperTradingPanel` (kalau ada).
 
+\### 2026-10-11 (lanjutan) — UIUX-M-SIGNAL-DETAIL-NARRATIVE revisi
+
+\- \*\*HEAD:\*\* `ce9d7e1` (docs(uiux): revise Signal Detail narrative plan after Fase A rollback)
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* tidak berubah (doc-only)
+
+\*\*Kontek:\*\* Fase A rollback di `60b65b7` karena duplikasi visual. Doc `docs/UIUX-M-SIGNAL-DETAIL-NARRATIVE.md` direvisi supaya tidak mengulang kesalahan yang sama.
+
+\*\*Perubahan doc (4 section):\*\*
+
+1\. \*\*Section 1 (Problem)\*\* — append paragraf "Lesson from Fase A attempt": rule baru = audit existing components sebelum tambah baru. Rewrite in place.
+2\. \*\*Section 7 (Delivery plan)\*\* — rewrite total 4 fase:
+   - Fase A baru: update `signal-narrative.tsx` in place (reason localization + specificity), JANGAN bikin komponen paralel.
+   - Fase B: wrap non-critical sections (planned cells, regime box, gates bar, data-quality) ke Raw data `<details>`.
+   - Fase C: narrative sections SETUP/TRIGGER/RISK (conditional).
+   - Fase D: duplicate removal (conditional, unchanged).
+3\. \*\*Section 8 (Test plan)\*\* — rewrite: Fase A assert specific reason (`STALE_DATA`) bukan template generic; Fase B assert Raw data collapsed default; Fase C assert 3 narrative blocks.
+4\. \*\*Section 10 (Iteration note)\*\* — append 2026-10-11 update: doc direvisi, Fase A sekarang update existing.
+
+\*\*Status doc:\*\* dari "design, no code changes yet" → "design, revised after Fase A rollback (2026-10-11)"
+
+\*\*Backlog update:\*\*
+
+\- Signal Detail Narrative Redesign — plan sudah di-revisi, siap implementasi ulang.
+\- Fase A versi baru = update `signal-narrative.tsx` in place (bukan bikin file baru).
+\- Fase B/C/D masih pending, conditional sesuai review visual Fase A.
+
 \---
 \## PENUTUP
 
