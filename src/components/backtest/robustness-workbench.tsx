@@ -8,6 +8,13 @@ import {
   calculateTemporalHoldout,
 } from "@/replay/robustness-validation";
 import type { RobustnessPeriodMetrics } from "@/replay/robustness-types";
+import {
+  formatNumber,
+  formatPercent,
+  formatShortDate,
+  formatSigned,
+  formatUtc,
+} from "@/lib/backtest-format";
 
 const SPLITS = [
   { value: 0.6, label: "60 / 40" },
@@ -258,7 +265,7 @@ function SequentialPanel({
                   {fold.index}
                 </td>
                 <td className="px-3 py-2 font-mono">
-                  {shortDate(fold.validationStartAt)} → {shortDate(fold.validationEndAt)}
+                  {formatShortDate(fold.validationStartAt)} → {formatShortDate(fold.validationEndAt)}
                 </td>
                 <td className="px-3 py-2 font-mono">
                   {fold.development.sampleSize}
@@ -302,7 +309,7 @@ function PeriodRow({
     <tr className="border-t border-zinc-800 text-zinc-500">
       <td className="px-3 py-2 font-medium text-zinc-300">{label}</td>
       <td className="px-3 py-2 font-mono">
-        {shortDate(startAt)} → {shortDate(endAt)}
+        {formatShortDate(startAt)} → {formatShortDate(endAt)}
       </td>
       <td className="px-3 py-2 font-mono">{metrics.sampleSize}</td>
       <td className="px-3 py-2 font-mono">{formatPercent(metrics.winRate)}</td>
@@ -360,28 +367,7 @@ function Fingerprint({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatNumber(value: number | null, digits: number): string {
-  return value === null || !Number.isFinite(value) ? "—" : value.toFixed(digits);
-}
-
-function formatPercent(value: number | null): string {
-  return value === null || !Number.isFinite(value) ? "—" : value.toFixed(2) + "%";
-}
-
 function formatSignedPercent(value: number | null): string {
   if (value === null || !Number.isFinite(value)) return "—";
   return (value > 0 ? "+" : "") + value.toFixed(2) + "pp";
-}
-
-function formatSigned(value: number | null, digits: number): string {
-  if (value === null || !Number.isFinite(value)) return "—";
-  return (value > 0 ? "+" : "") + value.toFixed(digits);
-}
-
-function shortDate(value: number): string {
-  return new Date(value).toISOString().slice(0, 10);
-}
-
-function formatUtc(value: number): string {
-  return new Date(value).toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }

@@ -8,6 +8,7 @@ import type {
   StrategyVersionRegistry,
 } from "@/replay/strategy-version-types";
 import { apiFetch, ApiError } from "@/lib/api-client";
+import { formatUtc } from "@/lib/backtest-format";
 
 export function StrategyVersionRegistryWorkbench({
   artifact,
@@ -512,7 +513,7 @@ function VersionCard({
       </header>
 
       <div className="grid gap-2 px-3 py-2 sm:grid-cols-4">
-        <Fact label="Registered" value={shortUtc(manifest.registeredAt)} />
+        <Fact label="Registered" value={formatUtc(manifest.registeredAt)} />
         <Fact label="By" value={manifest.registeredBy} />
         <Fact label="Release reviewer" value={manifest.releaseReviewer} />
         <Fact label="Symbols" value={manifest.symbols.join(", ")} />
@@ -533,7 +534,7 @@ function VersionCard({
                   {event.status}
                 </span>
                 {" · "}
-                {shortUtc(event.changedAt)}
+                {formatUtc(event.changedAt)}
                 {" · "}
                 {event.changedBy}
                 <div className="mt-0.5 text-zinc-500">{event.reason}</div>
@@ -657,6 +658,4 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
-function shortUtc(value: number): string {
-  return new Date(value).toISOString().replace("T", " ").slice(0, 16) + " UTC";
-}
+

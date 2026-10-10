@@ -6,6 +6,11 @@ import {
   buildValidationSummary,
   calculateBacktestStatisticalDiagnostics,
 } from "@/replay/statistical-diagnostics";
+import {
+  formatNumber,
+  formatPercent,
+  formatSigned,
+} from "@/lib/backtest-format";
 
 export function StatisticalDiagnosticsWorkbench({
   artifact,
@@ -214,14 +219,4 @@ function DiagnosticCard({
   );
 }
 
-function formatPercent(value: number): string {
-  return value.toFixed(2) + "%";
-}
 
-function formatSigned(value: number, digits: number): string {
-  return (value > 0 ? "+" : "") + value.toFixed(digits);
-}
-
-function formatNumber(value: number, digits: number): string {
-  return Number.isFinite(value) ? value.toFixed(digits) : "—";
-}

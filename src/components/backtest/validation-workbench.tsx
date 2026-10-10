@@ -21,6 +21,12 @@ import {
   segmentDimensionLabel,
 } from "@/replay/validation-workbench";
 import type { ForwardValidationSnapshot } from "@/forward-validation/types";
+import {
+  formatNumber,
+  formatPercent,
+  formatShortDate,
+  formatSigned,
+} from "@/lib/backtest-format";
 
 const SEGMENTS: HistoricalSegmentDimension[] = [
   "strategy",
@@ -345,8 +351,8 @@ export function ValidationWorkbench({
               <Context label="Spread" value={artifact.config.assumedSpreadPips + " pips"} />
               <Context label="Policy" value={artifact.config.intrabarConflictPolicy} />
               <Context label="Pairs" value={String(artifact.validation.symbols.length)} />
-              <Context label="Start" value={shortDate(artifact.config.startAt)} />
-              <Context label="End" value={shortDate(artifact.config.endAt)} />
+              <Context label="Start" value={formatShortDate(artifact.config.startAt)} />
+              <Context label="End" value={formatShortDate(artifact.config.endAt)} />
             </dl>
             <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
               Compare results only after checking that data source, coverage, spread, risk and same-bar policy are compatible.
@@ -591,25 +597,8 @@ function Context({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatNumber(value: number | null, digits: number): string {
-  return value === null || !Number.isFinite(value) ? "—" : value.toFixed(digits);
-}
-
-function formatPercent(value: number | null): string {
-  return value === null || !Number.isFinite(value) ? "—" : value.toFixed(2) + "%";
-}
-
 function signedPercent(value: number): string {
   return (value > 0 ? "+" : "") + value.toFixed(2) + "%";
-}
-
-function formatSigned(value: number | null, digits: number): string {
-  if (value === null || !Number.isFinite(value)) return "—";
-  return (value > 0 ? "+" : "") + value.toFixed(digits);
-}
-
-function shortDate(value: number): string {
-  return new Date(value).toISOString().slice(0, 10);
 }
 
 function formatGeneric(value: string | number | null): string {
