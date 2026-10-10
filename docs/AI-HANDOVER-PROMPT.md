@@ -873,6 +873,52 @@ Log kronologis per sesi. Update di akhir sesi, sebelum handover berikutnya.
 \- Non-ASCII: tulis placeholder lalu `.Replace("PLACEHOLDER", [string][char]0x2014)` — lebih aman dari literal di here-string
 \- Byte-level verify WAJIB setelah tulis: `E2 80 94` (em-dash), `C2 B7` (middot), `E2 80 A6` (ellipsis)
 
+\### 2026-10-10 — 3C Complete: split 3 sibling + backtest-workspace
+
+\- \*\*HEAD:\*\* `6f7f050` (refactor(ui-backtest): split backtest-workspace into co-located parts)
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 98 files / 698 tests pass
+
+\*\*Dua commit di sesi ini (lanjutan 3C):\*\*
+
+\- `a7444d1` — release-gate (441 → 143), robustness (373 → 168), statistical-diagnostics (222 → 179)
+\- `6f7f050` — backtest-workspace (1352 → 463), 20 file baru
+
+\*\*3C STATUS: SELESAI SEMUA — 6 workbench, 3 sesi back-to-back.\*\*
+
+| Workbench | Before | After | Commit |
+|---|---|---|---|
+| validation-workbench.tsx | 620 | 159 | 8df0255 |
+| strategy-version-registry-workbench.tsx | 661 | 291 | 8df0255 |
+| release-gate-workbench.tsx | 441 | 143 | a7444d1 |
+| robustness-workbench.tsx | 373 | 168 | a7444d1 |
+| statistical-diagnostics-workbench.tsx | 222 | 179 | a7444d1 |
+| backtest-workspace.tsx | 1352 | 463 | 6f7f050 |
+
+Total: 47 file baru di 6 folder co-located. 3669 → 1403 lines di 6 file utama (-62%).
+
+\*\*Konvensi (tetap, tidak ada drift):\*\*
+
+\- Co-located folder same-name
+\- Main orchestrator tipis, re-export public component
+\- State shared tetap di main, state lokal pindah ke sub-komponen
+\- Relative import untuk sub-komponen
+\- DRY: preset values single source di `lib/presets.ts`, di-import main + sub-komponen
+
+\*\*Backlog update (3C DONE, sisa):\*\*
+
+1\. \*\*`VersionCard` (242 lines)\*\* — masih di atas threshold. Kandidat: header / facts / lifecycle details / rollback panel / deprecate panel.
+2\. Signal detail refactor — split `signal-narrative.tsx`, reorder sesuai `docs/UIUX-M-SIGNAL-DETAIL-NARRATIVE.md`.
+3\. Command palette enhancement lanjutan.
+4\. Regression test lanjutan (dashboard, portfolio, journal).
+5\. Bg variant normalization di backtest workbench.
+6\. Docs cleanup: §11 #3 (klaim CRLF terlalu general — `.tsx` = LF, `docs/*.md` = CRLF). §0 self-discovery script bisa ditambah `git config core.autocrlf` check.
+
+\*\*Anti-pattern kandidat (belum masuk §11):\*\*
+
+\- ESLint 9: `npx eslint "folder/**/*.ts"` throw "No files matching pattern" kalau folder tidak punya `.ts`. Gunakan pattern spesifik (`.tsx` saja) atau verifikasi struktur folder dulu.
+
 \---
 \## PENUTUP
 
