@@ -1,6 +1,6 @@
 # Signal Detail Panel — Narrative Redesign
 
-**Status:** design, revised after Fase A rollback (2026-10-11)
+**Status:** FINAL, project closed (2026-10-11). Design iterations ended; the panel ships as-is.
 **Scope:** mobile Signal Detail Panel (opened from a scanner card)
 **Related:** docs/DESIGN-TOKENS.md, UIUX-M-007 (bottom sheet), UIUX-M-010 (KPI filter)
 
@@ -196,6 +196,18 @@ Each phase ends with a **review gate**: the panel is reviewed on a real
 device before the next phase starts. Adjust data mapping, wording, or
 layout based on what is actually useful. Do not proceed to the next
 phase until the user has confirmed the current phase looks correct.
+
+
+**Project status (2026-10-11):**
+
+- Fase A (reason localization) — attempted, rolled back. Reason copy stays English as-is.
+- Fase B (wrap non-critical sections to Raw data) — **CANCELLED**.
+- Fase C (narrative for SETUP/TRIGGER/RISK) — **CANCELLED**.
+- Fase D (duplicate removal) — **CANCELLED**.
+
+The Signal Detail Panel ships as-is per owner decision. Raw data grouping
+remains as currently implemented in `signal-detail-panel.tsx`. The Fase
+A-D plans below are kept for historical reference only.
 
 ### Fase A — Reason localization + specificity (update existing)
 
