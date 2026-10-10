@@ -1071,6 +1071,39 @@ User review visual di HP (real device). Temuan:
 \- Bg variant normalization — DONE (Opsi B, inkonsistensi nyata saja).
 \- Kalau perlu full normalization (12 → 5 varian), buka backlog baru dengan review visual dulu.
 
+\### 2026-10-11 (lanjutan) — Portfolio + Journal regression test
+
+\- \*\*HEAD:\*\* `bee48d5` (test(ui): regression guard for journal workspace)
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 102 files / 735 tests pass
+
+\*\*Dua commit:\*\*
+
+1\. `13a1b05` — \*\*Portfolio workspace test\*\* (`tests/ui/portfolio-workspace.test.tsx`, 11 test)
+   - Header render, tablist, default view (portfolio)
+   - Tab switch: Portfolio → Journal, balik lagi
+   - CSV export: hidden kalau no trades, visible + downloadCsv dipanggil kalau ada
+   - Reset handler: apiFetch DELETE + UNAUTHORIZED error banner
+   - Close position handler: apiFetch POST dengan body benar + UNAUTHORIZED error banner
+
+2\. `bee48d5` — \*\*Journal workspace test\*\* (`tests/ui/journal-workspace.test.tsx`, 13 test)
+   - Header render, tablist (Journal selected by default)
+   - Navigation: Portfolio tab → `router.push("/portfolio")`, Journal tab → `router.push("/journal")`
+   - View selalu `"journal"` ke panel (hardcoded, gak switch)
+   - CSV export sama seperti portfolio
+   - Reset + set-initial-balance + close-position: 3 handler, body assert, 3 UNAUTHORIZED error banner
+
+\*\*Pattern:\*\* `PaperTradingPanel` (1497 lines) di-mock jadi stub kecil, `apiFetch` + `downloadCsv` di-mock via `vi.fn()`, `next/navigation` router di-mock. Fixture `makePaper()` + `makeTrade()` + `makePosition()` untuk `PaperDashboardData`.
+
+\*\*Test progression:\*\* 722 → 735 (+13).
+
+\*\*Backlog update:\*\*
+
+\- Regression test portfolio + journal — DONE.
+\- Dashboard system-status-bar test — skip (async server component, butuh Suspense mock).
+\- Pattern stub + fixture bisa di-reuse untuk workspace lain yang pakai `PaperTradingPanel` (kalau ada).
+
 \---
 \## PENUTUP
 
