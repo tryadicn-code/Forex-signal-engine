@@ -12,7 +12,6 @@ import { TransitionHistory } from "@/components/signals/transition-history";
 import { PriceChart } from "@/components/signals/price-chart";
 import { SignalExecutiveSummary } from "@/components/signals/signal-executive-summary";
 import { SignalNarrative } from "@/components/signals/signal-narrative";
-import { SignalHeroNarrative } from "@/components/signals/signal-hero-narrative";
 import {
   formatFixed,
   formatPrice,
@@ -197,7 +196,6 @@ export function SignalDetailPanel({
               </div>
             </section>
 
-            <SignalHeroNarrative result={result} />
             <SignalNarrative result={result} />
 
             {hasPaperAction && (
