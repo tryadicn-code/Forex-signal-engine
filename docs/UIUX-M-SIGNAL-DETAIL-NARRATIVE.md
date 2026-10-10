@@ -1,6 +1,6 @@
 # Signal Detail Panel — Narrative Redesign
 
-**Status:** design, no code changes yet
+**Status:** design, revised after Fase A rollback (2026-10-11)
 **Scope:** mobile Signal Detail Panel (opened from a scanner card)
 **Related:** docs/DESIGN-TOKENS.md, UIUX-M-007 (bottom sheet), UIUX-M-010 (KPI filter)
 
@@ -19,6 +19,16 @@ hard to read for a trader:
 
 The fix is to reorder the panel top-to-bottom by user priority: chart,
 then a human-language narrative, then the raw engine data collapsed.
+
+**Lesson from Fase A attempt (2026-10-10/11):** A parallel "hero card"
+component (`signal-hero-narrative.tsx`) was added on top of the existing
+`signal-narrative.tsx`. Real-device review showed the hero card, progress
+bar, and Bias section **duplicated** what `SignalNarrative` already
+rendered — and the existing version was richer (data-issue banner,
+SETUP/BLOCKED narrative, regime box, gates bar). Fase A was rolled back
+(`60b65b7`). **Rule going forward:** audit existing components BEFORE
+adding new ones. Rewrite in place when the existing component already
+covers the goal.
 
 ## 2. Target structure
 
@@ -187,42 +197,51 @@ device before the next phase starts. Adjust data mapping, wording, or
 layout based on what is actually useful. Do not proceed to the next
 phase until the user has confirmed the current phase looks correct.
 
-### Fase A - prototype Bias
-- New SignalNarrative.tsx component renders the hero card, the
-  progress bar (reused), and the BIAS section.
-- Placed directly under the chart in signal-detail-panel.tsx.
-- All current sections below remain untouched.
-- One commit. Review before Fase B.
+### Fase A — Reason localization + specificity (update existing)
 
-### Fase B - expand to SETUP / TRIGGER / RISK
-- Add the remaining three sections to SignalNarrative.tsx.
-- Section renderers use the same header + meta + bullet pattern.
+- Update `signal-narrative.tsx` **in place**. Do NOT add a parallel component.
+- Replace the active-stage reason with Bahasa Indonesia.
+- Make reason **specific**: use `workstationStatus().detail` /
+  `firstUsefulReason()` instead of generic templates.
+  Example: `BLOCKED / STALE_DATA` not `BLOCKED / Ada gate eksekusi`.
+- Progress bar and Bias section: DO NOT touch (already good).
+- One commit. Review on real device before Fase B.
+
+### Fase B — Wrap non-critical sections into Raw data
+
+- Move planned cells, regime box, gates bar, data-quality banner into a
+  `<details>` "Raw data" group.
+- Collapsed by default.
+- Hero + progress bar + Bias + active-stage narrative stay visible.
 - One commit. Review before Fase C.
 
-### Fase C - wrap the old sections into Layer 4
-- Move the existing chart-context strip, MTF, Lifecycle, Execution
-  gates, Regime routing, Paper execution, Evidence/Conflicts, and Data
-  quality into a details-based "Raw data" group.
-- Collapsed by default.
-- One commit. Review before considering Fase D.
+### Fase C — Narrative sections for SETUP / TRIGGER / RISK (conditional)
 
-### Fase D - duplicate removal (conditional)
-- Only if Fase C visual review confirms the duplication.
-- Remove items from Section 5 one at a time, each with its own commit
-  and its own review.
+- Add narrative blocks for each stage using the same header + meta +
+  bullet pattern.
+- Replaces the single active-stage block with a four-stage view.
+- Only if Fase B review says the panel still feels dense.
+- One commit. Review before Fase D.
+
+### Fase D — Duplicate removal (conditional)
+
+- Unchanged from original (Section 5).
+- Only if Fase C visual review confirms duplication.
+- Remove items one at a time, each with its own commit and review.
 
 All phases: npm run typecheck, npm run lint, npm test
-(93 files / 670 tests, baseline preserved).
+(baseline preserved).
 
 ## 8. Test plan
 
-- No test file currently asserts Signal Detail Panel internals; the
-  existing dashboard test only checks the scanner list.
-- Fase A adds one smoke test: given a WATCHING signal, the panel
-  renders the hero state, the progress bar, and a Bias section that
-  contains the score and at least one reason bullet.
-- Fase C adds one smoke test: the "Raw data" group is collapsed by
-  default and its content is not in the DOM until expanded.
+- Fase A adds one test in `tests/ui/signal-narrative.test.tsx`:
+  given a BLOCKED signal with a `STALE_DATA` veto, the panel renders
+  a specific reason (e.g. `STALE_DATA`) in Bahasa Indonesia, not a
+  generic template.
+- Fase B adds one test: the "Raw data" group is collapsed by default
+  and its content is not in the DOM until expanded.
+- Fase C adds tests: SETUP/TRIGGER/RISK narrative blocks render when
+  the corresponding stage exists; skipped when null.
 
 ## 9. Open questions
 
@@ -244,3 +263,8 @@ separate TRD research item; the UI change does not block on it.
 This document is a starting point, not a contract. Every phase has a
 review gate specifically so the design can be adjusted based on what
 actually looks useful on a real device. Further changes are expected.
+
+2026-10-11 update: Fase A was rolled back after real-device review showed
+duplicate content with existing `SignalNarrative`. This document has been
+revised: Fase A now updates the existing component in place instead of
+adding a parallel one. See Section 1 for the lesson.
