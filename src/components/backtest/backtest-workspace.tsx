@@ -249,7 +249,7 @@ export function BacktestWorkspace() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 pb-20 sm:p-4 md:pb-4">
+    <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 sm:p-4">
       <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
         <header className="border-b border-zinc-800 px-3 py-3">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
@@ -316,10 +316,10 @@ export function BacktestWorkspace() {
               )}
             </section>
 
-            <details className="border-t border-zinc-800 pt-3">
+            <details className="group border-t border-zinc-800 pt-3">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400 hover:text-zinc-200">
                 <span>2 - Source normalization</span>
-                <span aria-hidden="true" className="font-mono text-[11px] text-zinc-600">expand</span>
+                <span aria-hidden="true" className="font-mono text-[11px] text-zinc-600 transition-transform group-open:rotate-90">▸</span>
               </summary>
               
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -368,10 +368,10 @@ export function BacktestWorkspace() {
             
             </details>
 
-            <details open className="border-t border-zinc-800 pt-3">
+            <details className="group border-t border-zinc-800 pt-3">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400 hover:text-zinc-200">
                 <span>3 - Replay window and risk</span>
-                <span aria-hidden="true" className="font-mono text-[11px] text-zinc-600">collapse</span>
+                <span aria-hidden="true" className="font-mono text-[11px] text-zinc-600 transition-transform group-open:rotate-90">▸</span>
               </summary>
               <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 <Field label="Start date" hint="Blank = common coverage start">
