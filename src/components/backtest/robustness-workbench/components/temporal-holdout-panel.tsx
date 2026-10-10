@@ -10,7 +10,7 @@ export function TemporalHoldoutPanel({
   holdout: ReturnType<typeof calculateTemporalHoldout>;
 }) {
   return (
-    <section className="rounded border border-zinc-800 bg-zinc-950/40">
+    <section className="rounded border border-zinc-800 bg-zinc-950/30">
       <header className="border-b border-zinc-800 px-3 py-2">
         <h4 className="text-[11px] font-semibold text-zinc-400">
           Temporal holdout

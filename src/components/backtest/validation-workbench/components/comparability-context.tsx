@@ -7,7 +7,7 @@ export function ComparabilityContext({
   artifact: BacktestRunArtifact;
 }) {
   return (
-    <section className="mt-3 rounded border border-zinc-800 bg-zinc-950/25 p-3">
+    <section className="mt-3 rounded border border-zinc-800 bg-zinc-950/30 p-3">
       <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-500">
         Comparability context
       </h3>

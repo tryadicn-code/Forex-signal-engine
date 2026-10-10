@@ -55,7 +55,7 @@ export function ValidationPanel({
         <div className="min-w-0">
           <div className="overflow-x-auto rounded border border-zinc-800">
             <table className="w-full min-w-[620px] text-left text-[11px]">
-              <thead className="bg-zinc-950/70 text-zinc-600">
+              <thead className="bg-zinc-950/60 text-zinc-600">
                 <tr>
                   <th className="px-2 py-1.5">Series</th>
                   <th className="px-2 py-1.5">Candles</th>
