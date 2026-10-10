@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { PaperTradingPanel } from "@/components/paper/paper-trading-panel";
+import { useRouter } from "next/navigation";
+import {
+  PaperTradingPanel,
+  csvFilename,
+  downloadCsv,
+  tradesToCsv,
+} from "@/components/paper/paper-trading-panel";
 import type { PaperDashboardData } from "@/paper/types";
 import { apiFetch, ApiError } from "@/lib/api-client";
 
@@ -10,6 +16,7 @@ export function JournalWorkspace({
 }: {
   initialPaper?: PaperDashboardData;
 }) {
+  const router = useRouter();
   const [paper, setPaper] = useState(initialPaper);
   const [resetting, setResetting] = useState(false);
   const [settingInitialBalance, setSettingInitialBalance] = useState(false);
@@ -126,13 +133,25 @@ export function JournalWorkspace({
 
   return (
     <div className="mx-auto w-full max-w-[1500px] space-y-4 p-3 sm:p-4 lg:p-5">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
-          Paper portfolio & trading journal
-        </h1>
-        <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
-          Review paper positions, orders, trades, and the execution audit trail.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
+            Trading journal
+          </h1>
+          <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
+            Review closed paper trades, performance metrics, and the execution audit trail.
+          </p>
+        </div>
+        {paper && paper.recentTrades.length > 0 && (
+          <button
+            type="button"
+            onClick={() => downloadCsv(csvFilename(), tradesToCsv(paper.recentTrades))}
+            aria-label="Export closed paper trades as CSV"
+            className="shrink-0 rounded border border-zinc-800 px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+          >
+            Export CSV
+          </button>
+        )}
       </header>
 
       {error && (
@@ -141,6 +160,31 @@ export function JournalWorkspace({
         </div>
       )}
 
+
+      <div
+        role="tablist"
+        aria-label="Paper trading views"
+        className="grid grid-cols-2 overflow-hidden rounded-lg border border-zinc-800"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={false}
+          onClick={() => router.push("/portfolio")}
+          className="border-r border-zinc-800 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-600 transition-colors hover:bg-zinc-900/60 hover:text-zinc-300"
+        >
+          Portfolio
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={true}
+          onClick={() => router.push("/journal")}
+          className="bg-emerald-950/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-300 transition-colors"
+        >
+          Journal
+        </button>
+      </div>
       <PaperTradingPanel
         paper={paper}
         onReset={resetPaper}
