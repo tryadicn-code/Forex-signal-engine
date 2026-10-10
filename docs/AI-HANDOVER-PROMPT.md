@@ -1161,6 +1161,35 @@ User review visual di HP (real device). Temuan:
 3\. Signal Detail Fase C — narrative sections SETUP/TRIGGER/RISK. Conditional Fase B.
 4\. Signal Detail Fase D — duplicate removal. Conditional Fase C.
 
+\### 2026-10-11 (lanjutan) — Signal Detail Narrative: Fase A revert + project CLOSED
+
+\- \*\*HEAD:\*\* `415e163` (docs(uiux): close Signal Detail narrative redesign as final per owner decision)
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 102 files / 735 tests pass
+
+\*\*Keputusan owner:\*\* Signal Detail Panel sudah puas dengan tampilan sekarang. Project redesign di-CLOSE.
+
+\*\*Rangkaian commit:\*\*
+
+1\. `bc25914` — Fase A revised: translate active-stage narrative ke Bahasa Indonesia.
+2\. `ae5b879` — Handover log untuk `bc25914`.
+3\. `aa4ebde` — Revert `bc25914`: owner prefer English-only.
+4\. `a086007` — Doc update: language rule switch ke English-only (3 lokasi).
+5\. `415e163` — Doc update: status FINAL + Fase B/C/D CANCELLED.
+
+\*\*Status akhir Signal Detail Panel:\*\*
+
+\- Language rule: \*\*English-only\*\*.
+\- Fase A-D: CLOSED / CANCELLED.
+\- Panel ships as-is.
+\- Raw data grouping tetap seperti implementasi existing di `signal-detail-panel.tsx`.
+
+\*\*Backlog update:\*\*
+
+\- Signal Detail Narrative Redesign — CLOSED. No further work.
+\- Sisa backlog (unrelated): PaperTradingPanel split (1497 lines), Command palette enhancement, Dashboard system-status-bar test, Full bg normalization (12 → 5), Duplication audit.
+
 \---
 \## PENUTUP
 
