@@ -121,7 +121,7 @@ export function ReleaseGateWorkbench({
   };
 
   return (
-    <section className="rounded border border-zinc-800 bg-zinc-950/25">
+    <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
       <ReleaseGateHeader
         artifact={artifact}
         fingerprint={evidence.fingerprint}
