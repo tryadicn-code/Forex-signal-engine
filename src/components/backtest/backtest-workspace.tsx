@@ -87,6 +87,14 @@ export function BacktestWorkspace() {
     maxTotalRisk,
   ]);
 
+  const applyPreset = (key: BacktestPreset) => {
+    const p = PRESETS[key];
+    setInitialBalance(p.balance);
+    setRiskPercent(p.riskPercent);
+    setMaxOpenPositions(p.maxOpenPositions);
+    setMaxTotalRisk(p.maxTotalRisk);
+  };
+
   const refreshRecent = async () => {
     try {
       const response = await fetch("/api/backtest/runs?limit=10", {
@@ -437,6 +445,21 @@ export function BacktestWorkspace() {
             </PersistedDetails>
 
             <PersistedDetails id="replay" anchorId="backtest-step-3" title="3 - Replay window and risk">
+              <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+                  Preset
+                </span>
+                {(["demo", "conservative", "aggressive"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => applyPreset(key)}
+                    className="rounded-md border border-zinc-800 bg-zinc-900/40 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
+                  >
+                    {PRESETS[key].label}
+                  </button>
+                ))}
+              </div>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 <Field label="Start date" hint="Blank = common coverage start">
                   <input
@@ -635,6 +658,40 @@ function Field({
     </label>
   );
 }
+
+type BacktestPreset = "demo" | "conservative" | "aggressive";
+
+interface PresetConfig {
+  label: string;
+  balance: string;
+  riskPercent: string;
+  maxOpenPositions: string;
+  maxTotalRisk: string;
+}
+
+const PRESETS: Record<BacktestPreset, PresetConfig> = {
+  demo: {
+    label: "Demo",
+    balance: "10000",
+    riskPercent: "0.5",
+    maxOpenPositions: "10",
+    maxTotalRisk: "5",
+  },
+  conservative: {
+    label: "Conservative",
+    balance: "10000",
+    riskPercent: "0.25",
+    maxOpenPositions: "5",
+    maxTotalRisk: "2",
+  },
+  aggressive: {
+    label: "Aggressive",
+    balance: "10000",
+    riskPercent: "1",
+    maxOpenPositions: "20",
+    maxTotalRisk: "10",
+  },
+};
 
 function BacktestStepNav({
   step1Done,
