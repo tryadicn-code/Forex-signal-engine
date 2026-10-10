@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
+import { CommandPalette } from "@/components/common/command-palette";
 import { Badge, ProviderStateBadge } from "@/components/common/badges";
 
 export function DashboardShell({
@@ -59,6 +60,19 @@ export function DashboardShell({
             </span>
           )}
           {providerState && <ProviderStateBadge state={providerState} />}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event("fse:open-command-palette"))}
+            aria-label="Open command palette"
+            title="Open command palette (Cmd/Ctrl+K)"
+            className="hidden h-7 items-center gap-1.5 rounded border border-zinc-800 bg-zinc-900/40 px-2 font-mono text-[10px] text-zinc-500 transition-colors hover:border-zinc-700 hover:text-zinc-300 md:inline-flex"
+          >
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3 w-3">
+              <circle cx="8.5" cy="8.5" r="4.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="m12 12 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <span>Cmd K</span>
+          </button>
         </div>
       </header>
 
@@ -69,6 +83,7 @@ export function DashboardShell({
         <main className="min-w-0 flex-1 pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
       </div>
 
+      <CommandPalette />
     </div>
   );
 }
