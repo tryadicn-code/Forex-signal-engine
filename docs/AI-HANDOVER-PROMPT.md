@@ -919,6 +919,57 @@ Total: 47 file baru di 6 folder co-located. 3669 → 1403 lines di 6 file utama 
 
 \- ESLint 9: `npx eslint "folder/**/*.ts"` throw "No files matching pattern" kalau folder tidak punya `.ts`. Gunakan pattern spesifik (`.tsx` saja) atau verifikasi struktur folder dulu.
 
+\### 2026-10-10 — VersionCard split + Signal Detail Fase A (hero narrative)
+
+\- \*\*HEAD:\*\* `197c98a` (feat(signals): add Fase A hero narrative (hero card + progress bar + bias))
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 99 files / 703 tests pass
+
+\*\*Dua commit tambahan di sesi ini:\*\*
+
+1\. `51250bc` — \*\*VersionCard split (242 → 108 lines)\*\*
+   - 4 sub-komponen baru di `strategy-version-registry-workbench/components/`:
+     - `version-card-header.tsx` (67) — versi + status + 3 tombol (Export/Rollback/Deprecate)
+     - `version-lifecycle-details.tsx` (54) — `<details>` + statusHistory + reproducibility facts
+     - `rollback-panel.tsx` (60) — form rollback (sky tone)
+     - `deprecate-panel.tsx` (60) — form deprecate (amber tone)
+   - Facts grid (4 Fact) tetap inline di main
+
+2\. `197c98a` — \*\*Signal Detail Fase A: hero narrative\*\*
+   - File baru `src/components/signals/signal-hero-narrative.tsx` (205 lines):
+     - Hero card (STATE uppercase + reason Bahasa Indonesia)
+     - Progress bar 5-stage (reuse `workstationStages`, `stageGlyph`)
+     - Bias section (reuse `expandBiasText` dari signal-narrative)
+   - Sisip 2 baris di `signal-detail-panel.tsx` (import + render di atas `SignalNarrative` existing)
+   - Test baru `tests/ui/signal-hero-narrative.test.tsx` (5 test)
+   - Konvensi \*\*additive (P1)\*\*: existing `signal-narrative.tsx` TIDAK disentuh, jadi ada duplikasi visual (progress bar + bias render 2x) sampai Fase B/C/D di-eksekusi
+
+\*\*Signal Detail Narrative Redesign — status Fase:\*\*
+
+| Fase | Scope | Status |
+|---|---|---|
+| A | Hero + bar + Bias | SELESAI (`197c98a`) |
+| B | + SETUP/TRIGGER/RISK sections | pending review visual Fase A |
+| C | Wrap old sections ke Layer 4 "Raw data" | pending |
+| D | Conditional duplicate removal (Section 5) | not scheduled |
+
+Review gate: user perlu cek panel di real device sebelum lanjut Fase B. Jika duplikasi visual (progress bar + bias tampil 2x) mengganggu, Fase B/C prioritas.
+
+\*\*Backlog update (sisa):\*\*
+
+1\. Signal Detail Fase B — tambah SETUP/TRIGGER/RISK ke `signal-hero-narrative.tsx`, butuh review visual Fase A dulu.
+2\. Signal Detail Fase C — wrap old sections (chart-context strip, MTF, Lifecycle, Execution gates, Regime routing, Paper execution, Evidence/Conflicts, Data quality) ke `<details>` "Raw data". Collapsed by default.
+3\. Command palette enhancement lanjutan.
+4\. Regression test lanjutan (dashboard, portfolio, journal).
+5\. Bg variant normalization di backtest workbench.
+6\. Docs cleanup: §11 #3 (klaim CRLF terlalu general — `.tsx` = LF, `docs/*.md` = CRLF). §0 self-discovery script bisa ditambah `git config core.autocrlf` check.
+
+\*\*Anti-pattern baru (kandidat §11):\*\*
+
+\- `[IO.File]::WriteAllLines()` di PS 5.1 default CRLF — selalu normalize ke LF setelah edit file `.tsx`/`.ts` kalau original LF. Cek dengan `CRLF=0  LF-only=N` di verify.
+\- React Testing Library: `getByText(/Bias/)` bisa match multiple elemen (label progress bar + heading section). Pakai `getByRole("heading", { name: ... })` untuk disambiguasi.
+
 \---
 \## PENUTUP
 
