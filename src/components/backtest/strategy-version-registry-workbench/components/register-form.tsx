@@ -50,7 +50,7 @@ export function RegisterForm({
   };
 
   return (
-    <aside className="rounded border border-zinc-800 bg-zinc-950/50 p-3">
+    <aside className="rounded border border-zinc-800 bg-zinc-950/60 p-3">
       <h4 className="text-[11px] font-semibold text-zinc-400">
         Register promoted strategy
       </h4>

@@ -46,7 +46,7 @@ export function ReplayFormSection({
             key={key}
             type="button"
             onClick={() => onApplyPreset(key)}
-            className="rounded-md border border-zinc-800 bg-zinc-900/40 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
+            className="rounded-md border border-zinc-800 bg-zinc-900/30 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-zinc-400 transition-colors hover:border-zinc-700 hover:text-zinc-200"
           >
             {PRESETS[key].label}
           </button>

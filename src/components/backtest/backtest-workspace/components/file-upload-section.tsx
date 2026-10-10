@@ -34,7 +34,7 @@ export function FileUploadSection({
           "mt-2 block cursor-pointer rounded-md border border-dashed p-4 text-center transition-colors " +
           (dragActive
             ? "border-emerald-500 bg-emerald-950/30"
-            : "border-zinc-700 bg-zinc-950/40 hover:border-emerald-800")
+            : "border-zinc-700 bg-zinc-950/30 hover:border-emerald-800")
         }
       >
         <input

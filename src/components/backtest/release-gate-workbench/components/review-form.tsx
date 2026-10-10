@@ -37,7 +37,7 @@ export function ReviewForm({
   };
 
   return (
-    <aside className="rounded border border-zinc-800 bg-zinc-950/50">
+    <aside className="rounded border border-zinc-800 bg-zinc-950/60">
       <header className="border-b border-zinc-800 px-3 py-2">
         <h4 className="text-[11px] font-semibold text-zinc-400">
           Manual reviewer checklist

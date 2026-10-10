@@ -25,7 +25,7 @@ export function EvidenceMatrix({
         {evidence.items.map((item) => (
           <div
             key={item.id}
-            className="grid gap-2 border-t border-zinc-800 bg-zinc-950/40 px-3 py-2 first:border-t-0 sm:grid-cols-[130px_150px_minmax(0,1fr)] sm:items-center"
+            className="grid gap-2 border-t border-zinc-800 bg-zinc-950/30 px-3 py-2 first:border-t-0 sm:grid-cols-[130px_150px_minmax(0,1fr)] sm:items-center"
           >
             <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-500">
               {item.category}
@@ -56,7 +56,7 @@ export function EvidenceMatrix({
 
 function Count({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded border border-zinc-800 bg-zinc-950/50 px-2.5 py-2">
+    <div className="rounded border border-zinc-800 bg-zinc-950/60 px-2.5 py-2">
       <div className="text-[11px] uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </div>

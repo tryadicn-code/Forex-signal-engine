@@ -30,7 +30,7 @@ export function BacktestStepNav({
               "flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors " +
               (step.done
                 ? "border-emerald-700/60 bg-emerald-950/20 text-emerald-300"
-                : "border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300")
+                : "border-zinc-800 bg-zinc-900/30 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300")
             }
           >
             <span>{step.num}</span>

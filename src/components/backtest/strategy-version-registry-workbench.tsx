@@ -246,7 +246,7 @@ export function StrategyVersionRegistryWorkbench({
 
         <div className="min-w-0">
           {!registry || registry.entries.length === 0 ? (
-            <div className="rounded border border-zinc-800 bg-zinc-950/40 px-3 py-8 text-center text-[11px] text-zinc-500">
+            <div className="rounded border border-zinc-800 bg-zinc-950/30 px-3 py-8 text-center text-[11px] text-zinc-500">
               No strategy versions registered yet.
             </div>
           ) : (

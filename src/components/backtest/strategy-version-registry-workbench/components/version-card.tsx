@@ -62,7 +62,7 @@ export function VersionCard({
   };
 
   return (
-    <article className="rounded border border-zinc-800 bg-zinc-950/45">
+    <article className="rounded border border-zinc-800 bg-zinc-950/60">
       <VersionCardHeader
         entry={entry}
         disabled={disabled}

@@ -19,7 +19,7 @@ export function RDistribution({
       <div className="grid grid-cols-5 gap-2 p-3">
         {bins.map((bin) => (
           <div key={bin.key} className="min-w-0">
-            <div className="flex h-20 items-end overflow-hidden rounded bg-zinc-900">
+            <div className="flex h-20 items-end overflow-hidden rounded bg-zinc-800">
               <div
                 className="w-full bg-emerald-700/55"
                 style={{

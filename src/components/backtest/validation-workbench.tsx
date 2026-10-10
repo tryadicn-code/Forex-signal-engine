@@ -113,7 +113,7 @@ export function ValidationWorkbench({
             Review historical evidence alongside release-scoped forward Paper validation without changing strategy logic.
           </p>
         </div>
-        <span className="rounded border border-zinc-800 bg-zinc-950/40 px-2 py-1 font-mono text-[11px] text-zinc-500">
+        <span className="rounded border border-zinc-800 bg-zinc-950/30 px-2 py-1 font-mono text-[11px] text-zinc-500">
           {artifact.analytics.sampleSize} closed trades
         </span>
       </header>

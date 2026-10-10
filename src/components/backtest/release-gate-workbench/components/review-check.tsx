@@ -8,7 +8,7 @@ export function ReviewCheck({
   onChange: () => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2 rounded border border-zinc-800 bg-zinc-950/45 px-2.5 py-2 text-[11px] text-zinc-500">
+    <label className="flex cursor-pointer items-start gap-2 rounded border border-zinc-800 bg-zinc-950/60 px-2.5 py-2 text-[11px] text-zinc-500">
       <input
         type="checkbox"
         checked={checked}

@@ -77,7 +77,7 @@ export function StatisticalDiagnosticsWorkbench({
                 "rounded border px-2.5 py-2 text-[11px] leading-relaxed " +
                 (warning.severity === "WARNING"
                   ? "border-amber-900/70 bg-amber-950/20 text-amber-300"
-                  : "border-zinc-800 bg-zinc-950/40 text-zinc-500")
+                  : "border-zinc-800 bg-zinc-950/30 text-zinc-500")
               }
             >
               <span className="font-mono font-semibold">
