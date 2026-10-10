@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { CommandPalette } from "@/components/common/command-palette";
