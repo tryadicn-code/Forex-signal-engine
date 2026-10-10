@@ -9,6 +9,16 @@ import { cn } from "@/lib/utils";
 type TradeOutcomeFilter = "ALL" | "WIN" | "LOSS" | "BE";
 type TradeSideFilter = "ALL" | "LONG" | "SHORT";
 
+type TradeSort =
+  | "date-desc"
+  | "date-asc"
+  | "r-desc"
+  | "r-asc"
+  | "pnl-desc"
+  | "hold-desc";
+
+const DEFAULT_TRADE_SORT: TradeSort = "date-desc";
+
 interface TradeFilterState {
   query: string;
   outcome: TradeOutcomeFilter;
@@ -42,6 +52,23 @@ function matchesTradeFilter(
   return true;
 }
 
+function sortTrades(trades: PaperTrade[], sort: TradeSort): PaperTrade[] {
+  const copy = [...trades];
+  switch (sort) {
+    case "date-desc":
+      return copy.sort((a, b) => b.closedAt - a.closedAt);
+    case "date-asc":
+      return copy.sort((a, b) => a.closedAt - b.closedAt);
+    case "r-desc":
+      return copy.sort((a, b) => b.realizedR - a.realizedR);
+    case "r-asc":
+      return copy.sort((a, b) => a.realizedR - b.realizedR);
+    case "pnl-desc":
+      return copy.sort((a, b) => b.realizedPnL - a.realizedPnL);
+    case "hold-desc":
+      return copy.sort((a, b) => b.holdingDurationMs - a.holdingDurationMs);
+  }
+}
 function TradeFilterChip({
   active,
   onClick,
@@ -516,6 +543,7 @@ export function PaperTradingPanel({
   const [tradeFilter, setTradeFilter] = useState<TradeFilterState>(DEFAULT_TRADE_FILTER);
   const [ordersView, setOrdersView] = useState<OrdersView>({ mode: "collapsed" });
   const [filterExpanded, setFilterExpanded] = useState(false);
+  const [tradeSort, setTradeSort] = useState<TradeSort>(DEFAULT_TRADE_SORT);
 
   if (!paper) return null;
 
@@ -524,6 +552,7 @@ export function PaperTradingPanel({
     matchesTradeFilter(trade, tradeFilter)
   );
   const filterActive = isTradeFilterActive(tradeFilter);
+  const sortedTrades = sortTrades(filteredTrades, tradeSort);
   const filterChipCount =
     Number(tradeFilter.outcome !== "ALL") + Number(tradeFilter.side !== "ALL");
   const sortedOrders = sortOrdersByRequestedAt(paper.recentOrders);
@@ -1002,6 +1031,21 @@ export function PaperTradingPanel({
                       className="h-9 w-full rounded-md border border-zinc-800 bg-[#0b0e14] pl-9 pr-3 font-mono text-[11px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
                     />
                   </label>
+                  <select
+                    value={tradeSort}
+                    onChange={(event) =>
+                      setTradeSort(event.target.value as TradeSort)
+                    }
+                    aria-label="Sort trades"
+                    className="h-9 shrink-0 rounded-md border border-zinc-800 bg-[#0b0e14] px-2 font-mono text-[11px] text-zinc-300 outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
+                  >
+                    <option value="date-desc">Date ↓</option>
+                    <option value="date-asc">Date ↑</option>
+                    <option value="r-desc">R ↓</option>
+                    <option value="r-asc">R ↑</option>
+                    <option value="pnl-desc">PnL ↓</option>
+                    <option value="hold-desc">Hold ↓</option>
+                  </select>
                   <button
                     type="button"
                     aria-expanded={filterExpanded}
@@ -1076,7 +1120,7 @@ export function PaperTradingPanel({
               </div>
             ) : (
               <div className="divide-y divide-zinc-800 border-t border-zinc-800">
-            {filteredTrades.map((trade) => (
+            {sortedTrades.map((trade) => (
               <details
                 key={trade.id}
                 className="group"
