@@ -56,9 +56,9 @@ describe("SignalNarrative", () => {
     expect(screen.getByText(/FORMING/)).toBeInTheDocument();
     expect(screen.getByText(/45 \(min 60\)/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Waiting for price to reach supply zone/)
+      screen.getByText(/Menunggu harga mencapai supply zone/)
     ).toBeInTheDocument();
-    expect(screen.getByText(/25 pips below/)).toBeInTheDocument();
+    expect(screen.getByText(/25 pips di bawah/)).toBeInTheDocument();
   });
 
   it("renders the regime routing box when strategyRouting is present", () => {
@@ -181,10 +181,10 @@ describe("SignalNarrative", () => {
     );
 
     expect(
-      screen.getByText(/Price inside supply zone/)
+      screen.getByText(/Harga di dalam supply zone/)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Awaiting confirmation to arm/)
+      screen.getByText(/Menunggu konfirmasi untuk arm/)
     ).toBeInTheDocument();
   });
 
@@ -197,7 +197,7 @@ describe("SignalNarrative", () => {
 
     expect(
       screen.getByText(
-        /Setup engine is watching for price to approach a demand or supply zone\./
+        /Engine setup menunggu harga mendekati zona demand atau supply\./
       )
     ).toBeInTheDocument();
   });
@@ -246,7 +246,7 @@ describe("SignalNarrative", () => {
 
     expect(screen.getByText(/EXECUTE/)).toBeInTheDocument();
     expect(screen.getByText(/READY/)).toBeInTheDocument();
-    expect(screen.getByText(/All gates passed\./)).toBeInTheDocument();
+    expect(screen.getByText(/Semua gate lolos\./)).toBeInTheDocument();
     expect(screen.getByText(/Entry 1\.12250/)).toBeInTheDocument();
   });
 
