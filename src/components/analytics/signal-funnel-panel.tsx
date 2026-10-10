@@ -44,7 +44,21 @@ export function SignalFunnelPanel({
   }, [summary]);
 
   if (!summary) {
-    return null;
+    return (
+      <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
+        <header className="border-b border-zinc-800 px-3 py-2.5">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-violet-400/80">
+            Signal funnel
+          </p>
+          <h2 className="mt-0.5 text-sm font-semibold text-zinc-100">
+            Execution funnel
+          </h2>
+        </header>
+        <div className="px-3 py-6 text-center text-xs text-zinc-600">
+          Signal funnel data not available yet. Data appears after the scanner records observations.
+        </div>
+      </section>
+    );
   }
 
   return (
