@@ -1240,6 +1240,33 @@ User review visual di HP (real device). Temuan:
 \- PaperTradingPanel split — CLOSED.
 \- Sisa: Command palette enhancement, Dashboard system-status-bar test, Full bg normalization (12 → 5), Duplication audit.
 
+\### 2026-10-11 (lanjutan) — Dead code cleanup + full bg normalization
+
+\- \*\*HEAD:\*\* `fcc58af` (refactor(ui-backtest): normalize bg-zinc opacity variants (12 → 5, full))
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 102 files / 735 tests pass
+
+\*\*Dua commit:\*\*
+
+1\. `7dbc4f8` — \*\*Dead code cleanup\*\*: hapus `src/components/dashboard/system-status-bar.tsx` (64 lines).
+   - File WIP dari commit `04d9c87` (Phase 3, 2026-09-28), gak pernah di-wire ke layout.
+   - Zero references di seluruh `src/` (verified via grep).
+   - Backup di `.audit-backup/dead-code-cleanup/20261011-034332/`. Bisa re-introduce dari git history kalau nanti butuh.
+
+2\. `fcc58af` — \*\*Full bg normalization di backtest folder\*\*.
+   - Sebelumnya: 12 varian zinc-bg. Sesudah: 5 core + 2 semantic exception.
+   - Consolidated: `bg-zinc-950/40` → `/30`, `bg-zinc-950/45` + `/50` → `/60`, `bg-zinc-900/40` → `/30`, `bg-zinc-900` (chart) → `bg-zinc-800`.
+   - Kept semantic: `bg-zinc-600` (mini-bar muted tone), `bg-zinc-900/60` (hover state).
+   - 13 file changed, 14 insertions, 14 deletions.
+   - Wajib review visual di device opsional.
+
+\*\*Backlog update:\*\*
+
+\- Full bg normalization — CLOSED.
+\- Dead code cleanup — CLOSED.
+\- Sisa backlog: Command palette enhancement (PENDING, butuh spec owner), Duplication audit (tunggu perintah owner).
+
 \---
 \## PENUTUP
 
