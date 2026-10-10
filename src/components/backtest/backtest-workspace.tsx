@@ -40,6 +40,7 @@ export function BacktestWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [recentRuns, setRecentRuns] = useState<BacktestRunListItem[]>([]);
   const [loadingRunId, setLoadingRunId] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const totalBytes = useMemo(
     () => files.reduce((sum, file) => sum + file.size, 0),
@@ -333,7 +334,25 @@ export function BacktestWorkspace() {
               <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
                 1 · Historical files
               </h2>
-              <label className="mt-2 block cursor-pointer rounded-md border border-dashed border-zinc-700 bg-zinc-950/40 p-4 text-center transition-colors hover:border-emerald-800">
+              <label
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDragActive(true);
+                }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setDragActive(false);
+                  const dropped = Array.from(event.dataTransfer.files ?? []);
+                  if (dropped.length > 0) setFiles(dropped);
+                }}
+                className={
+                  "mt-2 block cursor-pointer rounded-md border border-dashed p-4 text-center transition-colors " +
+                  (dragActive
+                    ? "border-emerald-500 bg-emerald-950/30"
+                    : "border-zinc-700 bg-zinc-950/40 hover:border-emerald-800")
+                }
+              >
                 <input
                   type="file"
                   multiple
