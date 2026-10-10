@@ -708,6 +708,11 @@ Kalau user minta analisis data, minta dia kirim screenshot atau output PowerShel
 
 10\. Rollback manual bisa tinggalkan file .bak — selalu cek `git status --short` setelah rollback.
 
+11\. **Mojibake visual di PowerShell console BUKAN bukti mojibake di file.** Windows PowerShell 5.1 default baca file pakai ANSI codepage, jadi UTF-8 em-dash `—` bakal ke-render sebagai mojibake di console meskipun byte file valid. Sebelum "fix" mojibake, WAJIB verifikasi byte-level:
+   - Scan byte pattern mojibake asli: `C3 A2 C2 B7` (middle dot mojibake), `C3 A2 E2 82 AC` (em dash mojibake), dst.
+   - Kalau `C3 A2` (atau `C3 82`) match tanpa konteks bermakna, itu cuma false positive regex dari substring hex kebetulan (mis. `4C 3A 20` = `L: ` mengandung `c3a2`).
+   - Pakai script byte-scan (contoh ada di commit postmortem sesi ini) untuk konfirmasi sebelum ngedit.
+
 
 
 \---
