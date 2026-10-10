@@ -695,7 +695,7 @@ Kalau user minta analisis data, minta dia kirim screenshot atau output PowerShel
 
 2\. Regex terlalu longgar — uji dengan Select-String dulu.
 
-3\. Newline handling BERBEDA per file type: `.tsx`/`.ts` = LF (CRLF=0), `docs/*.md` = CRLF. Jangan asumsi seragam — cek byte-level verify (`CRLF=N  LF-only=0` atau sebaliknya) sebelum splice.
+3\. Convention: LF untuk semua text file. `.gitattributes` force `eol=lf` untuk `.ts`, `.tsx`, `.js`, `.py`, `.md`, `.json`. HANYA `.ps1` yang `eol=crlf`. Jangan pernah force CRLF di file lain — git akan replace balik ke LF saat commit (warning "CRLF will be replaced by LF" itu koreksi, bukan warning biasa). Cek dengan `git check-attr -a <file>` sebelum edit.
 
 4\. \[AllowEmptyString()] — tanpa ini, replacement kosong error.
 
@@ -723,6 +723,8 @@ Kalau user minta analisis data, minta dia kirim screenshot atau output PowerShel
 14\. `[IO.File]::WriteAllLines()` di PS 5.1 default CRLF — selalu normalize ke LF setelah edit file `.tsx`/`.ts` kalau original LF. Cek dengan `CRLF=0  LF-only=N` di verify.
 
 15\. React Testing Library: `getByText(/Bias/)` bisa match multiple elemen (label progress bar + heading section). Pakai `getByRole("heading", { name: ... })` untuk disambiguasi.
+
+16\. Jangan assume line ending. `.gitattributes` di repo force `eol=lf` untuk hampir semua text file. Cek dulu: `git check-attr -a <file>` atau baca `.gitattributes`. Session 2026-10-10/11: berhari-hari kerja lawan `.gitattributes` karena asumsi docs/*.md = CRLF, padahal LF yang benar. Lesson: warning `CRLF will be replaced by LF` di git = koreksi git, bukan noise.
 
 \---
 
@@ -1041,6 +1043,33 @@ User review visual di HP (real device). Temuan:
 \- Doc UX (`docs/UIUX-M-SIGNAL-DETAIL-NARRATIVE.md`) adalah design spec, bukan implementation contract. Fase A diimplementasikan terlalu literal tanpa cek duplikasi existing `SignalNarrative` yang sudah punya progress bar + bias.
 \- Future: sebelum implementasi Fase apapun, WAJIB audit existing component dulu (baca file + screenshot di device) untuk cek overlap.
 \- Rekomendasi revisi doc: Fase A baru sebaiknya merge ke `signal-narrative.tsx` existing (rewrite), bukan tambah komponen paralel.
+
+\### 2026-10-11 (lanjutan) — Bg variant normalization (Opsi B)
+
+\- \*\*HEAD:\*\* `43a3f9c` (refactor(ui-backtest): normalize bg-zinc-950 opacity variants (Opsi B))
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 100 files / 711 tests pass
+
+\*\*Scope:\*\* 3 inkonsistensi nyata di folder `src/components/backtest`:
+
+1\. \*\*Outlier table header\*\* — `validation-panel.tsx`: `bg-zinc-950/70` → `bg-zinc-950/60` (konsisten dengan 9 thead lain)
+2\. \*\*Panel inner section\*\* — 8 file: `bg-zinc-950/25` & `bg-zinc-950/40` → `bg-zinc-950/30` (konsolidasi 3 varian jadi 1)
+   - `robustness-workbench/components/{sequential-panel,temporal-holdout-panel}.tsx`
+   - `validation-workbench/components/{comparability-context,forward-comparison-panel,multi-run-comparison,r-distribution,report-identity-panel,segment-explorer}.tsx`
+3\. \*\*Input field\*\* — `backtest-workspace/lib/constants.ts`: `bg-zinc-950/60` → `bg-zinc-950` (konsisten dengan `inputClass` di workbench lain)
+
+\*\*Hasil:\*\* 10 file changed, 10 insertions, 10 deletions.
+
+\*\*Distribusi sebelum:\*\* 12 varian zinc-bg (950, /25, /30, /40, /45, /50, /60, /70 + 900 variasi)
+\*\*Distribusi sesudah:\*\* 8 varian (950, /30, /40, /45, /50, /60, 900/30, 900/40, 900/60) — `/70` dan `/25` hilang
+
+\*\*Catatan:\*\* Ini visual change (opacity), bukan behavior. Test 711 pass tetap hijau. Perlu review visual opsional.
+
+\*\*Backlog update:\*\*
+
+\- Bg variant normalization — DONE (Opsi B, inkonsistensi nyata saja).
+\- Kalau perlu full normalization (12 → 5 varian), buka backlog baru dengan review visual dulu.
 
 \---
 \## PENUTUP
