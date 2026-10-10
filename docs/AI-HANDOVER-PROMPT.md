@@ -57,6 +57,9 @@ git log --oneline -15
 git status --short
 
 
+git config core.autocrlf  # → CRLF (true) vs LF (false) handling
+
+
 
 Write-Host "=== Test count ==="
 
@@ -692,7 +695,7 @@ Kalau user minta analisis data, minta dia kirim screenshot atau output PowerShel
 
 2\. Regex terlalu longgar — uji dengan Select-String dulu.
 
-3\. Newline \\r?\\n wajib — file punya CRLF.
+3\. Newline handling BERBEDA per file type: `.tsx`/`.ts` = LF (CRLF=0), `docs/*.md` = CRLF. Jangan asumsi seragam — cek byte-level verify (`CRLF=N  LF-only=0` atau sebaliknya) sebelum splice.
 
 4\. \[AllowEmptyString()] — tanpa ini, replacement kosong error.
 
@@ -717,6 +720,9 @@ Kalau user minta analisis data, minta dia kirim screenshot atau output PowerShel
 
 13\. ``Get-Content -Skip N | ForEach-Object "{i}: {line}"`` ke-truncate di console kalau output > ~15KB (buffer PS 5.1). Untuk verify, tulis hasil ke variabel dulu, baru formatted output — atau chunk dengan ``-First``. Jangan andalkan console capture untuk file > 300 lines.
 
+14\. `[IO.File]::WriteAllLines()` di PS 5.1 default CRLF — selalu normalize ke LF setelah edit file `.tsx`/`.ts` kalau original LF. Cek dengan `CRLF=0  LF-only=N` di verify.
+
+15\. React Testing Library: `getByText(/Bias/)` bisa match multiple elemen (label progress bar + heading section). Pakai `getByRole("heading", { name: ... })` untuk disambiguasi.
 
 \---
 
@@ -980,4 +986,3 @@ Static sections (§1-5, §7-9, §11-14) tahan lama. Dynamic sections (§0, §6, 
 
 
 Selamat bekerja.
-
