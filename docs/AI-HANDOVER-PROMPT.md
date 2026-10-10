@@ -1132,6 +1132,35 @@ User review visual di HP (real device). Temuan:
 \- Fase A versi baru = update `signal-narrative.tsx` in place (bukan bikin file baru).
 \- Fase B/C/D masih pending, conditional sesuai review visual Fase A.
 
+\### 2026-10-11 (lanjutan) — Signal Detail Fase A revised: narrative localization
+
+\- \*\*HEAD:\*\* `bc25914` (feat(signals): localize active-stage narrative to Bahasa Indonesia (Fase A revised))
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 102 files / 735 tests pass
+
+\*\*Kontek:\*\* Fase A lama (`197c98a`) di-rollback karena duplikasi visual. Doc `UIUX-M-SIGNAL-DETAIL-NARRATIVE.md` direvisi (`ce9d7e1`) — Fase A baru = update `signal-narrative.tsx` in place, JANGAN bikin komponen paralel.
+
+\*\*Perubahan:\*\*
+
+\- `src/components/signals/signal-narrative.tsx`: translate active-stage narrative body ke Bahasa Indonesia (bias, setup, trigger, risk, execute, blocked prefix).
+  - Trading terms tetap English: BIAS, SETUP, TRIGGER, RISK, EXECUTE, ENTRY, SL, TP, supply zone, demand zone.
+  - Engine codes tetap verbatim: STALE_DATA, RR_TOO_LOW, dll.
+  - Progress bar & Bias section: TIDAK disentuh (sesuai doc Fase A).
+  - Header comment update: copy rule = Bahasa Indonesia untuk explanatory sentences.
+\- `tests/ui/signal-narrative.test.tsx`: 5 assertion update (setup body, pips position, awaiting arm, no-zone body, execute).
+
+\*\*Diff:\*\* 2 file changed, 28 insertions, 26 deletions.
+
+\*\*Test progression:\*\* 735 (tidak berubah, cuma translate).
+
+\*\*Backlog update:\*\*
+
+1\. Signal Detail Fase A — DONE (`bc25914`). Perlu review visual opsional di device.
+2\. Signal Detail Fase B — wrap non-critical sections (planned cells, regime box, gates bar, data-quality) ke `<details>` "Raw data" group. Conditional setelah review Fase A.
+3\. Signal Detail Fase C — narrative sections SETUP/TRIGGER/RISK. Conditional Fase B.
+4\. Signal Detail Fase D — duplicate removal. Conditional Fase C.
+
 \---
 \## PENUTUP
 
