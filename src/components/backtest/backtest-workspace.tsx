@@ -46,6 +46,46 @@ export function BacktestWorkspace() {
     [files]
   );
 
+  const formIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (files.length === 0) {
+      issues.push("At least 1 pair required (D1 + H4 + H1 + M15 each).");
+    } else if (files.length % 4 !== 0) {
+      issues.push("File count must be a multiple of 4 (one pair = 4 timeframes).");
+    }
+    if (datasetId.trim() === "") {
+      issues.push("Dataset id is required.");
+    }
+    if (source.trim() === "") {
+      issues.push("Source label is required.");
+    }
+    if (!(Number(initialBalance) > 0)) {
+      issues.push("Initial balance must be greater than 0.");
+    }
+    const rp = Number(riskPercent);
+    if (!(rp > 0 && rp <= 100)) {
+      issues.push("Risk per trade must be between 0 and 100.");
+    }
+    if (!(Number(maxOpenPositions) >= 1)) {
+      issues.push("Max open positions must be at least 1.");
+    }
+    const mtr = Number(maxTotalRisk);
+    if (!(mtr > 0)) {
+      issues.push("Max total risk must be greater than 0.");
+    } else if (rp > 0 && mtr < rp) {
+      issues.push("Max total risk should be at least the risk per trade.");
+    }
+    return issues;
+  }, [
+    files.length,
+    datasetId,
+    source,
+    initialBalance,
+    riskPercent,
+    maxOpenPositions,
+    maxTotalRisk,
+  ]);
+
   const refreshRecent = async () => {
     try {
       const response = await fetch("/api/backtest/runs?limit=10", {
@@ -461,6 +501,23 @@ export function BacktestWorkspace() {
           />
         </div>
       </section>
+
+      {formIssues.length > 0 && (
+        <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom)+4rem)] z-30 mx-auto w-full max-w-[1600px] px-3 sm:px-4 md:bottom-[4rem]">
+          <div className="rounded-md border border-amber-800/60 bg-amber-950/80 px-3 py-2 backdrop-blur">
+            <div className="flex items-start gap-2">
+              <span aria-hidden="true" className="font-mono text-[11px] font-semibold text-amber-400">
+                ⚠
+              </span>
+              <ul className="space-y-0.5 text-[11px] leading-snug text-amber-200">
+                {formIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-30 border-t border-zinc-800 bg-[#0b0e14]/95 backdrop-blur md:bottom-0 md:left-52">
         <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-2 px-3 py-2 sm:px-4">
