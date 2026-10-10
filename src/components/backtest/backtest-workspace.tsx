@@ -1056,6 +1056,73 @@ function EquityCurve({ artifact }: { artifact: BacktestRunArtifact }) {
   );
 }
 
+function MiniBar({
+  label,
+  value,
+  max,
+  display,
+  tone,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  display: string;
+  tone: "positive" | "negative" | "warn" | "muted";
+}) {
+  const pct = Math.max(0, Math.min(1, Math.abs(value) / max));
+  const fill =
+    tone === "positive"
+      ? "bg-emerald-500"
+      : tone === "negative"
+        ? "bg-red-500"
+        : tone === "warn"
+          ? "bg-amber-500"
+          : "bg-zinc-600";
+  const text =
+    tone === "positive"
+      ? "text-emerald-300"
+      : tone === "negative"
+        ? "text-red-300"
+        : tone === "warn"
+          ? "text-amber-300"
+          : "text-zinc-500";
+  return (
+    <div className="flex items-center gap-2 text-[10px]">
+      <span className="w-7 shrink-0 font-mono uppercase tracking-wider text-zinc-600">
+        {label}
+      </span>
+      <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-800">
+        <div
+          className={"h-full " + fill}
+          style={{ width: (pct * 100).toFixed(1) + "%" }}
+        />
+      </div>
+      <span className={"w-12 shrink-0 text-right font-mono " + text}>
+        {display}
+      </span>
+    </div>
+  );
+}
+
+function toneForExpectancy(v: number | null): "positive" | "negative" | "muted" {
+  if (v === null || !Number.isFinite(v) || v === 0) return "muted";
+  return v > 0 ? "positive" : "negative";
+}
+
+function toneForWinRate(v: number | null): "positive" | "warn" | "muted" {
+  if (v === null || !Number.isFinite(v)) return "muted";
+  return v >= 50 ? "positive" : "warn";
+}
+
+function toneForProfitFactor(
+  v: number | null
+): "positive" | "warn" | "negative" | "muted" {
+  if (v === null || !Number.isFinite(v)) return "muted";
+  if (v >= 2) return "positive";
+  if (v >= 1) return "warn";
+  return "negative";
+}
+
 function RecentRuns({
   runs,
   loadingRunId,
@@ -1120,7 +1187,37 @@ function RecentRuns({
                 <span>{run.symbols.join(", ")}</span>
                 <span>{signedPercent(run.netReturnPercent)}</span>
                 <span>DD {formatPercent(run.maxDrawdownPercent)}</span>
-                <span>E[R] {formatSigned(run.expectancyR, 2)}</span>
+              </div>
+              <div className="mt-1.5 space-y-0.5">
+                <MiniBar
+                  label="E[R]"
+                  value={run.expectancyR ?? 0}
+                  max={2}
+                  display={formatSigned(run.expectancyR, 2)}
+                  tone={toneForExpectancy(run.expectancyR)}
+                />
+                <MiniBar
+                  label="Win"
+                  value={run.winRate ?? 0}
+                  max={100}
+                  display={
+                    run.winRate === null || !Number.isFinite(run.winRate)
+                      ? "—"
+                      : run.winRate.toFixed(0) + "%"
+                  }
+                  tone={toneForWinRate(run.winRate)}
+                />
+                <MiniBar
+                  label="PF"
+                  value={run.profitFactor ?? 0}
+                  max={3}
+                  display={
+                    run.profitFactor === null || !Number.isFinite(run.profitFactor)
+                      ? "—"
+                      : run.profitFactor.toFixed(2)
+                  }
+                  tone={toneForProfitFactor(run.profitFactor)}
+                />
               </div>
               <div className="mt-1 font-mono text-[11px] text-zinc-500">
                 {loadingRunId === run.id ? "Loading…" : formatUtc(run.completedAt)}
