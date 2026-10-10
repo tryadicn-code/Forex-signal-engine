@@ -713,6 +713,9 @@ Kalau user minta analisis data, minta dia kirim screenshot atau output PowerShel
    - Kalau `C3 A2` (atau `C3 82`) match tanpa konteks bermakna, itu cuma false positive regex dari substring hex kebetulan (mis. `4C 3A 20` = `L: ` mengandung `c3a2`).
    - Pakai script byte-scan (contoh ada di commit postmortem sesi ini) untuk konfirmasi sebelum ngedit.
 
+12\. ``Select-String -Path "src\**\*.tsx"`` di PS 5.1 **tidak recursive** — pattern ``**`` gak di-expand, jadi cuma match file di root folder (silently returns zero hasil). WAJIB pakai ``Get-ChildItem -Recurse -Include *.tsx,*.ts | Select-String``. Sesi 2026-10-10: false negative ini bikin salah sangka ``<Context`` & ``<Fact`` gak dipakai di luar file target.
+
+13\. ``Get-Content -Skip N | ForEach-Object "{i}: {line}"`` ke-truncate di console kalau output > ~15KB (buffer PS 5.1). Untuk verify, tulis hasil ke variabel dulu, baru formatted output — atau chunk dengan ``-First``. Jangan andalkan console capture untuk file > 300 lines.
 
 
 \---
@@ -821,6 +824,56 @@ Jangan langsung kirim blok edit.
 
 
 
+\## 15. SESSION LOG
+
+Log kronologis per sesi. Update di akhir sesi, sebelum handover berikutnya.
+
+\### 2026-10-10 — 3C Partial: split validation + registry workbenches
+
+\- \*\*HEAD:\*\* `8df0255` (refactor(ui-backtest): split validation + registry workbenches into co-located parts)
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 98 files / 698 tests pass
+
+\*\*Yang dikerjakan:\*\*
+
+\- Split `validation-workbench.tsx` (620 → 159 lines, −74%)
+\- Split `strategy-version-registry-workbench.tsx` (661 → 291 lines, −56%)
+\- 13 file baru di 2 folder co-located:
+  - `validation-workbench/{lib,components}/` — 8 file
+  - `strategy-version-registry-workbench/{lib,components}/` — 5 file
+
+\*\*Konvensi yang di-lock (dipakai ulang sesi depan):\*\*
+
+\- Co-located folder same-name (`foo-workbench.tsx` → folder `foo-workbench/`), idiomatik Next.js App Router
+\- File utama jadi orchestrator tipis, tetap re-export komponen publik → import path luar GAK berubah
+\- State shared (mis. `forwardComparison` dipakai 2 sub-komponen) tetap di file utama
+\- State lokal (segment selector, form fields) pindah ke sub-komponen
+\- Sub-komponen pakai relative import (`./foo-workbench/components/x` atau `../lib/y`)
+
+\*\*Backlog update:\*\*
+
+1\. \*\*3C lanjutan:\*\* split 3 sibling monolitik yang belum disentuh:
+   - `release-gate-workbench.tsx` (441 lines)
+   - `robustness-workbench.tsx` (373 lines)
+   - `statistical-diagnostics-workbench.tsx` (222 lines)
+2\. \*\*`backtest-workspace.tsx` (1352 lines)\*\* — file TERBESAR di repo, belum ada di backlog 3C sebelumnya. Perlu keputusan user: split atau tunda.
+3\. \*\*`VersionCard` (242 lines)\*\* — hasil split sesi ini, masih di atas threshold sehat. Kandidat: header / facts / lifecycle details / rollback panel / deprecate panel.
+4\. Signal detail refactor — split `signal-narrative.tsx`, reorder sesuai `docs/UIUX-M-SIGNAL-DETAIL-NARRATIVE.md`
+5\. Command palette enhancement lanjutan
+6\. Regression test lanjutan (dashboard, portfolio, journal)
+7\. Bg variant normalization di backtest workbench
+
+\*\*Anti-pattern baru:\*\* lihat §11 #12 & #13.
+
+\*\*Tooling terbukti untuk edit multi-file:\*\*
+
+\- Write: `[IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))` — UTF-8 tanpa BOM
+\- LF line endings (CRLF=0), JANGAN pakai `Set-Content` default PS
+\- Non-ASCII: tulis placeholder lalu `.Replace("PLACEHOLDER", [string][char]0x2014)` — lebih aman dari literal di here-string
+\- Byte-level verify WAJIB setelah tulis: `E2 80 94` (em-dash), `C2 B7` (middot), `E2 80 A6` (ellipsis)
+
+\---
 \## PENUTUP
 
 
