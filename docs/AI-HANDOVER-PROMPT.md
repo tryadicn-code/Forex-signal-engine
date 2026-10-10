@@ -976,6 +976,35 @@ Review gate: user perlu cek panel di real device sebelum lanjut Fase B. Jika dup
 \- `[IO.File]::WriteAllLines()` di PS 5.1 default CRLF — selalu normalize ke LF setelah edit file `.tsx`/`.ts` kalau original LF. Cek dengan `CRLF=0  LF-only=N` di verify.
 \- React Testing Library: `getByText(/Bias/)` bisa match multiple elemen (label progress bar + heading section). Pakai `getByRole("heading", { name: ... })` untuk disambiguasi.
 
+\### 2026-10-10 (lanjutan) — Docs cleanup + dashboard regression test
+
+\- \*\*HEAD:\*\* `d1c873f` (test(ui): regression guard for dashboard summary + market health)
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 101 files / 716 tests pass
+
+\*\*Dua commit:\*\*
+
+1\. `0fa68be` — \*\*Docs cleanup\*\*
+   - §11 #3 fix: klaim "file punya CRLF" diganti "Newline handling BERBEDA per file type: `.tsx`/`.ts` = LF, `docs/*.md` = CRLF"
+   - §11 #14: `[IO.File]::WriteAllLines()` default CRLF di PS 5.1 — normalize ke LF untuk `.tsx`/`.ts`
+   - §11 #15: RTL `getByText(/X/)` multi-match — pakai `getByRole("heading", { name: ... })`
+   - §0 self-discovery: tambah `git config core.autocrlf` check (CRLF true vs LF false handling)
+
+2\. `d1c873f` — \*\*Dashboard regression test\*\*
+   - `tests/ui/dashboard-summary.test.ts` (7 test) — `summarizeResults()` pure function: empty input, ready/engineExecute/blocked/armed/dataIssues counts, null freshness handling, mixed states
+   - `tests/ui/market-health-panel.test.tsx` (6 test) — null safety, freshness counts, failed symbols isolation, symbol isolation metric, NOT_AVAILABLE fallback
+
+\*\*Backlog update (sisa):\*\*
+
+1\. Signal Detail Fase B — tambah SETUP/TRIGGER/RISK ke `signal-hero-narrative.tsx`, butuh review visual Fase A dulu.
+2\. Signal Detail Fase C — wrap old sections ke `<details>` "Raw data". Collapsed by default.
+3\. Portfolio + Journal workspace regression test — workspace ada di `src/components/paper/portfolio-workspace.tsx` & `journal-workspace.tsx` (belum di-discovery). Page wrappers (`src/app/{portfolio,journal}/page.tsx`) sudah di-cover existing smoke.
+4\. Dashboard: `system-status-bar.tsx` (async server component, butuh Suspense mock) — skip.
+5\. Command palette enhancement lanjutan.
+6\. Bg variant normalization di backtest workbench.
+7\. VersionCard split lanjutan (jika perlu — sudah di-split 51250bc).
+
 \---
 \## PENUTUP
 
