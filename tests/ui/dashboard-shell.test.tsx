@@ -18,7 +18,7 @@ describe("DashboardShell", () => {
     );
 
     expect(
-      screen.getByLabelText(/Forex Signal Engine dashboard/i)
+      screen.getByLabelText(/Signal Engine dashboard/i)
     ).toBeInTheDocument();
     expect(screen.getByTestId("slot")).toBeInTheDocument();
     expect(

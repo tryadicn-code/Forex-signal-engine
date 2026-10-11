@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { CommandPalette } from "@/components/common/command-palette";
-import { Badge, ProviderStateBadge } from "@/components/common/badges";
+import { SignalEngineLogo } from "./dashboard-shell/lib/logo";
+import { StatusDropdown } from "./dashboard-shell/components/status-dropdown";
 
 export function DashboardShell({
   children,
@@ -23,7 +24,7 @@ export function DashboardShell({
   releaseBlocked?: boolean;
 }) {
   const strategyLabel = releaseLabel
-    ? releaseLabel.replace(/^STRAT\s*·\s*/i, "")
+    ? releaseLabel.replace(/^STRAT\s*\u00B7\s*/i, "")
     : null;
 
   return (
@@ -32,36 +33,25 @@ export function DashboardShell({
         <div className="flex min-w-0 items-center gap-2.5">
           <Link
             href="/#overview"
-            aria-label="Forex Signal Engine dashboard"
-            className="truncate text-sm font-semibold tracking-wide text-zinc-100 sm:text-base"
+            aria-label="Signal Engine dashboard"
+            className="flex min-w-0 items-center gap-2"
           >
-            FOREX SIGNAL ENGINE
+            <span className="shrink-0 text-emerald-400">
+              <SignalEngineLogo size={20} />
+            </span>
+            <span className="truncate text-sm font-semibold tracking-tight text-zinc-100 sm:text-base">
+              Signal Engine
+            </span>
           </Link>
 
           {statusLabel && (
-            <Badge tone="info" glyph="◷" className="hidden text-[11px] sm:inline-flex">
+            <span className="hidden rounded border border-zinc-800 bg-zinc-900/40 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-500 sm:inline-flex">
               {statusLabel}
-            </Badge>
-          )}
-
-          {strategyLabel && !statusLabel && (
-            <Badge
-              tone={releaseBlocked ? "danger" : strategyLabel === "UNVERSIONED" ? "muted" : "info"}
-              glyph={releaseBlocked ? "!" : strategyLabel === "UNVERSIONED" ? "\u25CB" : "\u25C6"}
-              className="hidden text-[11px] md:inline-flex"
-            >
-              {strategyLabel}
-            </Badge>
+            </span>
           )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {providerId && liveMarketData && (
-            <span className="hidden font-mono text-[11px] text-zinc-600 sm:inline">
-              {providerId.toUpperCase()}
-            </span>
-          )}
-          {providerState && <ProviderStateBadge state={providerState} />}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event("fse:open-command-palette"))}
@@ -75,6 +65,14 @@ export function DashboardShell({
             </svg>
             <span>Cmd K</span>
           </button>
+
+          <StatusDropdown
+            providerState={providerState ?? null}
+            providerId={providerId}
+            strategyLabel={strategyLabel}
+            releaseBlocked={Boolean(releaseBlocked)}
+            liveMarketData={liveMarketData}
+          />
         </div>
       </header>
 
