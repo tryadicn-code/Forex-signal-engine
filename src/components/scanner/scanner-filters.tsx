@@ -305,6 +305,22 @@ export function ScannerFilters({
   );
 }
 
+const MOBILE_STATE_ICONS: Partial<Record<StateFilter, string>> = {
+  ALL: "\u25CF",
+  EXECUTE: "\u25B6",
+  ARMED: "\u25C6",
+  BLOCKED: "\u2717",
+  FAILED: "\u26A0",
+};
+
+const MOBILE_STATE_SHORT: Partial<Record<StateFilter, string>> = {
+  ALL: "ALL",
+  EXECUTE: "EXEC",
+  ARMED: "ARMED",
+  BLOCKED: "BLOCK",
+  FAILED: "FAIL",
+};
+
 function StateChip({
   chip,
   active,
@@ -316,20 +332,32 @@ function StateChip({
   onClick: () => void;
   mobile?: boolean;
 }) {
+  const mobileIcon = MOBILE_STATE_ICONS[chip];
+  const mobileLabel = MOBILE_STATE_SHORT[chip] ?? STATE_FILTER_LABELS[chip];
+
   return (
     <button
       type="button"
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "rounded-md border font-mono text-[11px] font-semibold uppercase transition-colors text-center",
-        mobile ? "flex-1 min-w-0 h-11 min-h-[44px] px-2 text-[11px]" : "shrink-0 px-2 py-0.5 text-[11px]",
+        "rounded-md border font-mono font-semibold uppercase transition-colors text-center",
+        mobile
+          ? "inline-flex flex-1 min-w-0 h-8 min-h-[32px] items-center justify-center gap-1 px-1.5 text-[10px]"
+          : "shrink-0 px-2 py-0.5 text-[11px]",
         active
           ? "border-emerald-600/60 bg-emerald-600/15 text-emerald-300"
           : "border-zinc-700 text-zinc-500 hover:bg-zinc-800/70 hover:text-zinc-200"
       )}
     >
-      {STATE_FILTER_LABELS[chip]}
+      {mobile ? (
+        <>
+          {mobileIcon && <span aria-hidden="true">{mobileIcon}</span>}
+          <span>{mobileLabel}</span>
+        </>
+      ) : (
+        STATE_FILTER_LABELS[chip]
+      )}
     </button>
   );
 }
