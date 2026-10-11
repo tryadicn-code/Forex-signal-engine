@@ -321,10 +321,7 @@ export function BacktestWorkspace() {
     <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 pb-32 sm:p-4 md:pb-20">
       <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
         <header className="border-b border-zinc-800 px-3 py-3">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-cyan-400/80">
-            Phase 5.9 · Strategy Version Registry
-          </p>
-          <div className="mt-1 flex flex-wrap items-end justify-between gap-2">
+          <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
               <h1 className="text-lg font-semibold tracking-tight text-zinc-100">
                 Historical backtest

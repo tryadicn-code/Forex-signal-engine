@@ -33,8 +33,7 @@ export function SystemWorkspace({
   return (
     <div className="mx-auto w-full max-w-[1500px] space-y-4 p-3 sm:p-4 lg:p-5">
       <header className="mb-1">
-        <p className="text-xs font-medium text-sky-300">System</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-100">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
           Health, safety & diagnostics
         </h1>
         <p className="mt-1 max-w-3xl text-xs leading-relaxed text-zinc-500 sm:text-sm">
