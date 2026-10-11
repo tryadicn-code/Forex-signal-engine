@@ -31,7 +31,7 @@ export function SystemWorkspace({
   broker: BrokerExecutionDashboard;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[1500px] space-y-4 p-3 sm:p-4 lg:p-5">
+    <div className="mx-auto w-full max-w-[1500px] space-y-3 p-3 sm:p-4 lg:p-5">
       <header className="mb-1">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
           Health, safety & diagnostics
@@ -59,7 +59,7 @@ export function SystemWorkspace({
         </div>
       </nav>
 
-      <section id="system-strategy" className="scroll-mt-28 space-y-4">
+      <section id="system-strategy" className="scroll-mt-28 space-y-3">
         {data.releaseRuntime && (
           <div className="rounded-lg border border-zinc-800 bg-zinc-900/25 p-4">
             <h2 className="text-sm font-semibold text-zinc-100">
@@ -85,7 +85,7 @@ export function SystemWorkspace({
         <ProductionHealthPanel />
       </section>
 
-      <section id="system-funnel" className="scroll-mt-28 space-y-4">
+      <section id="system-funnel" className="scroll-mt-28 space-y-3">
         <SystemSignalFunnel
           analytics={data.signalFunnel}
           persistenceError={data.signalFunnelError}
@@ -109,12 +109,12 @@ export function SystemWorkspace({
         </details>
       </section>
 
-      <section id="system-operations" className="scroll-mt-28 space-y-4">
+      <section id="system-operations" className="scroll-mt-28 space-y-3">
         <BrokerExecutionPanel broker={broker} />
         <NotificationPanel notifications={data.notifications} />
       </section>
 
-      <section id="system-validation" className="scroll-mt-28 space-y-4">
+      <section id="system-validation" className="scroll-mt-28 space-y-3">
         <ForwardValidationPanel />
       </section>
     </div>

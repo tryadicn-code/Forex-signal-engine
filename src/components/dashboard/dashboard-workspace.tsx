@@ -239,7 +239,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     runtimeIssue?.status === "BLOCKED" ? runtimeIssue.message : "Using built-in defaults";
 
   return (
-    <div className="mx-auto w-full max-w-[1900px] space-y-4 p-3 sm:p-4 lg:p-5">
+    <div className="mx-auto w-full max-w-[1900px] space-y-3 p-3 sm:p-4 lg:p-5">
       <section id="overview" aria-label="Market overview" className="scroll-mt-20">
         <DashboardSummary
           snapshot={data.snapshot}
@@ -286,7 +286,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         <DownstreamStatusBanner status={data.downstreamStatus} />
       )}
 
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] 2xl:grid-cols-[minmax(0,2.1fr)_minmax(400px,1fr)]">
+      <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)] 2xl:grid-cols-[minmax(0,2.1fr)_minmax(400px,1fr)]">
         <section
           id="scanner"
           aria-labelledby="scanner-title"

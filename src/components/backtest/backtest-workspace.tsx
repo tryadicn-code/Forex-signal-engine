@@ -318,7 +318,7 @@ export function BacktestWorkspace() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-4 p-3 pb-32 sm:p-4 md:pb-20">
+    <div className="mx-auto w-full max-w-[1600px] space-y-3 p-3 pb-32 sm:p-4 md:pb-20">
       <section className="rounded-md border border-zinc-800 bg-zinc-900/30">
         <header className="border-b border-zinc-800 px-3 py-3">
           <div className="flex flex-wrap items-end justify-between gap-2">
@@ -353,7 +353,7 @@ export function BacktestWorkspace() {
           }
         />
 
-        <div className="grid gap-4 p-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+        <div className="grid gap-3 p-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
           <div className="space-y-3">
             <FileUploadSection
               files={files}

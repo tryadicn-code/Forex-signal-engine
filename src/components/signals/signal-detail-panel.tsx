@@ -184,7 +184,7 @@ export function SignalDetailPanel({
         )}
       </header>
 
-      <div className="space-y-4 p-3 sm:p-4">
+      <div className="space-y-3 p-3 sm:p-4">
         {failed ? (
           <FailureDetail result={result} />
         ) : (
@@ -216,7 +216,7 @@ export function SignalDetailPanel({
                   </span>
                 </span>
               </summary>
-              <div className="space-y-4 border-t border-zinc-800 p-3 sm:p-4">
+              <div className="space-y-3 border-t border-zinc-800 p-3 sm:p-4">
                 <SignalExecutiveSummary result={result} paper={paper} />
 
                 <section aria-labelledby="execution-title">
