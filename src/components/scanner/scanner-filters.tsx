@@ -62,7 +62,7 @@ export function ScannerFilters({
 
   return (
     <div className="border-b border-zinc-800">
-      <div className="space-y-2 px-3 py-2.5 md:hidden">
+      <div className="space-y-1.5 px-3 py-2 md:hidden">
         <div className="flex gap-2">
           <label className="relative min-w-0 flex-1">
             <span className="sr-only">Search symbols</span>
@@ -83,7 +83,7 @@ export function ScannerFilters({
               }
               placeholder="Search pair"
               aria-label="Search symbols"
-              className="h-11 w-full rounded-md border border-zinc-700 bg-[#0b0e14] pl-9 pr-3 font-mono text-[11px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
+              className="h-10 w-full rounded-md border border-zinc-700 bg-[#0b0e14] pl-9 pr-3 font-mono text-[11px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600/40"
             />
           </label>
           <button
@@ -93,7 +93,7 @@ export function ScannerFilters({
             onClick={() => setMobileFiltersOpen((open) => !open)}
             aria-label={`Filters${advancedCount > 0 ? ` (${advancedCount} active)` : ""}`}
             className={cn(
-              "relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
+              "relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600",
               mobileFiltersOpen || advancedCount > 0
                 ? "border-emerald-700/60 bg-emerald-950/20 text-emerald-300"
                 : "border-zinc-700 bg-zinc-900 text-zinc-300"

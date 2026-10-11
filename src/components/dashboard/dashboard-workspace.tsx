@@ -292,15 +292,10 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           aria-labelledby="scanner-title"
           className="min-w-0 scroll-mt-20 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/25"
         >
-          <header className="flex items-start justify-between gap-3 border-b border-zinc-800 px-3 py-2.5 sm:items-center sm:px-4 sm:py-3">
-            <div className="min-w-0">
-              <h2 id="scanner-title" className="text-[15px] font-semibold leading-tight text-zinc-100 sm:text-base">
-                Scanner
-              </h2>
-              <p className="mt-1 text-[11px] leading-snug text-zinc-500 sm:text-xs">
-                Select a pair to inspect current state.
-              </p>
-            </div>
+          <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-2 sm:px-4">
+            <h2 id="scanner-title" className="text-[15px] font-semibold leading-tight text-zinc-100 sm:text-base">
+              Scanner
+            </h2>
             <ScannerUniverseControl
               count={allResults.length}
               onUniverseChanged={refresh}
