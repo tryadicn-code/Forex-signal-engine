@@ -1267,6 +1267,49 @@ User review visual di HP (real device). Temuan:
 \- Dead code cleanup — CLOSED.
 \- Sisa backlog: Command palette enhancement (PENDING, butuh spec owner), Duplication audit (tunggu perintah owner).
 
+\### 2026-10-11 (lanjutan) — UI Polish Session (7 commit)
+
+\- \*\*HEAD:\*\* `815ae4a` (feat(ui-scanner): compact mobile state chips with icon + short label)
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 102 files / 735 tests pass
+
+\*\*Scope:\*\* UI polish pass pada 6 halaman utama. Owner-driven decisions di tiap item (bukan speculation).
+
+\*\*Tujuh commit:\*\*
+
+1\. `005713b` — \*\*Hapus eyebrow label internal\*\* (`Phase X.X` kicker text cyan) di `backtest-workspace.tsx` + `system-workspace.tsx`. Scope spesifik 2 file per owner. Sibling 11 kicker lain (forward-validation, release-gate, robustness, statistical-diagnostics, strategy-version-registry, notification, broker, production, signal-funnel) DIBIARKAN.
+
+2\. `5c99f0a` — \*\*Scanner compaction\*\* (3 file): header tanpa subtitle, "Pairs 14" jadi text inline (masih clickable buka dialog manage), search input + filter button h-11 → h-10, padding container dipadatkan.
+
+3\. `8b7efc7` — \*\*KPI summary inline row\*\*: `dashboard-summary.tsx` KPI dari grid 4-tile jadi inline row `0 Ready · 0 Armed · 3 Blocked · 14 Issues`. Each KPI tetap clickable filter scanner. Sync tetap di meta bar bawah (owner request). Warning banner TIDAK disentuh (owner request).
+
+4\. `df7801b` — \*\*Header redesign\*\*: logo Signal Bars (emerald) + brand text "Signal Engine" (dari "FOREX SIGNAL ENGINE") + status dropdown baru. Co-located folder `dashboard-shell/` dengan `lib/logo.tsx` + `components/status-dropdown.tsx`. Dropdown isi: provider state+ID, strategy status, live/mock, command palette action, system diagnostics link. `UNVERSIONED` badge lama di-demote ke dot di dropdown. Test `dashboard-shell.test.tsx` update assertion (aria-label).
+
+5\. `5dc94a7` — \*\*Metric grid uniformity\*\*: `metric.tsx` label style `text-[11px] tracking-[0.12em]` → `text-[10px] tracking-[0.08em]` + `truncate`. Label shorten: `Open positions` → `Positions`, `Expectancy` → `E[R]`, `Median R` → `Med R`, `Profit factor` → `PF`, `Current DD` → `Cur DD`. Scope 3 file (metric.tsx, portfolio-section, journal-section). 5 sibling `Metric` (capital M) di file lain DIBIARKAN.
+
+6\. `ba758ac` — \*\*Open Risk suffix `% ($)`\*\*: `metric()` tambah param `suffix?: string`. Open Risk tampil `0.00% ($0.00)` dengan `$0.00` di font kecil muted. \*\*Known limitation:\*\* `$` di-hardcode (owner chose opsi A) — kalau nanti multi-currency jadi requirement, refactor ke map currency symbol.
+
+7\. `815ae4a` — \*\*Mobile chip compact\*\* (`scanner-filters.tsx`): `StateChip` mobile variant dari `h-11` (44px) full-label → `h-8` (32px) icon + short label. Icon: `● ALL`, `▶ EXEC`, `◆ ARMED`, `✗ BLOCK`, `⚠ FAIL`. Desktop variant unchanged.
+
+\*\*Keputusan owner yang terdokumentasi (jangan diubah tanpa konfirmasi):\*\*
+
+\- Header baru: Logo C (Signal Bars) + accent emerald. Hanya mobile yang di-compact (chip), desktop tetap.
+\- Dropdown header: status + 2 actions (command palette, system diagnostics). Tidak ada refresh scan (belum ada handler).
+\- Warning banner: TIDAK direvisi (biarkan seperti sekarang).
+\- Eyebrow removal: scope 2 file saja, bukan semua 11 kicker.
+\- Chip compact: mobile only.
+
+\*\*Known limitations (bukan bug, tapi documented):\*\*
+
+\- `Open Risk` suffix hardcoded `$` — akan misleading kalau account.currency bukan USD. Refactor ke currency map kalau nanti multi-currency.
+\- Dropdown header tidak pass `lastScanAt` — kalau mau tampilkan "Last scan" di dropdown, perlu tambah prop + edit 5 page files.
+
+\*\*Backlog update:\*\*
+
+\- UI Polish Session — CLOSED. 7 commit.
+\- Item tersisa: Economic Calendar (butuh spec besar: data source, level fitur, backend), Command palette enhancement (butuh spec), Duplication audit (tunggu perintah owner).
+
 \---
 \## PENUTUP
 
