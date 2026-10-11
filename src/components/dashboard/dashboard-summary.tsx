@@ -62,12 +62,12 @@ function Kpi({
 
   const content = (
     <>
-      <div className="truncate text-[11px] font-medium text-zinc-500 sm:text-[11px]">
-        {label}
-      </div>
-      <div className={`mt-0.5 font-mono text-lg font-semibold tabular-nums sm:text-xl ${valueClass}`}>
+      <span className={`font-mono text-base font-semibold tabular-nums sm:text-lg ${valueClass}`}>
         {value}
-      </div>
+      </span>
+      <span className="text-[11px] font-medium text-zinc-500">
+        {label}
+      </span>
     </>
   );
 
@@ -76,7 +76,7 @@ function Kpi({
       <button
         type="button"
         onClick={onClick}
-        className="min-w-0 px-2.5 py-2 text-center transition-colors hover:bg-zinc-800/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600"
+        className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors hover:bg-zinc-800/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
         aria-label={`Filter scanner by ${label}`}
       >
         {content}
@@ -85,7 +85,7 @@ function Kpi({
   }
 
   return (
-    <div className="min-w-0 px-2.5 py-2 text-center">
+    <div className="inline-flex items-center gap-1.5 px-1.5 py-0.5">
       {content}
     </div>
   );
@@ -118,25 +118,28 @@ export function DashboardSummary({
       aria-label="Actionable market summary"
       className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/20"
     >
-      <div className="grid grid-cols-4 divide-x divide-zinc-800">
+      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-3 py-2">
         <Kpi
           label="Ready"
           value={counts.ready}
           tone={counts.ready > 0 ? "ready" : "default"}
           onClick={onFilter ? () => onFilter("EXECUTE") : undefined}
         />
+        <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
         <Kpi
           label="Armed"
           value={counts.armed}
           tone={counts.armed > 0 ? "warn" : "default"}
           onClick={onFilter ? () => onFilter("ARMED") : undefined}
         />
+        <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
         <Kpi
           label="Blocked"
           value={counts.blocked}
           tone={counts.blocked > 0 ? "danger" : "default"}
           onClick={onFilter ? () => onFilter("BLOCKED") : undefined}
         />
+        <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
         <Kpi
           label="Issues"
           value={counts.dataIssues}
