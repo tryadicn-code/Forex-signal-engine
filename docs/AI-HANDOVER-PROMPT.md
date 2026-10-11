@@ -1340,6 +1340,52 @@ User review visual di HP (real device). Temuan:
 \- Duplication audit — CLOSED. Report live di `docs/DUP-AUDIT-REPORT.md`.
 \- Kandidat baru dari audit: P1 formatter consolidation (butuh keputusan file canonical), P1b placeholder standardization, P2 Metric/Fact verify, P3 DESIGN-TOKENS.md review.
 \- Item tersisa tetap: Economic Calendar (spec besar), Command palette enhancement (butuh spec), Housekeeping `.data/` `.tmp` cleanup (temuan §0, tidak butuh spec).
+\### 2026-10-11 (lanjutan) — Spacing consistency pass (top-level 16px to 12px)
+\- \*\*HEAD:\*\* `a87f8a0` (refactor(ui): unify top-level section spacing to 12px (space-y-3 / gap-3))
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* typecheck clean, lint clean, 102 files / 735 tests pass
+
+\*\*Scope:\*\* unify top-level section spacing dari `space-y-4` / `gap-4` (16px) jadi `space-y-3` / `gap-3` (12px) di 6 workspace. Tujuan: konsisten dengan baseline `gap-3` yang sudah dominan di codebase, kurangi scroll fatigue di data-dense pages, tetap ada separation antar panel.
+
+\*\*Alasan 12px lebih ideal daripada 16px:\*\*
+
+\- Konten padat (scanner + dashboard + signal) bukan landing page.
+\- `gap-3` (32x) sudah jadi bahasa spacing internal panel — top-level align ke bawah, bukan nilai baru.
+\- Skala 4/8/12 rapi: `gap-1` inline / `gap-2` sub-list / `gap-3` antar section / `p-4` boundary.
+\- Mengurangi scroll fatigue di HP (mobile polish jadi prioritas sesi sebelumnya).
+
+\*\*Perubahan (6 file, 13 insertions, 13 deletions):\*\*
+
+| Halaman | File | Perubahan |
+|---|---|---|
+| Dashboard | `dashboard-workspace.tsx` | container `space-y-4` → `space-y-3`; grid `gap-4` → `gap-3` |
+| Journal | `journal-workspace.tsx` | container `space-y-4` → `space-y-3` |
+| Portfolio | `portfolio-workspace.tsx` | container `space-y-4` → `space-y-3` |
+| System | `system-workspace.tsx` | container + 4 section anchors `scroll-mt-28 space-y-4` → `space-y-3` |
+| Signal Detail | `signal-detail-panel.tsx` | 2 section stack (dengan & tanpa `border-t`) |
+| Backtest | `backtest-workspace.tsx` | container + grid 2-kolom |
+
+\*\*Scope yang TIDAK disentuh (intentional):\*\*
+
+\- Page padding `p-3 sm:p-4 lg:p-5` — sudah konsisten.
+\- Inline spacing `gap-1` / `gap-2` di dalam panel/komponen — sudah pas.
+\- Header/footer panel internal (`px-3 py-2.5`) — di luar scope.
+\- `backtest-workspace.tsx` container tetap `pb-32 md:pb-20` (intentional, untuk floating bar).
+
+\*\*Anomali ditemukan & di-fix:\*\*
+
+\- `portfolio-workspace.tsx` working copy **CRLF** (210 CRLF vs 1 LF) sebelum sesi — backup asli menunjukkan CRLF sudah ada dari sebelumnya (kemungkinan pernah di-edit tooling lain). Git warning "CRLF will be replaced by LF" muncul saat diff. Di-normalize ke LF via `-replace "\`r\`n", "\`n"` + `WriteAllText` UTF-8 no BOM. Warning git hilang setelah normalisasi.
+
+\*\*Commit:\*\*
+
+1\. `a87f8a0` — \*\*Refactor UI:\*\* 6 file, spacing unification.
+
+\*\*Backlog update:\*\*
+
+\- Spacing consistency pass — CLOSED.
+\- Signal Detail Narrative (Fase B/C/D) tetap CLOSED dari keputusan owner.
+\- Item tersisa: Economic Calendar (spec besar), Command palette enhancement (butuh spec), Housekeeping `.data/` `.tmp` cleanup (temuan §0, tidak butuh spec), P1 formatter consolidation (dari DUP-AUDIT-REPORT.md).
 \---
 \## PENUTUP
 
