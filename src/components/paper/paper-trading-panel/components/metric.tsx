@@ -2,7 +2,8 @@ export function metric(
   label: string,
   value: string,
   note?: string,
-  tone: "neutral" | "positive" | "negative" = "neutral"
+  tone: "neutral" | "positive" | "negative" = "neutral",
+  suffix?: string
 ): React.ReactNode {
   const valueClass =
     tone === "positive"
@@ -18,6 +19,11 @@ export function metric(
       </div>
       <div className={"mt-1 font-mono text-sm font-semibold tabular-nums " + valueClass}>
         {value}
+        {suffix && (
+          <span className="ml-1 text-[11px] font-normal text-zinc-500">
+            {suffix}
+          </span>
+        )}
       </div>
       {note && <div className="mt-1 text-[11px] text-zinc-600">{note}</div>}
     </div>

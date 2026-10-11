@@ -83,7 +83,9 @@ export function PortfolioSection({
         {metric(
           "Open risk",
           pct(account.openRiskPercent),
-          money(account.openRiskAmount, account.currency)
+          undefined,
+          "neutral",
+          "($" + account.openRiskAmount.toFixed(2) + ")"
         )}
         {metric("Positions", String(account.openPositionCount))}
       </div>
