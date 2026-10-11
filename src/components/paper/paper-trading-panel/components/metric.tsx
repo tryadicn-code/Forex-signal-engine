@@ -13,7 +13,7 @@ export function metric(
 
   return (
     <div className="rounded-md border border-zinc-800 bg-zinc-900/35 px-3 py-2.5">
-      <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+      <div className="truncate text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-500">
         {label}
       </div>
       <div className={"mt-1 font-mono text-sm font-semibold tabular-nums " + valueClass}>

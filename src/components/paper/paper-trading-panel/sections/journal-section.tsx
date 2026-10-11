@@ -66,7 +66,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
         </div>
         <div className="grid grid-cols-3 gap-2 px-3 pb-3 sm:grid-cols-6">
           {metric(
-            "Expectancy",
+            "E[R]",
             performance.expectancyR === null ? "—" : performance.expectancyR.toFixed(2) + "R"
           )}
           {metric(
@@ -74,7 +74,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             performance.averageR === null ? "—" : performance.averageR.toFixed(2) + "R"
           )}
           {metric(
-            "Median R",
+            "Med R",
             performance.medianR === null ? "—" : performance.medianR.toFixed(2) + "R"
           )}
           {metric(
@@ -94,7 +94,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             pnlTone(performance.worstTrade)
           )}
           {metric(
-            "Profit factor",
+            "PF",
             performance.profitFactor === null ? "—" : performance.profitFactor.toFixed(2)
           )}
         </div>
@@ -112,7 +112,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
         <div className="grid grid-cols-3 gap-2 px-3 pb-3 sm:grid-cols-6">
           {metric("Trades", String(performance.totalTrades))}
           {metric("Win rate", pct(performance.winRate))}
-          {metric("Current DD", pct(performance.currentDrawdownPercent))}
+          {metric("Cur DD", pct(performance.currentDrawdownPercent))}
           {metric("Max DD", pct(performance.maxDrawdownPercent))}
           {metric(
             "Avg hold",

@@ -85,7 +85,7 @@ export function PortfolioSection({
           pct(account.openRiskPercent),
           money(account.openRiskAmount, account.currency)
         )}
-        {metric("Open positions", String(account.openPositionCount))}
+        {metric("Positions", String(account.openPositionCount))}
       </div>
 
       <div className="border-t border-zinc-800">
