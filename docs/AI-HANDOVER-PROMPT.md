@@ -1310,6 +1310,36 @@ User review visual di HP (real device). Temuan:
 \- UI Polish Session — CLOSED. 7 commit.
 \- Item tersisa: Economic Calendar (butuh spec besar: data source, level fitur, backend), Command palette enhancement (butuh spec), Duplication audit (tunggu perintah owner).
 
+\### 2026-10-11 (lanjutan) — Duplication audit (read-only) + report commit
+\- \*\*HEAD:\*\* `5c1b92c` (docs(dup-audit): record duplication audit findings (formatter, Metric, Fact))
+\- \*\*Branch:\*\* master, synced dengan origin/master
+\- \*\*Working tree:\*\* clean
+\- \*\*Quality gates:\*\* tidak berubah (doc-only, 102 files / 735 tests pass)
+
+\*\*Scope:\*\* audit read-only `src/**` (320 file, 1054 exported symbols). Zero file kode disentuh. Metode: 5 blok PowerShell scan (inventory, export names, helper patterns, UI patterns, formatter file read).
+
+\*\*Temuan:\*\*
+
+\- \*\*P1 — Formatter duplication (HIGH ROI).\*\* 5 fungsi overlap persis antara `src/lib/backtest-format.ts` & `src/components/backtest/backtest-workspace/lib/formatters.ts`: `formatNumber`, `formatPercent`, `formatSigned`, `formatUtc`, `signedPercent`. Plus `signedPercent` juga muncul di `validation-workbench/lib/formatters.ts`, dan `pct` di `paper-trading-panel/lib/formatters.ts` (semantik = formatPercent). Kandidat canonical: `src/lib/format.ts` atau file baru `src/lib/number-format.ts`. Effort ~1 sesi, risk rendah (pure functions, 735 test sebagai jaring).
+\- \*\*P1b — Placeholder convention berbeda.\*\* 4 file pakai em-dash literal `—` di source; `src/lib/format.ts` pakai Unicode escape `"\u2014"` (anti-mojibake). Standardisasi ke escape = hilangkan risiko mojibake saat file diedit via tooling yang salah encoding.
+\- \*\*P2 — `Metric` (8x) & `Fact` (6x) definisi paralel.\*\* Nama sama, didefinisi ulang di banyak file. Belum diverifikasi isi — kandidat (a) duplikat nyata, (b) beda prop konteks, (c) mix. Butuh 1 blok baca 4-7 sample file.
+\- \*\*Bersih (verified):\*\* Chip/Badge (canonical di `src/components/common/badges.tsx`, 9 badge + 2 spesialis `StateChip` & `TradeFilterChip`), Panel (16 nama unik), CSV (terpusat di `paper-trading-panel/lib/csv.ts`, 3 konsumen).
+\- \*\*Kandidat design-token:\*\* 123 unique className combo `rounded+border+bg-zinc`. Top dup: `rounded-md border border-zinc-800 bg-zinc-900/30` (13x). Perlu cek `docs/DESIGN-TOKENS.md` dulu sebelum klaim.
+
+\*\*Commit:\*\*
+
+1\. `5c1b92c` — \*\*Doc-only:\*\* `docs/DUP-AUDIT-REPORT.md` (130 lines, LF-only, em-dash 41x + arrow 2x verified byte-level).
+
+\*\*Anti-pattern baru (kandidat §11):\*\*
+
+\- \*\*`Get-Content` via pipeline gagal pada path dengan `[id]` atau `[version]`\*\* — PS 5.1 interpret sebagai wildcard pattern. Fix: pakai `-LiteralPath $_.FullName`. Session 2026-10-11: dua file route Next.js (`src/app/api/backtest/runs/[id]/route.ts`, `src/app/api/backtest/strategy-versions/[version]/route.ts`) skip diam-diam tanpa error.
+\- \*\*Verifikasi style markdown escape sendiri salah\*\* — pattern `(?m)^\\\\\*\\\\\*` untuk cek `\*\*` di line start beri False negative. Literal backslash butuh `\\` di regex, single-quoted PS string gandakan lagi. Lesson: untuk verify escape prefix, cukup `Get-Content | Select-String -SimpleMatch '\*\*'`.
+
+\*\*Backlog update:\*\*
+
+\- Duplication audit — CLOSED. Report live di `docs/DUP-AUDIT-REPORT.md`.
+\- Kandidat baru dari audit: P1 formatter consolidation (butuh keputusan file canonical), P1b placeholder standardization, P2 Metric/Fact verify, P3 DESIGN-TOKENS.md review.
+\- Item tersisa tetap: Economic Calendar (spec besar), Command palette enhancement (butuh spec), Housekeeping `.data/` `.tmp` cleanup (temuan §0, tidak butuh spec).
 \---
 \## PENUTUP
 
