@@ -507,6 +507,11 @@ function RiskDetail({ result }: { result: SymbolScanResult }) {
         {risk.rejectionReason && (
           <p className="mt-1 text-[11px] opacity-75">{risk.rejectionReason}</p>
         )}
+        {risk.executionPlan?.kind === "BLOCK" && risk.minObstacleR != null && (
+          <p className="mt-1 text-[11px] opacity-75">
+            Obstacle at {risk.executionPlan.obstacleR.toFixed(2)}R {"\u2014"} minimum {risk.minObstacleR.toFixed(2)}R
+          </p>
+        )}
       </div>
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded border border-zinc-800 bg-zinc-800 sm:grid-cols-4">
         <Metric

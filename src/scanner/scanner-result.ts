@@ -20,7 +20,7 @@ import type {
   FreshnessStatus,
   ValidationIssue,
 } from "@/types/market-data";
-import type { ConditionCheck, Evidence, Conflict } from "@/types/engine";
+import type { ConditionCheck, Evidence, Conflict, ExecutionPlan } from "@/types/engine";
 import type { StrategyId } from "@/core/strategies/types";
 import type { StrategyRoutingDecision } from "@/core/strategies/router";
 
@@ -75,6 +75,13 @@ export interface RiskDetail {
   plannedRR?: number | null;
   pipSize?: number | null;
   accountCurrency?: string | null;
+  /**
+   * TRD-RR-003: execution plan carried from the risk engine. When kind === "BLOCK",
+   * the UI can surface the obstacle distance that triggered the rejection.
+   */
+  executionPlan?: ExecutionPlan | null;
+  /** TRD-RR-003: configured minObstacleR, for display comparison on BLOCK. */
+  minObstacleR?: number | null;
 }
 
 /**
