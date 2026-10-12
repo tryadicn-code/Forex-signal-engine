@@ -7,6 +7,7 @@ export type PaperOrderStatus = "FILLED" | "REJECTED";
 export type PaperPositionStatus = "OPEN" | "CLOSED";
 export type PaperCloseReason =
   | "TAKE_PROFIT"
+  | "PARTIAL_TAKE_PROFIT"
   | "STOP_LOSS"
   | "MANUAL_PAPER_CLOSE"
   | "DATA_SAFETY_CLOSE"
@@ -70,6 +71,10 @@ export interface PaperOrder {
   plannedRR: number | null;
   status: PaperOrderStatus;
   rejectionReason: string | null;
+  /** TRD-RR-003: TP1 target recorded on the order when the plan was PARTIAL. */
+  tp1?: number | null;
+  /** TRD-RR-003: TP2 target recorded on the order when the plan was PARTIAL. */
+  tp2?: number | null;
   engine: PaperEngineSnapshot;
 }
 
@@ -100,6 +105,22 @@ export interface PaperPosition {
   maxFavorableR?: number;
   /** Maximum adverse excursion observed while the position was open, in R. */
   maxAdverseR?: number;
+  /**
+   * TRD-RR-003: partial take-profit state. All optional so legacy v1
+   * positions written before this change remain readable without migration;
+   * the service layer must default them at read time:
+   *   - tp1 = position.tp1 ?? null
+   *   - remainingSize = position.remainingSize ?? position.positionSize
+   *   - realizedPnL = position.realizedPnL ?? 0
+   */
+  tp1?: number | null;
+  tp1SizePercent?: number;
+  tp1HitAt?: number | null;
+  tp2?: number | null;
+  tp2SizePercent?: number;
+  tp2HitAt?: number | null;
+  remainingSize?: number;
+  realizedPnL?: number;
   engine: PaperEngineSnapshot;
 }
 
@@ -135,6 +156,7 @@ export interface PaperTrade {
 export type PaperLedgerEventType =
   | "ACCOUNT_CREATED"
   | "TRADE_OPENED"
+  | "TRADE_PARTIALLY_CLOSED"
   | "TRADE_CLOSED"
   | "ORDER_REJECTED";
 
