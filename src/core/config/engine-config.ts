@@ -191,7 +191,10 @@ export const defaultEngineConfig: EngineConfig = {
     structuralTargetBufferPips: 2,
     minObstacleR: 1.0,
     partialTP1SizePercent: 50,
-    partialTPEnabled: false,
+    // TRD-RR-003 Fase C: paper execution now supports multi-TP positions
+    // (Blocks C1-C4). PARTIAL plans route to tp1/tp2 legs with partial
+    // close at TP1 and final close at TP2 or SL.
+    partialTPEnabled: true,
   },
   execution: {
     // Fallback freshness threshold when no per-timeframe classification exists.
