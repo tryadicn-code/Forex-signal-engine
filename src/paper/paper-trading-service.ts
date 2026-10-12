@@ -124,7 +124,7 @@ export class PaperTradingService {
       this.closePosition(
         state,
         marked,
-        { exitPrice: quote.data.price, reason: "MANUAL_PAPER_CLOSE" },
+        { exitPrice: quote.data.price, reason: "MANUAL_PAPER_CLOSE", sizeFraction: 1 },
         at
       );
       await this.store.save(state);
@@ -212,9 +212,13 @@ export class PaperTradingService {
         position = markPosition(position, currentPrice, asOf);
         this.replacePosition(state, position);
 
-        const liveExit = evaluatePriceExit(position, currentPrice);
-        if (liveExit) {
-          this.closePosition(state, position, liveExit, asOf);
+        const liveEvents = evaluatePriceExit(position, currentPrice);
+        if (liveEvents.length > 0) {
+          for (const ev of liveEvents) {
+            const current = state.positions.find((item) => item.id === position.id);
+            if (!current || current.status !== "OPEN") break;
+            this.applyExitEvent(state, current, ev, asOf);
+          }
           continue;
         }
       }
@@ -256,7 +260,7 @@ export class PaperTradingService {
         );
         this.replacePosition(state, position);
 
-        const decision = evaluateBarExit(
+        const events = evaluateBarExit(
           position,
           candle,
           this.config.intrabarConflictPolicy
@@ -268,13 +272,13 @@ export class PaperTradingService {
         };
         this.replacePosition(state, position);
 
-        if (decision) {
-          this.closePosition(
-            state,
-            position,
-            decision,
-            candleCloseTime("M15", candle.timestamp)
-          );
+        if (events.length > 0) {
+          const closedAt = candleCloseTime("M15", candle.timestamp);
+          for (const ev of events) {
+            const current = state.positions.find((item) => item.id === position.id);
+            if (!current || current.status !== "OPEN") break;
+            this.applyExitEvent(state, current, ev, closedAt);
+          }
           break;
         }
       }
@@ -541,6 +545,74 @@ export class PaperTradingService {
       signalId,
       amount: -riskAmount,
       note: `Paper ${side} opened at ${entry}; risk reserved for analytics only.`,
+    });
+  }
+
+  /**
+   * TRD-RR-003: dispatch one exit event from the calculator. Partial events
+   * book a leg and keep the position open; full events close the position.
+   */
+  private applyExitEvent(
+    state: PaperStoreState,
+    position: PaperPosition,
+    decision: ExitDecision,
+    closedAt: number
+  ): void {
+    if (decision.reason === "PARTIAL_TAKE_PROFIT") {
+      this.closePartial(state, position, decision, closedAt);
+      return;
+    }
+    this.closePosition(state, position, decision, closedAt);
+  }
+
+  /**
+   * TRD-RR-003: close a fraction of an open position and keep the remainder
+   * open for the next leg. Updates remainingSize, realizedPnL, tp1HitAt and
+   * records a TRADE_PARTIALLY_CLOSED ledger event. Idempotent: if tp1HitAt
+   * is already set, this is a no-op.
+   */
+  private closePartial(
+    state: PaperStoreState,
+    position: PaperPosition,
+    decision: ExitDecision,
+    closedAt: number
+  ): void {
+    const current = state.positions.find((item) => item.id === position.id);
+    if (!current || current.status !== "OPEN") return;
+    if (current.tp1HitAt != null) return;
+
+    const legSize = current.positionSize * decision.sizeFraction;
+    if (!(legSize > 0)) return;
+
+    const legPnL = calculatePnl({
+      side: current.side,
+      entryPrice: current.entryPrice,
+      exitPrice: decision.exitPrice,
+      pipSize: current.pipSize,
+      positionSize: legSize,
+      pipValuePerLotAccountCurrency: current.pipValuePerLotAccountCurrency,
+    });
+
+    const remainingSize = Math.max(0, (current.remainingSize ?? current.positionSize) - legSize);
+    const realizedPnL = (current.realizedPnL ?? 0) + legPnL;
+
+    this.replacePosition(state, {
+      ...current,
+      tp1HitAt: closedAt,
+      remainingSize,
+      realizedPnL,
+      currentPrice: decision.exitPrice,
+      updatedAt: closedAt,
+    });
+
+    state.ledger.push({
+      id: `ledger-partial-${current.signalId}-tp1`,
+      type: "TRADE_PARTIALLY_CLOSED",
+      timestamp: closedAt,
+      symbol: current.symbol,
+      signalId: current.signalId,
+      amount: legPnL,
+      note: `PARTIAL_TAKE_PROFIT at ${decision.exitPrice}; leg size ${legSize}; remaining ${remainingSize}; realized ${legPnL}.`,
     });
   }
 

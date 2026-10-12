@@ -84,17 +84,15 @@ describe("intrabar ambiguity", () => {
   };
 
   it("defaults ambiguous bars to STOP_FIRST when configured", () => {
-    expect(evaluateBarExit(position("LONG"), candle, "STOP_FIRST")).toEqual({
-      exitPrice: 1.095,
-      reason: "STOP_LOSS",
-    });
+    expect(evaluateBarExit(position("LONG"), candle, "STOP_FIRST")).toEqual([
+      { exitPrice: 1.095, reason: "STOP_LOSS", sizeFraction: 1 },
+    ]);
   });
 
   it("can explicitly use TARGET_FIRST when configured", () => {
-    expect(evaluateBarExit(position("LONG"), candle, "TARGET_FIRST")).toEqual({
-      exitPrice: 1.11,
-      reason: "TAKE_PROFIT",
-    });
+    expect(evaluateBarExit(position("LONG"), candle, "TARGET_FIRST")).toEqual([
+      { exitPrice: 1.11, reason: "TAKE_PROFIT", sizeFraction: 1 },
+    ]);
   });
 });
 
