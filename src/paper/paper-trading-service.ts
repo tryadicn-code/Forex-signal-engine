@@ -625,15 +625,19 @@ export class PaperTradingService {
     const current = state.positions.find((item) => item.id === position.id);
     if (!current || current.status !== "OPEN") return;
 
-    const realizedPnL = calculatePnl({
+    // TRD-RR-003: the final leg sizes on the OPEN remainder, and the trade
+    // record carries the aggregate P&L across every closed leg.
+    const openSize = current.remainingSize ?? current.positionSize;
+    const legPnL = calculatePnl({
       side: current.side,
       entryPrice: current.entryPrice,
       exitPrice: decision.exitPrice,
       pipSize: current.pipSize,
-      positionSize: current.positionSize,
+      positionSize: openSize,
       pipValuePerLotAccountCurrency: current.pipValuePerLotAccountCurrency,
     });
-    const realizedR = calculateR(realizedPnL, current.riskAmount);
+    const totalRealizedPnL = (current.realizedPnL ?? 0) + legPnL;
+    const realizedR = calculateR(totalRealizedPnL, current.riskAmount);
     const balanceBefore = this.accountSummary(state).balance;
     const trade: PaperTrade = {
       id: `trade-${current.signalId}`,
@@ -650,8 +654,8 @@ export class PaperTradingService {
       riskAmount: current.riskAmount,
       riskPercent: current.riskPercent,
       plannedRR: current.plannedRR,
-      realizedPnL,
-      realizedPnLPercent: balanceBefore > 0 ? (realizedPnL / balanceBefore) * 100 : 0,
+      realizedPnL: totalRealizedPnL,
+      realizedPnLPercent: balanceBefore > 0 ? (totalRealizedPnL / balanceBefore) * 100 : 0,
       realizedR,
       maxFavorableR: current.maxFavorableR ?? Math.max(0, realizedR),
       maxAdverseR: current.maxAdverseR ?? Math.min(0, realizedR),
@@ -669,6 +673,8 @@ export class PaperTradingService {
       status: "CLOSED",
       unrealizedPnL: 0,
       currentR: realizedR,
+      remainingSize: 0,
+      realizedPnL: totalRealizedPnL,
     });
     if (!state.trades.some((item) => item.id === trade.id)) {
       state.trades.push(trade);
@@ -678,8 +684,8 @@ export class PaperTradingService {
         timestamp: closedAt,
         symbol: current.symbol,
         signalId: current.signalId,
-        amount: realizedPnL,
-        note: `${decision.reason} at ${decision.exitPrice}; realized ${realizedPnL}.`,
+        amount: legPnL,
+        note: `${decision.reason} at ${decision.exitPrice}; final leg PnL ${legPnL}; trade total ${totalRealizedPnL}.`,
       });
     }
   }
@@ -710,8 +716,16 @@ export class PaperTradingService {
   }
 
   private accountSummary(state: PaperStoreState): PaperAccountSummary {
-    const realizedPnL = state.trades.reduce((sum, trade) => sum + trade.realizedPnL, 0);
+    // TRD-RR-003: closed trades already carry their aggregate P&L. Partial
+    // legs on still-open positions are booked here so balance reflects every
+    // realized leg exactly once.
+    const closedPnL = state.trades.reduce((sum, trade) => sum + trade.realizedPnL, 0);
     const openPositions = state.positions.filter((position) => position.status === "OPEN");
+    const partialPnL = openPositions.reduce(
+      (sum, position) => sum + (position.realizedPnL ?? 0),
+      0
+    );
+    const realizedPnL = closedPnL + partialPnL;
     const unrealizedPnL = openPositions.reduce(
       (sum, position) => sum + position.unrealizedPnL,
       0

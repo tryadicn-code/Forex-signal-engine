@@ -48,12 +48,16 @@ export function markPosition(
   currentPrice: number,
   updatedAt: number
 ): PaperPosition {
+  // TRD-RR-003: unrealized P&L is measured on the OPEN remainder, not the
+  // original size. Legacy positions without remainingSize fall back to the
+  // original positionSize.
+  const openSize = position.remainingSize ?? position.positionSize;
   const unrealizedPnL = calculatePnl({
     side: position.side,
     entryPrice: position.entryPrice,
     exitPrice: currentPrice,
     pipSize: position.pipSize,
-    positionSize: position.positionSize,
+    positionSize: openSize,
     pipValuePerLotAccountCurrency: position.pipValuePerLotAccountCurrency,
   });
   const currentR = calculateR(unrealizedPnL, position.riskAmount);
@@ -77,13 +81,15 @@ export function markPositionExcursion(
     position.side === "LONG" ? candle.high : candle.low;
   const adversePrice =
     position.side === "LONG" ? candle.low : candle.high;
+  // TRD-RR-003: excursions are measured on the open remainder.
+  const openSize = position.remainingSize ?? position.positionSize;
   const favorableR = calculateR(
     calculatePnl({
       side: position.side,
       entryPrice: position.entryPrice,
       exitPrice: favorablePrice,
       pipSize: position.pipSize,
-      positionSize: position.positionSize,
+      positionSize: openSize,
       pipValuePerLotAccountCurrency: position.pipValuePerLotAccountCurrency,
     }),
     position.riskAmount
@@ -94,7 +100,7 @@ export function markPositionExcursion(
       entryPrice: position.entryPrice,
       exitPrice: adversePrice,
       pipSize: position.pipSize,
-      positionSize: position.positionSize,
+      positionSize: openSize,
       pipValuePerLotAccountCurrency: position.pipValuePerLotAccountCurrency,
     }),
     position.riskAmount
