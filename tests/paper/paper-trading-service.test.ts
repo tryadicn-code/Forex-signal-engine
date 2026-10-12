@@ -216,6 +216,35 @@ describe("PaperTradingService", () => {
     expect(data.recentOrders[0].rejectionReason).toBe("PAPER_MARKET_DATA_NOT_FRESH");
   });
 
+  it("accepts DELAYED market data by default (allowDelayed true)", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    const delayed = result({ freshness: "DELAYED" });
+
+    const data = await paper.processSnapshot(snapshot(delayed), provider);
+
+    expect(data.openPositions).toHaveLength(1);
+    expect(data.recentOrders[0].status).toBe("FILLED");
+  });
+
+  it("rejects DELAYED market data when allowDelayed is false", async () => {
+    const paper = new PaperTradingService(new InMemoryPaperStore(), {
+      initialBalance: 10_000,
+      accountCurrency: "USD",
+      maxOpenPositions: 10,
+      maxTotalOpenRiskPercent: 5,
+      allowDelayed: false,
+    });
+    const provider = new MockMarketDataProvider();
+    const delayed = result({ freshness: "DELAYED" });
+
+    const data = await paper.processSnapshot(snapshot(delayed), provider);
+
+    expect(data.openPositions).toHaveLength(0);
+    expect(data.recentOrders[0].status).toBe("REJECTED");
+    expect(data.recentOrders[0].rejectionReason).toBe("PAPER_MARKET_DATA_NOT_FRESH");
+  });
+
   it("closes a LONG at TP once and realizes +2R", async () => {
     const paper = service();
     const provider = new MockMarketDataProvider();
