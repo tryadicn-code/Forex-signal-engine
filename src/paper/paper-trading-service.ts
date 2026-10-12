@@ -487,6 +487,20 @@ export class PaperTradingService {
     const riskAmount = risk.riskCapital!;
     const pipValuePerLotAccountCurrency = riskAmount / (stopPips * size);
 
+    // TRD-RR-003: the execution plan decides whether this order is a plain
+    // single-TP trade or a partial plan. Legacy callers without a plan keep
+    // the historical single-TP shape.
+    const plan = risk.executionPlan ?? null;
+    const isPartial = plan?.kind === "PARTIAL";
+    const tp1 = isPartial ? plan.tp1 : null;
+    const tp2 = isPartial ? plan.tp2 : null;
+    const tp1SizePercent = isPartial ? plan.tp1SizePercent : 0;
+    const tp2SizePercent = isPartial ? plan.tp2SizePercent : 100;
+    // Legacy single-TP target uses takeProfit1 from the risk snapshot, which
+    // for a PARTIAL plan is the second leg target (baseline 2R). Keep the
+    // takeProfit field populated so paper UI and old code paths still work.
+    const legacyTakeProfit = isPartial ? tp2 : risk.takeProfit1 ?? null;
+
     const order: PaperOrder = {
       id: `order-${signalId}`,
       executionKey,
@@ -498,13 +512,15 @@ export class PaperTradingService {
       requestedEntry: entry,
       fillPrice: entry,
       stopLoss: risk.stopLoss!,
-      takeProfit: risk.takeProfit1 ?? null,
+      takeProfit: legacyTakeProfit,
       positionSize: size,
       riskAmount,
       riskPercent: risk.riskPercent!,
       plannedRR: risk.plannedRR ?? null,
       status: "FILLED",
       rejectionReason: null,
+      tp1,
+      tp2,
       engine: this.engineSnapshot(result, release),
     };
 
@@ -517,7 +533,7 @@ export class PaperTradingService {
       entryPrice: entry,
       currentPrice: entry,
       stopLoss: risk.stopLoss!,
-      takeProfit: risk.takeProfit1 ?? null,
+      takeProfit: legacyTakeProfit,
       positionSize: size,
       pipSize: risk.pipSize!,
       pipValuePerLotAccountCurrency,
@@ -532,6 +548,14 @@ export class PaperTradingService {
       currentR: 0,
       maxFavorableR: 0,
       maxAdverseR: 0,
+      tp1,
+      tp1SizePercent,
+      tp1HitAt: null,
+      tp2,
+      tp2SizePercent,
+      tp2HitAt: null,
+      remainingSize: size,
+      realizedPnL: 0,
       engine: order.engine,
     };
 
