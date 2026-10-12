@@ -7,7 +7,6 @@ import { analyzeBias } from "@/core/bias";
 import { analyzeSetup } from "@/core/setup";
 import { evaluateTrigger } from "@/core/trigger";
 import { evaluateRisk } from "@/core/risk";
-import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
 
@@ -194,31 +193,13 @@ export function analyzeTrendPullback(context: AnalysisContext): PipelineResult {
     context.targetLevels && context.targetLevels.length > 0
       ? context.targetLevels
       : undefined;
-  const structuralTargets = explicitTargets
-    ? []
-    : deriveStructuralTargetLevels({
-        entry,
-        direction: bias.data.direction,
-        pipSize,
-        setupStructure: setupStructure.data,
-        biasStructure: distinctTimeframes ? structure.data : undefined,
-        bufferPips: config.risk.structuralTargetBufferPips,
-      });
 
-  // Structure is used as a clearance gate, not as permission to stretch TP
-  // farther than the strategy's baseline target. If the nearest confirmed
-  // obstacle sits inside the minimum-R window, pass that obstacle to the Risk
-  // Engine so RR_TOO_LOW rejects the trade. Otherwise the Risk Engine keeps its
-  // normal 2R baseline. Explicit caller targets retain their existing meaning.
-  const minimumTargetDistance =
-    Math.abs(entry - setup.data.invalidationLevel) * config.risk.minRR;
-  const nearestStructuralTarget = structuralTargets[0];
-  const targetLevelsForRisk = explicitTargets
-    ? explicitTargets
-    : nearestStructuralTarget !== undefined &&
-        Math.abs(nearestStructuralTarget - entry) < minimumTargetDistance
-      ? [nearestStructuralTarget]
-      : undefined;
+
+  // Obstacle clearance gate disabled (owner directive 2026-10-12).
+  // Risk engine uses its baseline minRR-derived TP1 instead of the nearest
+  // structural obstacle, so signals are no longer rejected as RR_TOO_LOW
+  // purely because an obstacle sits inside the minRR window.
+  const targetLevelsForRisk = explicitTargets;
 
   const risk =
     trigger.data.state === "CONFIRMED"

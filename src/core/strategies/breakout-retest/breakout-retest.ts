@@ -4,7 +4,6 @@ import { analyzeStructure } from "@/core/structure";
 import { classifyRegime } from "@/core/regime";
 import { analyzeBias } from "@/core/bias";
 import { evaluateRisk } from "@/core/risk";
-import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
 
@@ -132,29 +131,9 @@ export function analyzeBreakoutRetest(
       ? context.targetLevels
       : undefined;
 
-  // Breakout trades still respect known structure ahead. A nearby obstacle is
-  // passed into the shared Risk Engine so the same minimum-RR rule can reject
-  // a breakout whose remaining room is insufficient.
-  const structuralTargets = explicitTargets
-    ? []
-    : deriveStructuralTargetLevels({
-        entry,
-        direction: bias.data.direction,
-        pipSize,
-        setupStructure: setupStructure.data,
-        biasStructure: structure.data,
-        bufferPips: config.risk.structuralTargetBufferPips,
-      });
-
-  const minimumTargetDistance =
-    Math.abs(entry - setup.data.invalidationLevel) * config.risk.minRR;
-  const nearestStructuralTarget = structuralTargets[0];
-  const targetLevelsForRisk = explicitTargets
-    ? explicitTargets
-    : nearestStructuralTarget !== undefined &&
-        Math.abs(nearestStructuralTarget - entry) < minimumTargetDistance
-      ? [nearestStructuralTarget]
-      : undefined;
+  // Obstacle clearance gate disabled (owner directive 2026-10-12).
+  // See trend-pullback.ts for rationale.
+  const targetLevelsForRisk = explicitTargets;
 
   const risk =
     trigger.data.state === "CONFIRMED"
