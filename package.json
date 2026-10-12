@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "coverage": "vitest run --coverage",
-    "dev:web": "next dev --hostname 0.0.0.0"
+    "dev:web": "next dev --hostname 0.0.0.0",
+    "experiment:rr": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/experiment-rr.ps1"
   },
   "dependencies": {
     "next": "16.3.6",
