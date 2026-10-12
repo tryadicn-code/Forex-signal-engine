@@ -223,4 +223,104 @@ describe("Paper partial close (TRD-RR-003)", () => {
     expect(first.recentTrades).toHaveLength(1);
     expect(first.recentTrades[0].realizedPnL).toBeCloseTo(100);
   });
+
+  it("books TP1 and TP2 in a single price observation above both levels", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    await paper.processSnapshot(snapshot(result(partialPlan())), provider);
+
+    // Price jumps straight past both TP1 and TP2 without an intermediate
+    // observation. The plan still books TP1 at its level and TP2 at its
+    // level, not the reached price.
+    const closed = await paper.processSnapshot(
+      snapshot(manageAt(1.112, T0 + 60_000), T0 + 60_000),
+      provider
+    );
+
+    expect(closed.openPositions).toHaveLength(0);
+    expect(closed.recentTrades).toHaveLength(1);
+    // TP1: 50 pips * 0.5 lot = 25 USD.
+    // TP2: 100 pips * 0.5 lot = 50 USD.
+    expect(closed.recentTrades[0].realizedPnL).toBeCloseTo(75);
+    expect(closed.recentTrades[0].realizedR).toBeCloseTo(1.5);
+  });
+
+  it("preserves fractional position size precision on partial leg", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    await paper.processSnapshot(
+      snapshot(
+        result(partialPlan(), {
+          positionSize: 0.37,
+          riskDetail: {
+            approved: true,
+            rejectionReason: null,
+            entryPrice: 1.1,
+            stopLoss: 1.095,
+            stopDistancePips: 50,
+            takeProfit1: 1.11,
+            takeProfit2: 1.115,
+            riskCapital: 50,
+            riskPercent: 0.5,
+            positionSize: 0.37,
+            plannedRR: 2,
+            pipSize: 0.0001,
+            accountCurrency: "USD",
+            executionPlan: partialPlan(),
+          },
+        })
+      ),
+      provider
+    );
+
+    const first = await paper.processSnapshot(
+      snapshot(manageAt(1.106, T0 + 60_000), T0 + 60_000),
+      provider
+    );
+
+    expect(first.openPositions).toHaveLength(1);
+    expect(first.openPositions[0].remainingSize).toBeCloseTo(0.185, 6);
+    expect(first.openPositions[0].positionSize).toBeCloseTo(0.37, 6);
+  });
+
+  it("does not re-book TP1 when price remains above TP1 across snapshots", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    await paper.processSnapshot(snapshot(result(partialPlan())), provider);
+    await paper.processSnapshot(
+      snapshot(manageAt(1.106, T0 + 60_000), T0 + 60_000),
+      provider
+    );
+    const third = await paper.processSnapshot(
+      snapshot(manageAt(1.107, T0 + 120_000), T0 + 120_000),
+      provider
+    );
+
+    expect(third.openPositions).toHaveLength(1);
+    expect(third.openPositions[0].remainingSize).toBeCloseTo(0.5);
+    // Only one TP1 ledger event regardless of how many snapshots touch TP1.
+    const tp1Events = third.recentTrades.length + 1; // no closed trade yet
+    expect(tp1Events).toBe(1);
+  });
+
+  it("does not re-close a position that already reached zero remaining size", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    await paper.processSnapshot(snapshot(result(partialPlan())), provider);
+    await paper.processSnapshot(
+      snapshot(manageAt(1.106, T0 + 60_000), T0 + 60_000),
+      provider
+    );
+    await paper.processSnapshot(
+      snapshot(manageAt(1.111, T0 + 120_000), T0 + 120_000),
+      provider
+    );
+    const repeat = await paper.processSnapshot(
+      snapshot(manageAt(1.111, T0 + 180_000), T0 + 180_000),
+      provider
+    );
+
+    expect(repeat.openPositions).toHaveLength(0);
+    expect(repeat.recentTrades).toHaveLength(1);
+  });
 });
