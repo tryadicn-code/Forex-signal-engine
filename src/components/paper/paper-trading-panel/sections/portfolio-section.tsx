@@ -187,26 +187,54 @@ export function PortfolioSection({
                   </div>
                 </div>
 
-                <div className="mt-2 grid grid-cols-4 gap-2 text-[11px] sm:text-[11px]">
-                  <InlineDatum
-                    label="Entry"
-                    value={formatPrice(position.symbol, position.entryPrice)}
-                  />
-                  <InlineDatum
-                    label="Current"
-                    value={formatPrice(position.symbol, position.currentPrice)}
-                  />
-                  <InlineDatum
-                    label="TP"
-                    value={formatPrice(position.symbol, position.takeProfit)}
-                    tone="positive"
-                  />
-                  <InlineDatum
-                    label="SL"
-                    value={formatPrice(position.symbol, position.stopLoss)}
-                    tone="negative"
-                  />
-                </div>
+                {position.tp1 != null ? (
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] sm:grid-cols-5">
+                    <InlineDatum
+                      label="Entry"
+                      value={formatPrice(position.symbol, position.entryPrice)}
+                    />
+                    <InlineDatum
+                      label="Current"
+                      value={formatPrice(position.symbol, position.currentPrice)}
+                    />
+                    <InlineDatum
+                      label={position.tp1HitAt != null ? "TP1 (hit)" : "TP1"}
+                      value={formatPrice(position.symbol, position.tp1)}
+                      tone="positive"
+                    />
+                    <InlineDatum
+                      label="TP2"
+                      value={formatPrice(position.symbol, position.tp2 ?? null)}
+                      tone="positive"
+                    />
+                    <InlineDatum
+                      label="SL"
+                      value={formatPrice(position.symbol, position.stopLoss)}
+                      tone="negative"
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-2 grid grid-cols-4 gap-2 text-[11px] sm:text-[11px]">
+                    <InlineDatum
+                      label="Entry"
+                      value={formatPrice(position.symbol, position.entryPrice)}
+                    />
+                    <InlineDatum
+                      label="Current"
+                      value={formatPrice(position.symbol, position.currentPrice)}
+                    />
+                    <InlineDatum
+                      label="TP"
+                      value={formatPrice(position.symbol, position.takeProfit)}
+                      tone="positive"
+                    />
+                    <InlineDatum
+                      label="SL"
+                      value={formatPrice(position.symbol, position.stopLoss)}
+                      tone="negative"
+                    />
+                  </div>
+                )}
 
                 <div className="mt-1.5 font-mono text-[11px] text-zinc-600">
                   MFE {(position.maxFavorableR ?? 0) >= 0 ? "+" : ""}
