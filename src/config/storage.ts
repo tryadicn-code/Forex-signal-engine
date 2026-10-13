@@ -12,6 +12,8 @@ export interface StoragePaths {
   notifications: string;
   scannerUniverse: string;
   signalFunnel: string;
+  strategyConfig: string;
+  strategyConfigAudit: string;
 }
 
 export function resolveStoragePaths(
@@ -46,6 +48,12 @@ export function resolveStoragePaths(
     signalFunnel:
       env.FSE_SIGNAL_FUNNEL_STORE_PATH?.trim() ||
       path.join(dataDirectory, "signal-funnel.json"),
+    strategyConfig:
+      env.FSE_STRATEGY_CONFIG_PATH?.trim() ||
+      path.join(dataDirectory, "strategy-config.json"),
+    strategyConfigAudit:
+      env.FSE_STRATEGY_CONFIG_AUDIT_PATH?.trim() ||
+      path.join(dataDirectory, "strategy-config-audit.json"),
   };
 }
 
