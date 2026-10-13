@@ -74,6 +74,40 @@ describe("PRICE_ACTION router force override", () => {
     expect(decision.reasonCode).toBe("FORCED_STRATEGY");
   });
 
+  it("PRICE_ACTION hadir di availableStrategyIds TIDAK otomatis mengoverride routing", async () => {
+    // Regression: TRD-RR-006. Kehadiran PRICE_ACTION di availableStrategyIds
+    // tidak boleh menggantikan regime mapping. Hanya forceStrategyId
+    // eksplisit yang boleh melakukannya.
+    const { routeStrategy } = await import("@/core/strategies/router");
+    const regime = {
+      status: "REGIME_TREND_DOWN",
+      score: 60,
+      confidence: 60,
+      evidence: [],
+      conflicts: [],
+      data: {
+        regime: "TREND_DOWN" as const,
+        baseRegime: "TREND_DOWN" as const,
+        direction: "SHORT" as const,
+        strength: 60,
+        adx: 30,
+        ema20: 1.1,
+        ema50: 1.12,
+        ema200: 1.15,
+        atr: 0.001,
+        bandWidthRatio: 1.0,
+      },
+      timestamp: "2024-01-01T00:00:00.000Z",
+    };
+    const decision = routeStrategy(
+      regime,
+      ["TREND_PULLBACK", "PRICE_ACTION"],
+      {}
+    );
+    expect(decision.selectedStrategyId).toBe("TREND_PULLBACK");
+    expect(decision.reasonCode).toBe("TREND_REGIME");
+  });
+
   it("tanpa forceStrategyId, mapping regime tetap dipakai", async () => {
     const { routeStrategy } = await import("@/core/strategies/router");
     const regime = {
