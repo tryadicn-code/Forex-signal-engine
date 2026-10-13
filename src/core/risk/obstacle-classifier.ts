@@ -17,6 +17,8 @@ export interface ObstacleClassificationInput {
   minRR: number;
   /** Obstacles below this R multiple block the candidate. */
   minObstacleR: number;
+  /** Upper bound of the "close 100% at obstacle" tier. */
+  closeObstacleMaxR: number;
   /** TP1 allocation for PARTIAL plans, as a percent of the initial size. */
   partialTP1SizePercent: number;
   /**
@@ -38,6 +40,7 @@ export function classifyObstacle(
     direction,
     minRR,
     minObstacleR,
+    closeObstacleMaxR,
     partialTP1SizePercent,
     partialTPEnabled,
     obstaclePrice,
@@ -87,7 +90,20 @@ export function classifyObstacle(
     };
   }
 
-  // minObstacleR <= obstacleR < minRR
+  // minObstacleR <= obstacleR < closeObstacleMaxR:
+  // close 100% at the obstacle. No partial TP here — the space is too tight
+  // for a second leg to be worth it, but the obstacle is real resistance.
+  if (obstacleR < closeObstacleMaxR) {
+    return {
+      kind: "FULL_OBSTACLE",
+      tp: obstaclePrice,
+      obstaclePrice,
+      obstacleR,
+    };
+  }
+
+  // closeObstacleMaxR <= obstacleR < minRR: PARTIAL when supported,
+  // otherwise fall back to FULL_2R so a single-TP paper build stays honest.
   if (!partialTPEnabled) {
     return {
       kind: "FULL_2R",

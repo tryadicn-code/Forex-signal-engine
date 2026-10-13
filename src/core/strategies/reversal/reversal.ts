@@ -151,6 +151,7 @@ export function analyzeReversal(
     direction,
     minRR: config.risk.minRR,
     minObstacleR: config.risk.minObstacleR,
+    closeObstacleMaxR: config.risk.closeObstacleMaxR,
     partialTP1SizePercent: config.risk.partialTP1SizePercent,
     partialTPEnabled: config.risk.partialTPEnabled,
     obstaclePrice: structuralTargets[0],

@@ -279,6 +279,12 @@ export type ExecutionPlan =
       tp: number;
       obstaclePrice?: number;
       obstacleR?: number;
+    }
+  | {
+      kind: "FULL_OBSTACLE";
+      tp: number;
+      obstaclePrice: number;
+      obstacleR: number;
     };
 
 /** Risk Engine payload (Section 10 spec). */

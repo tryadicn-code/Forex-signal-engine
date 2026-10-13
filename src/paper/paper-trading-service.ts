@@ -493,16 +493,26 @@ export class PaperTradingService {
     // TRD-RR-003: the execution plan decides whether this order is a plain
     // single-TP trade or a partial plan. Legacy callers without a plan keep
     // the historical single-TP shape.
+    //
+    // FULL_OBSTACLE: obstacle in [minObstacleR, closeObstacleMaxR) closes
+    // 100% at the obstacle. TP is the obstacle price, not the baseline 2R.
+    // PARTIAL: two-leg position with TP1 at the obstacle, TP2 at 2R.
+    // FULL_2R / undefined: legacy single TP at risk.takeProfit1.
     const plan = risk.executionPlan ?? null;
     const isPartial = plan?.kind === "PARTIAL";
+    const isFullObstacle = plan?.kind === "FULL_OBSTACLE";
     const tp1 = isPartial ? plan.tp1 : null;
     const tp2 = isPartial ? plan.tp2 : null;
     const tp1SizePercent = isPartial ? plan.tp1SizePercent : 0;
     const tp2SizePercent = isPartial ? plan.tp2SizePercent : 100;
     // Legacy single-TP target uses takeProfit1 from the risk snapshot, which
-    // for a PARTIAL plan is the second leg target (baseline 2R). Keep the
-    // takeProfit field populated so paper UI and old code paths still work.
-    const legacyTakeProfit = isPartial ? tp2 : risk.takeProfit1 ?? null;
+    // for a PARTIAL plan is the second leg target (baseline 2R). For
+    // FULL_OBSTACLE the actual take-profit is the obstacle price.
+    const legacyTakeProfit = isPartial
+      ? tp2
+      : isFullObstacle
+        ? plan.tp
+        : risk.takeProfit1 ?? null;
 
     const order: PaperOrder = {
       id: `order-${signalId}`,

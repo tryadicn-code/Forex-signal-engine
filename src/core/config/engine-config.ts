@@ -108,8 +108,14 @@ export interface EngineConfig {
     tp2RR: number;
     /** Buffer placed in front of confirmed structural target levels. */
     structuralTargetBufferPips: number;
-    /** TRD-RR-003: block candidates whose nearest obstacle sits below this R multiple. */
+    /**
+     * TRD-RR-003: block candidates whose nearest obstacle sits below this R
+     * multiple. Obstacles in [minObstacleR, closeObstacleMaxR) close 100% at
+     * the obstacle instead of running to TP2.
+     */
     minObstacleR: number;
+    /** TRD-RR-003: upper bound for the "close 100% at obstacle" tier. */
+    closeObstacleMaxR: number;
     /** TRD-RR-003: TP1 size percent for PARTIAL execution plans. */
     partialTP1SizePercent: number;
     /** TRD-RR-003: when false, PARTIAL plans downgrade to FULL_2R (Fase B transition). */
@@ -189,7 +195,8 @@ export const defaultEngineConfig: EngineConfig = {
     maxLotSize: 100,
     tp2RR: 3.0,
     structuralTargetBufferPips: 2,
-    minObstacleR: 1.0,
+    minObstacleR: 0.5,
+    closeObstacleMaxR: 1.0,
     partialTP1SizePercent: 50,
     // TRD-RR-003 Fase C: paper execution now supports multi-TP positions
     // (Blocks C1-C4). PARTIAL plans route to tp1/tp2 legs with partial
@@ -270,6 +277,14 @@ export function assertEngineConfigValid(config: EngineConfig): void {
   if (!(risk.minObstacleR > 0) || !(risk.minObstacleR <= risk.minRR)) {
     throw new Error(
       `Config invalid: minObstacleR ${risk.minObstacleR} must be > 0 and <= minRR ${risk.minRR}.`
+    );
+  }
+  if (
+    !(risk.closeObstacleMaxR >= risk.minObstacleR) ||
+    !(risk.closeObstacleMaxR <= risk.minRR)
+  ) {
+    throw new Error(
+      `Config invalid: closeObstacleMaxR ${risk.closeObstacleMaxR} must be between minObstacleR ${risk.minObstacleR} and minRR ${risk.minRR}.`
     );
   }
   if (
