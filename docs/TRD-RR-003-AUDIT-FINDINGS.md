@@ -143,4 +143,108 @@ Prioritas menengah:
 Prioritas rendah:
 6. Dokumentasi ulang HANDOVER.txt setelah temuan ini.
 
-Status: audit selesai untuk scope (A)+(B). Audit (C) dan Fase D pending.
+Status: audit selesai untuk scope (A)+(B)+(C). Fase D pending.
+
+## 11. Audit Routing dan Regime (C)
+
+### 11.1 Pertanyaan
+
+Kenapa RANGE_MEAN_REVERSION dan REVERSAL menghasilkan 0 sinyal, dan kenapa
+regime RANGE dan HIGH_VOLATILITY tidak pernah muncul di funnel?
+
+### 11.2 Fakta
+
+Distribusi regime (125.594 observasi, 9 hari):
+
+| Regime | Count | % |
+|---|---|---|
+| LOW_VOLATILITY | 80.145 | 63.8% |
+| TREND_DOWN | 27.201 | 21.7% |
+| STRONG_TREND_DOWN | 11.259 | 9.0% |
+| TREND_UP | 5.007 | 4.0% |
+| BREAKOUT | 2.918 | 2.3% |
+| STRONG_TREND_UP | 598 | 0.5% |
+| RANGE | 0 | 0% |
+| HIGH_VOLATILITY | 0 | 0% |
+
+Distribusi routingMode:
+- NO_STRATEGY: 80.145 (semua LOW_VOLATILITY)
+- REGIME_MATCH: 46.983 (semua regime lain)
+
+Distribusi strategyId: TREND_PULLBACK 43.726, BREAKOUT_RETEST 2.918,
+RANGE_MEAN_REVERSION 0, REVERSAL 0.
+
+Router (src/core/strategies/router.ts) dan policy
+(src/core/strategies/system-policy.ts) memetakan:
+- TREND_* -> TREND_PULLBACK
+- BREAKOUT -> BREAKOUT_RETEST
+- RANGE -> RANGE_MEAN_REVERSION
+- LOW_VOLATILITY -> WAIT (NO_STRATEGY)
+- HIGH_VOLATILITY -> CONDITIONAL_REVERSAL (REVERSAL hanya jika qualified)
+
+Keempat strategy terdaftar sebagai implementedStrategyIds. Tidak ada strategy
+yang unavailable.
+
+Config regime (src/core/config/engine-config.ts):
+- adxTrendThreshold: 25
+- adxStrongTrend: 40
+- highVolatilityAtrPct: 1.2
+- lowVolatilityAtrPct: 0.4
+- breakoutBandWidthRatio: 1.5
+- regimeLookback: 60
+
+Urutan cascade klasifikasi regime (regime-engine.ts:130-142):
+1. BREAKOUT jika isExpansion dan isTrending dan trendDirection != NEUTRAL
+2. STRONG_TREND_* jika trendDirection != NEUTRAL dan ADX >= 40
+3. TREND_* jika trendDirection != NEUTRAL dan ADX >= 25
+4. HIGH_VOLATILITY jika atrPct >= 1.2
+5. LOW_VOLATILITY jika atrPct <= 0.4
+6. RANGE (else)
+
+trendDirection = NEUTRAL jika |stackSignal + structureSignal| < 2, yaitu
+EMA stack dan structure tidak sepakat.
+
+### 11.3 Inference
+
+RANGE = 0 bukan bug router. RANGE hanya tercapai ketika:
+- bukan BREAKOUT,
+- trendDirection NEUTRAL atau ADX < 25, dan
+- 0.4 < atrPct < 1.2.
+
+Selama window, dua kondisi dominan (LOW_VOLATILITY dengan atrPct <= 0.4, dan
+TREND dengan ADX >= 25) menghabiskan seluruh kandidat. Tidak ada sisa yang
+masuk ke window RANGE. Dengan demikian, RANGE_MEAN_REVERSION tidak pernah
+dirutekan.
+
+HIGH_VOLATILITY = 0 karena atrPct >= 1.2 sangat jarang pada pasangan FX
+mayor di timeframe normal tanpa event volatil besar. Selama 9 hari tanpa
+event tersebut, tidak ada kandidat yang melewati threshold.
+
+REVERSAL = 0 karena HIGH_VOLATILITY = 0. Bahkan jika HIGH_VOLATILITY muncul,
+router hanya memilih REVERSAL jika reversalQualification.qualified true.
+
+### 11.4 Verdict
+
+Bukan bug. Kombinasi threshold regime dan kondisi market 9 hari (kompresi
+plus trend bearish) menyebabkan RANGE dan HIGH_VOLATILITY tidak pernah
+muncul, sehingga dua strategy yang bergantung padanya idle.
+
+### 11.5 Rekomendasi
+
+1. Jangan ubah threshold berdasarkan 9 hari data. Window terlalu pendek untuk
+   kalibrasi regime. Kumpulkan minimal 30 hari sebelum mempertimbangkan
+   perubahan threshold.
+2. Jika ingin kalibrasi threshold, perlakukan sebagai TRD terpisah (misalnya
+   TRD-RR-004 Regime Threshold Calibration) dengan evidence dan 7-step
+   process.
+3. Verifikasi dulu timeframe yang dipakai regime engine (D1 vs H4 vs H1)
+   sebelum menyimpulkan threshold terlalu ketat. ATR 1.2% mungkin wajar di
+   D1 tetapi tidak di H1.
+
+## 12. Status Akhir Audit
+
+Scope yang sudah selesai: (A) health check, (A2) executionPlan trace,
+(B) bottleneck + structural gate timeline, (R1) docs, (C) routing dan regime.
+
+Scope pending: (D) Fase D historical evaluation, (E) gap EXECUTE 139 vs
+FILLED 2, (F) rekonsiliasi klaim HANDOVER lainnya.
