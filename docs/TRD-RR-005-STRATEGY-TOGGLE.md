@@ -151,4 +151,17 @@ Mitigasi: fallback ke default (semua aktif) jika parse gagal.
 
 ## 9. Status
 
-Draft. Menunggu review dan approval sebelum implementasi Step 2.
+Implemented across steps 1-5:
+
+- Step 1 (be52c63): branch + TRD.
+- Step 2 (85c42b1): strategy-config type + validation + storage path.
+- Step 3 (391cc5f): scanner + orchestrator runtime strategy selection.
+- Step 4 (71cdd95): API route + dashboard panel.
+- Step 5: test stub for dashboard, full test suite green.
+
+Hot reload path: POST /api/strategy-config -> .data/strategy-config.json
++ audit trail -> identity string di scanner-access berubah -> scanner
+rebuild pada auto-scan cycle berikutnya. Race condition mid-scan ditangani
+oleh __fseScanInFlight await yang sudah ada.
+
+Belum merge ke master. Menunggu evaluasi manual di dev environment.
