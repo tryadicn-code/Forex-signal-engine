@@ -116,6 +116,14 @@ export interface EngineConfig {
     minObstacleR: number;
     /** TRD-RR-003: upper bound for the "close 100% at obstacle" tier. */
     closeObstacleMaxR: number;
+    /**
+     * TRD-RR-003 owner override: when false, the four-tier obstacle policy
+     * is bypassed and every candidate resolves to FULL_2R (single TP at
+     * baseline minRR). Use to A/B test whether obstacle gating is the
+     * bottleneck; flip back to true to restore BLOCK / FULL_OBSTACLE /
+     * PARTIAL classification.
+     */
+    obstaclePolicyEnabled: boolean;
     /** TRD-RR-003: TP1 size percent for PARTIAL execution plans. */
     partialTP1SizePercent: number;
     /** TRD-RR-003: when false, PARTIAL plans downgrade to FULL_2R (Fase B transition). */
@@ -198,6 +206,7 @@ export const defaultEngineConfig: EngineConfig = {
     minObstacleR: 0.5,
     closeObstacleMaxR: 1.0,
     partialTP1SizePercent: 50,
+    obstaclePolicyEnabled: false,
     // TRD-RR-003 Fase C: paper execution now supports multi-TP positions
     // (Blocks C1-C4). PARTIAL plans route to tp1/tp2 legs with partial
     // close at TP1 and final close at TP2 or SL.

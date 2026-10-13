@@ -8,6 +8,7 @@ const base = {
   minRR: 2,
   minObstacleR: 0.5,
   closeObstacleMaxR: 1,
+  obstaclePolicyEnabled: true,
   partialTP1SizePercent: 50,
   partialTPEnabled: false,
   obstaclePrice: undefined as number | undefined,

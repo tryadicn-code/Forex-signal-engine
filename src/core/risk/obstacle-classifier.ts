@@ -19,6 +19,8 @@ export interface ObstacleClassificationInput {
   minObstacleR: number;
   /** Upper bound of the "close 100% at obstacle" tier. */
   closeObstacleMaxR: number;
+  /** When false, bypass all tiers and return FULL_2R (owner override). */
+  obstaclePolicyEnabled: boolean;
   /** TP1 allocation for PARTIAL plans, as a percent of the initial size. */
   partialTP1SizePercent: number;
   /**
@@ -41,6 +43,7 @@ export function classifyObstacle(
     minRR,
     minObstacleR,
     closeObstacleMaxR,
+    obstaclePolicyEnabled,
     partialTP1SizePercent,
     partialTPEnabled,
     obstaclePrice,
@@ -54,6 +57,12 @@ export function classifyObstacle(
 
   const long = direction === "LONG";
   const baselineTP = entry + (long ? 1 : -1) * stopDistance * minRR;
+
+  // Owner override: obstacle policy disabled -> every candidate resolves to
+  // a single 2R target. No BLOCK, no FULL_OBSTACLE, no PARTIAL.
+  if (!obstaclePolicyEnabled) {
+    return { kind: "FULL_2R", tp: baselineTP };
+  }
 
   if (
     obstaclePrice === undefined ||
