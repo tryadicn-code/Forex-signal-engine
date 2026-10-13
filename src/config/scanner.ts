@@ -10,6 +10,7 @@
 import type { Timeframe } from "@/types/market";
 import type { SymbolMetadata } from "@/types/market-data";
 import { cloneScannerConfig } from "@/config/scanner-resolve";
+import type { ImplementedStrategyId } from "@/core/strategies/types";
 import {
   defaultEngineConfig,
   resolveConfig,
@@ -176,6 +177,11 @@ export interface ScannerConfig {
   engineConfig: EngineConfig;
   /** Multi-strategy thresholds/router inputs pinned by the active release. */
   strategyConfig: StrategyConfigBundle;
+  /**
+   * TRD-RR-005: runtime strategy selection. When omitted, the orchestrator
+   * falls back to IMPLEMENTED_STRATEGY_IDS (legacy behaviour).
+   */
+  availableStrategyIds?: ImplementedStrategyId[];
   /**
    * Operational mode. Phase 2 is SIGNAL_ONLY: the pipeline decides, it never
    * places an order and never connects a broker.

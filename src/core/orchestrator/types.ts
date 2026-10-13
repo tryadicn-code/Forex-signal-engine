@@ -16,6 +16,7 @@ import type {
 import type { ExecutionContext, Veto } from "@/core/execution";
 import type { DeepPartial, EngineConfig } from "@/core/config/engine-config";
 import type { StrategyConfigBundle } from "@/core/strategies/config";
+import type { ImplementedStrategyId } from "@/core/strategies/types";
 
 /** Input snapshot for a single timeframe. */
 export interface TimeframeInput {
@@ -57,6 +58,12 @@ export interface AnalysisContext {
   configOverrides?: DeepPartial<EngineConfig>;
   /** Strategy-specific thresholds; pinned by release governance when ACTIVE. */
   strategyConfigOverrides?: DeepPartial<StrategyConfigBundle>;
+  /**
+   * TRD-RR-005: runtime strategy selection. When provided, the orchestrator
+   * routes only to these strategy IDs. Falls back to IMPLEMENTED_STRATEGY_IDS
+   * when omitted (legacy behaviour).
+   */
+  availableStrategyIds?: ImplementedStrategyId[];
   vetoes?: Veto[];
   /**
    * True when the caller guarantees every snapshot in this context contains

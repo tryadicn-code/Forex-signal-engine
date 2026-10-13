@@ -59,9 +59,13 @@ export function analyzeMarketWithRouting(
     strategyConfig: context.strategyConfigOverrides?.reversal,
   });
 
+  // TRD-RR-005: runtime strategy selection. Fall back to the static
+  // IMPLEMENTED_STRATEGY_IDS when the caller does not supply a list.
+  const availableStrategyIds =
+    context.availableStrategyIds ?? IMPLEMENTED_STRATEGY_IDS;
   const routing = routeStrategy(
     routingRegime,
-    IMPLEMENTED_STRATEGY_IDS,
+    availableStrategyIds,
     { reversalQualification }
   );
 

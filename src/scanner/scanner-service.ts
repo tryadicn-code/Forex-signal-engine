@@ -441,6 +441,7 @@ export class ScannerService {
       quoteToAccountConversionRate: context!.quoteToAccountConversionRate,
       configOverrides: this.config.engineConfig,
       strategyConfigOverrides: this.config.strategyConfig,
+      availableStrategyIds: this.config.availableStrategyIds,
       execution: {
         now: asOf,
         mode: this.config.executionMode,
@@ -858,6 +859,7 @@ export class ScannerService {
       quoteToAccountConversionRate: context.quoteToAccountConversionRate,
       configOverrides: this.config.engineConfig,
       strategyConfigOverrides: this.config.strategyConfig,
+      availableStrategyIds: this.config.availableStrategyIds,
       execution: {
         now: asOf,
         mode: this.config.executionMode,
