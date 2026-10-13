@@ -72,6 +72,7 @@ function summary(
           observations === 0 ? 0 : Math.round((executions / observations) * 100),
       },
     ],
+    strategyBreakdown: [],
   };
 }
 
@@ -144,6 +145,7 @@ describe("TRD-017 downstream execution panel section", () => {
           rejectionReasons: [],
           failureCategoryStats: [],
           strategyRoutingStats: [],
+          strategyBreakdown: [],
           regimeStats: [],
           downstream: {
             paperFilled: 2,
@@ -172,6 +174,7 @@ describe("TRD-017 downstream execution panel section", () => {
           rejectionReasons: [],
           failureCategoryStats: [],
           strategyRoutingStats: [],
+          strategyBreakdown: [],
           regimeStats: [],
           downstream: {
             paperFilled: 0,
@@ -197,6 +200,7 @@ describe("TRD-017 downstream execution panel section", () => {
           rejectionReasons: [],
           failureCategoryStats: [],
           strategyRoutingStats: [],
+          strategyBreakdown: [],
           regimeStats: [],
           downstream: {
             paperFilled: 0,

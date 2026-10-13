@@ -4,6 +4,7 @@ import { STORAGE_PATHS } from "@/config/storage";
 import {
   buildSignalFunnelDashboard,
   type DownstreamOrderInput,
+  type DownstreamTradeInput,
   type SignalFunnelDashboard,
 } from "@/analytics/signal-funnel";
 import { readPaperDashboard } from "@/server/paper-trading-access";
@@ -79,16 +80,21 @@ export async function readSignalFunnelDashboard(
   try {
     const state = await store.read();
 
-    // TRD-017 Change B: read the paper store at the same time so downstream
-    // outcomes (filled / rejected with reason) appear next to the funnel
-    // stages. This is a read-time join and never mutates the funnel schema.
-    const downstream = await readDownstreamOrdersSafely();
+    // TRD-017 Change B / TRD-RR-003: read the paper store at the same time so
+    // downstream outcomes and per-strategy win rates appear next to the
+    // funnel stages. This is a read-time join and never mutates the funnel
+    // schema.
+    const [downstream, trades] = await Promise.all([
+      readDownstreamOrdersSafely(),
+      readDownstreamTradesSafely(),
+    ]);
 
     return {
       analytics: buildSignalFunnelDashboard(
         state.observations,
         asOf,
-        downstream
+        downstream,
+        trades
       ),
       persistenceError: getPersistenceError(),
     };
@@ -116,6 +122,25 @@ async function readDownstreamOrdersSafely(): Promise<DownstreamOrderInput[]> {
       requestedAt: order.requestedAt,
       status: order.status,
       rejectionReason: order.rejectionReason,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Read closed paper trades and project only what the per-strategy breakdown
+ * needs. Same failure policy as the orders reader: on error return an empty
+ * array so the funnel view still renders.
+ */
+async function readDownstreamTradesSafely(): Promise<DownstreamTradeInput[]> {
+  try {
+    const paper = await readPaperDashboard();
+    return paper.recentTrades.map((trade) => ({
+      closedAt: trade.closedAt,
+      engine: { strategyId: trade.engine.strategyId ?? null },
+      realizedPnL: trade.realizedPnL,
+      realizedR: trade.realizedR,
     }));
   } catch {
     return [];
