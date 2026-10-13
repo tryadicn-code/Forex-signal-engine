@@ -199,5 +199,16 @@ function preferredStrategyForRegime(
         reason:
           "Unconditional REVERSAL routing is not permitted by the Phase 12 policy.",
       };
+
+    case "PRICE_ACTION":
+      // TRD-RR-006: PRICE_ACTION is opt-in only. It is never selected by the
+      // default regime mapping; the router returns a fail-closed WAIT so a
+      // malformed policy cannot silently activate it.
+      return {
+        strategyId: null,
+        reasonCode: "LOW_VOLATILITY_WAIT",
+        reason:
+          "PRICE_ACTION is opt-in and must not be selected by regime routing.",
+      };
   }
 }
