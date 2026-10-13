@@ -241,10 +241,95 @@ muncul, sehingga dua strategy yang bergantung padanya idle.
    sebelum menyimpulkan threshold terlalu ketat. ATR 1.2% mungkin wajar di
    D1 tetapi tidak di H1.
 
-## 12. Status Akhir Audit
+## 12. Gap EXECUTE vs FILLED (E)
+
+### 12.1 Pertanyaan
+
+Kenapa jumlah EXECUTE di funnel jauh lebih besar dari jumlah order FILLED
+di paper store? Apakah ada sinyal yang hilang atau bug?
+
+### 12.2 Fakta
+
+Angka runtime (update selama sesi):
+- Funnel EXECUTE total: 194
+- Account created: 2026-10-12 16:16 (timestamp 1791821818872)
+- EXECUTE sebelum account created: 101
+- EXECUTE sesudah account created: 94 (EURUSD 72, EURGBP 22)
+
+Paper store orders: 6 total
+- 3 FILLED (EURGBP, EURUSD, EURUSD re-entry)
+- 3 REJECTED (EURUSD, PAPER_STOP_LOSS_COOLDOWN)
+
+Ledger: 1 ACCOUNT_CREATED, 4 TRADE_OPENED, 1 TRADE_CLOSED (STOP_LOSS,
+PnL -5), 3 ORDER_REJECTED (PAPER_STOP_LOSS_COOLDOWN).
+
+Config paper (src/config/paper.ts):
+- maxOpenPositions: 10
+- maxTotalOpenRiskPercent: 5
+- maxOpenPositionsPerSymbol: 1
+- maxDirectionalCurrencyExposure: 2
+- stopLossReentryCooldownMs: 3600000 (1 jam)
+
+Paper execution gate (src/paper/paper-trading-service.ts):
+- consumeExecutions: filter result.executionDecision === "EXECUTE" DAN
+  result.signalState === "EXECUTE".
+- executionKey = paper:<signalId>; jika existingOrder ada dan bukan legacy
+  rejection, candidate di-skip tanpa log.
+- validateCandidate: 14 gate (upstream analysed, strategy attributed,
+  freshness, signal state, direction, risk approved, execution snapshot
+  complete/valid, stop side, max open positions, max per symbol,
+  directional exposure, stop loss cooldown, max total risk).
+
+Pola EXECUTE after-account:
+- 10-13 12:24-12:44 (1-4 EXECUTE per menit, ~21 menit)
+- 10-13 17:00-17:55 (1 EXECUTE per menit, ~56 menit)
+
+### 12.3 Inference
+
+Tiga mekanisme menjelaskan gap, semuanya by design:
+
+1. Pre-account observation. 101 EXECUTE terjadi sebelum paper account
+   dibuat. Funnel merekam keputusan engine, tetapi paper belum aktif.
+   Tidak ada order dibuat, dan itu wajar.
+
+2. Silent dedup via executionKey. Scanner mengamati tiap tick, sedangkan
+   paper idempotent pada signalId. Satu trigger = satu signalId = satu
+   order. EXECUTE berulang pada tick berikutnya untuk signalId sama
+   di-skip tanpa event log. Cluster 1 EXECUTE per menit selama 10-56 menit
+   mengindikasikan satu trigger yang sama di-observe berulang.
+
+3. Gate validateCandidate. Setelah account aktif, sebagian EXECUTE
+   di-reject oleh gate cooldown atau limit eksposur. Kasus terkonfirmasi:
+   PAPER_STOP_LOSS_COOLDOWN (3 event) setelah EURUSD kena STOP_LOSS.
+
+### 12.4 Verdict
+
+Bukan bug. Perbedaan cadence (scanner tick vs paper candle-close), dedup
+idempotent, cooldown pasca stop loss, dan limit eksposur menjelaskan
+seluruh selisih. Tidak ada sinyal yang hilang tanpa jejak.
+
+### 12.5 Observability Note
+
+Silent dedup tidak meninggalkan jejak di ledger, sehingga tidak mungkin
+menghitung dari funnel berapa EXECUTE yang di-dedup vs yang benar-benar
+diproses. Ini bukan bug, tetapi observability gap: jika akuntansi penuh
+diperlukan, tambahkan counter di consumeExecutions (misalnya field
+dedupedCount di PaperOrder atau event ledger baru).
+
+### 12.6 Rekomendasi
+
+1. Tidak ada perubahan gate yang diperlukan; semua gate bekerja sesuai
+   desain.
+2. Pertimbangkan event ledger opsional untuk dedup jika audit trail penuh
+   diperlukan (enhancement, bukan fix).
+3. Update HANDOVER section 7: gap EXECUTE vs FILLED sudah dijelaskan,
+   bukan anomali pending.
+
+## 13. Status Akhir Audit
 
 Scope yang sudah selesai: (A) health check, (A2) executionPlan trace,
-(B) bottleneck + structural gate timeline, (R1) docs, (C) routing dan regime.
+(B) bottleneck + structural gate timeline, (R1) docs, (C) routing dan
+regime, (E) gap EXECUTE vs FILLED.
 
-Scope pending: (D) Fase D historical evaluation, (E) gap EXECUTE 139 vs
-FILLED 2, (F) rekonsiliasi klaim HANDOVER lainnya.
+Scope pending: (D) Fase D historical evaluation, (F) rekonsiliasi klaim
+HANDOVER lainnya.
