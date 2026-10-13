@@ -183,6 +183,12 @@ export interface ScannerConfig {
    */
   availableStrategyIds?: ImplementedStrategyId[];
   /**
+   * TRD-RR-006: explicit opt-in override. When set, the router bypasses the
+   * regime mapping and selects this strategy directly. scanner-access sets
+   * this to "PRICE_ACTION" when the operator enables it via the toggle.
+   */
+  forceStrategyId?: ImplementedStrategyId | null;
+  /**
    * Operational mode. Phase 2 is SIGNAL_ONLY: the pipeline decides, it never
    * places an order and never connects a broker.
    */

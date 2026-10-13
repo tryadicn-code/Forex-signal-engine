@@ -442,6 +442,7 @@ export class ScannerService {
       configOverrides: this.config.engineConfig,
       strategyConfigOverrides: this.config.strategyConfig,
       availableStrategyIds: this.config.availableStrategyIds,
+      forceStrategyId: this.config.forceStrategyId ?? null,
       execution: {
         now: asOf,
         mode: this.config.executionMode,
@@ -860,6 +861,7 @@ export class ScannerService {
       configOverrides: this.config.engineConfig,
       strategyConfigOverrides: this.config.strategyConfig,
       availableStrategyIds: this.config.availableStrategyIds,
+      forceStrategyId: this.config.forceStrategyId ?? null,
       execution: {
         now: asOf,
         mode: this.config.executionMode,

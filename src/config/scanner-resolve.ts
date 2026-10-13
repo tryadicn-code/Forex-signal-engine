@@ -34,5 +34,8 @@ export function cloneScannerConfig(config: ScannerConfig): ScannerConfig {
     ...(config.availableStrategyIds
       ? { availableStrategyIds: [...config.availableStrategyIds] }
       : {}),
+    ...(config.forceStrategyId !== undefined
+      ? { forceStrategyId: config.forceStrategyId }
+      : {}),
   };
 }

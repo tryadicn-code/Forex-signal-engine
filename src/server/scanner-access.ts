@@ -125,10 +125,16 @@ async function scannerForRelease(
   // IMPLEMENTED_STRATEGY_IDS set (legacy behaviour).
   const strategyState = await readStrategyConfigState();
   const enabledStrategies = strategyState.config.enabledStrategies;
+  // TRD-RR-006: when PRICE_ACTION is enabled via the toggle, force it as
+  // the selected strategy. Otherwise the default regime mapping applies.
+  const forceStrategyId = enabledStrategies.includes("PRICE_ACTION")
+    ? ("PRICE_ACTION" as const)
+    : null;
   const identity =
     releaseRuntimeIdentity(release) +
     "|symbols:" + universe.selected.join(",") +
-    "|strategies:" + enabledStrategies.join(",");
+    "|strategies:" + enabledStrategies.join(",") +
+    "|force:" + (forceStrategyId ?? "none");
 
   if (
     runtime.__fseScannerApi &&
@@ -153,6 +159,8 @@ async function scannerForRelease(
     symbols: universe.selected,
     // TRD-RR-005: runtime strategy selection identity.
     availableStrategyIds: [...enabledStrategies],
+    // TRD-RR-006: opt-in force for strategies outside the regime mapping.
+    forceStrategyId,
   };
 
   runtime.__fseScannerApi = new ScannerApi(overrides, {
