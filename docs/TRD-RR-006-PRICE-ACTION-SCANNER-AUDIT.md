@@ -366,5 +366,29 @@ Belum diverifikasi:
   sedikit atau lebih banyak daripada composite score.
 - Sumber data historis untuk backtest.
 
-Status: Audit Tahap 1 selesai. Menunggu keputusan user atas K1-K7 sebelum
-implementasi.
+Status: Audit Tahap 1 selesai. Implementasi MVP selesai di branch
+feat/strategy-toggle (commit 82b8ecc + commit lanjutan).
+
+Keputusan user (diterapkan di MVP):
+- K1: opt-in via toggle, router mapping lama tidak diubah.
+- K2: manual only. PRICE_ACTION tidak auto-selected oleh regime.
+- K3: tidak ada dedup cross-strategy di MVP (strategy berjalan eksklusif
+  saat diaktifkan, bukan paralel dengan strategy lama).
+- K4: strategy config terpisah (PriceActionConfig).
+- K5: reversal di-skip di MVP (enableReversal=false).
+- K6: reuse status existing (SetupState / TriggerState / ExecutionDecision).
+- K7: mock data dulu, MT5 historical menyusul.
+
+MVP scope yang selesai:
+- src/core/strategies/price-action/ (config, setup, trigger, wrapper, index).
+- Dua keluarga: TREND_PULLBACK dan BREAKOUT_RETEST.
+- Trigger hard requirement (structural AND location AND candle).
+- Router: forceStrategyId override.
+- Orchestrator: PRICE_ACTION otomatis force saat enabled via toggle.
+- Test: 8 case di tests/strategies/price-action.test.ts.
+
+Yang belum selesai (butuh sesi terpisah):
+- A/B test paralel penuh (butuh arsitektur observer terpisah).
+- Reversal family.
+- Backtest dan out-of-sample validation (Tahap 3-5).
+- Idempotency cross-strategy kalau nanti jalan paralel.

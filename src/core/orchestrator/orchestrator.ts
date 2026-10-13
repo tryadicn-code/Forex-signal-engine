@@ -63,10 +63,16 @@ export function analyzeMarketWithRouting(
   // IMPLEMENTED_STRATEGY_IDS when the caller does not supply a list.
   const availableStrategyIds =
     context.availableStrategyIds ?? IMPLEMENTED_STRATEGY_IDS;
+  // TRD-RR-006: if the caller enables PRICE_ACTION, force it as the
+  // selected strategy. This is the opt-in path for strategies that are
+  // not part of the default regime routing policy.
+  const forceStrategyId =
+    context.forceStrategyId ??
+    (availableStrategyIds.includes("PRICE_ACTION") ? "PRICE_ACTION" : null);
   const routing = routeStrategy(
     routingRegime,
     availableStrategyIds,
-    { reversalQualification }
+    { reversalQualification, forceStrategyId }
   );
 
   // TRD-004 B1: when the trigger timeframe is explicitly unavailable, the

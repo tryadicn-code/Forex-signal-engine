@@ -64,6 +64,12 @@ export interface AnalysisContext {
    * when omitted (legacy behaviour).
    */
   availableStrategyIds?: ImplementedStrategyId[];
+  /**
+   * TRD-RR-006: explicit opt-in strategy override. When set, the router
+   * bypasses the regime mapping and selects this strategy directly. Used
+   * for PRICE_ACTION which is not part of the default regime policy.
+   */
+  forceStrategyId?: ImplementedStrategyId | null;
   vetoes?: Veto[];
   /**
    * True when the caller guarantees every snapshot in this context contains
