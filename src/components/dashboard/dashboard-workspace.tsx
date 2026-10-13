@@ -10,6 +10,7 @@ import { ScannerFilters } from "@/components/scanner/scanner-filters";
 import { ScannerTable } from "@/components/scanner/scanner-table";
 import { ScannerUniverseControl } from "@/components/scanner/scanner-universe-control";
 import { SignalDetailPanel } from "@/components/signals/signal-detail-panel";
+import { StrategySelector } from "@/components/dashboard/strategy-selector";
 import {
   DEFAULT_QUERY,
   DEFAULT_SORT,
@@ -377,6 +378,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       <SignalFunnelSummary analytics={data.signalFunnel} />
 
       <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
+
+      <StrategySelector />
 
       <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-3 text-[11px] text-zinc-600">
         <span>
