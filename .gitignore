@@ -113,3 +113,4 @@ audit-trd-batch*.txt
 run*-debug.log
 # TRD-RR-002 experiment outputs
 experiments/
+snippet.ps1
