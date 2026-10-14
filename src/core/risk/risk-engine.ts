@@ -1,5 +1,5 @@
 import type { CurrencyPair, Direction } from "@/types/market";
-import type { EngineResult, Evidence, RiskResultData } from "@/types/engine";
+import type { EngineResult, Evidence, ExecutionPlan, RiskResultData } from "@/types/engine";
 import { resolveConfig } from "@/core/config/engine-config";
 import type { DeepPartial, EngineConfig } from "@/core/config/engine-config";
 import { engineTimestamp } from "@/core/indicators";
@@ -45,6 +45,13 @@ export interface RiskInput {
   quoteToAccountConversionRate?: number;
   /** Market time used for the result timestamp, for deterministic replay. */
   marketAsOf?: number;
+  /**
+   * TRD-RR-003: optional execution plan produced by the strategy from the
+   * nearest structural obstacle. When kind === "BLOCK", the risk engine
+   * rejects the candidate with RR_TOO_LOW_OBSTACLE. Otherwise the plan is
+   * passed through unchanged so paper execution can honour it later.
+   */
+  executionPlan?: ExecutionPlan;
 }
 
 /**
@@ -152,6 +159,12 @@ export function evaluateRisk(
   if (!stopOnCorrectSide) reasons.push("INVALID_STOP");
   if (stopDistance <= 0) reasons.push("INVALID_STOP");
   if (!(rr >= riskConfig.minRR)) reasons.push("RR_TOO_LOW");
+  // TRD-RR-003: an obstacle inside the minObstacleR window blocks the trade
+  // even when the baseline RR passes, because entry would run into known
+  // structural resistance on the profit side.
+  if (input.executionPlan?.kind === "BLOCK") {
+    reasons.push("RR_TOO_LOW_OBSTACLE");
+  }
   if (!(riskPercent >= riskConfig.minRiskPercent)) reasons.push("RISK_BELOW_FLOOR");
   if (!(riskPercent <= riskConfig.maxRiskPercent)) reasons.push("RISK_TOO_HIGH");
   if (!(accountBalance > 0)) reasons.push("NO_BALANCE");
@@ -245,6 +258,7 @@ export function evaluateRisk(
     tp2,
     approved,
     rejectionReason: approved ? null : reasons.join(","),
+    ...(input.executionPlan ? { executionPlan: input.executionPlan } : {}),
   };
 
   return {

@@ -124,7 +124,7 @@ export class PaperTradingService {
       this.closePosition(
         state,
         marked,
-        { exitPrice: quote.data.price, reason: "MANUAL_PAPER_CLOSE" },
+        { exitPrice: quote.data.price, reason: "MANUAL_PAPER_CLOSE", sizeFraction: 1 },
         at
       );
       await this.store.save(state);
@@ -212,9 +212,13 @@ export class PaperTradingService {
         position = markPosition(position, currentPrice, asOf);
         this.replacePosition(state, position);
 
-        const liveExit = evaluatePriceExit(position, currentPrice);
-        if (liveExit) {
-          this.closePosition(state, position, liveExit, asOf);
+        const liveEvents = evaluatePriceExit(position, currentPrice);
+        if (liveEvents.length > 0) {
+          for (const ev of liveEvents) {
+            const current = state.positions.find((item) => item.id === position.id);
+            if (!current || current.status !== "OPEN") break;
+            this.applyExitEvent(state, current, ev, asOf);
+          }
           continue;
         }
       }
@@ -256,7 +260,7 @@ export class PaperTradingService {
         );
         this.replacePosition(state, position);
 
-        const decision = evaluateBarExit(
+        const events = evaluateBarExit(
           position,
           candle,
           this.config.intrabarConflictPolicy
@@ -268,13 +272,13 @@ export class PaperTradingService {
         };
         this.replacePosition(state, position);
 
-        if (decision) {
-          this.closePosition(
-            state,
-            position,
-            decision,
-            candleCloseTime("M15", candle.timestamp)
-          );
+        if (events.length > 0) {
+          const closedAt = candleCloseTime("M15", candle.timestamp);
+          for (const ev of events) {
+            const current = state.positions.find((item) => item.id === position.id);
+            if (!current || current.status !== "OPEN") break;
+            this.applyExitEvent(state, current, ev, closedAt);
+          }
           break;
         }
       }
@@ -342,7 +346,10 @@ export class PaperTradingService {
     const risk = result.riskDetail;
     if (result.status !== "ANALYSED") return "PAPER_UPSTREAM_NOT_ANALYSED";
     if (!result.strategyId) return "PAPER_STRATEGY_UNATTRIBUTED";
-    if (result.freshness !== "FRESH") return "PAPER_MARKET_DATA_NOT_FRESH";
+    if (result.freshness === "STALE") return "PAPER_MARKET_DATA_NOT_FRESH";
+    if (result.freshness === "DELAYED" && !this.config.allowDelayed) {
+      return "PAPER_MARKET_DATA_NOT_FRESH";
+    }
     if (result.signalState !== "EXECUTE") return "PAPER_SIGNAL_STATE_NOT_EXECUTE";
     if (result.biasDirection !== "LONG" && result.biasDirection !== "SHORT") {
       return "PAPER_DIRECTION_INVALID";
@@ -483,6 +490,30 @@ export class PaperTradingService {
     const riskAmount = risk.riskCapital!;
     const pipValuePerLotAccountCurrency = riskAmount / (stopPips * size);
 
+    // TRD-RR-003: the execution plan decides whether this order is a plain
+    // single-TP trade or a partial plan. Legacy callers without a plan keep
+    // the historical single-TP shape.
+    //
+    // FULL_OBSTACLE: obstacle in [minObstacleR, closeObstacleMaxR) closes
+    // 100% at the obstacle. TP is the obstacle price, not the baseline 2R.
+    // PARTIAL: two-leg position with TP1 at the obstacle, TP2 at 2R.
+    // FULL_2R / undefined: legacy single TP at risk.takeProfit1.
+    const plan = risk.executionPlan ?? null;
+    const isPartial = plan?.kind === "PARTIAL";
+    const isFullObstacle = plan?.kind === "FULL_OBSTACLE";
+    const tp1 = isPartial ? plan.tp1 : null;
+    const tp2 = isPartial ? plan.tp2 : null;
+    const tp1SizePercent = isPartial ? plan.tp1SizePercent : 0;
+    const tp2SizePercent = isPartial ? plan.tp2SizePercent : 100;
+    // Legacy single-TP target uses takeProfit1 from the risk snapshot, which
+    // for a PARTIAL plan is the second leg target (baseline 2R). For
+    // FULL_OBSTACLE the actual take-profit is the obstacle price.
+    const legacyTakeProfit = isPartial
+      ? tp2
+      : isFullObstacle
+        ? plan.tp
+        : risk.takeProfit1 ?? null;
+
     const order: PaperOrder = {
       id: `order-${signalId}`,
       executionKey,
@@ -494,13 +525,15 @@ export class PaperTradingService {
       requestedEntry: entry,
       fillPrice: entry,
       stopLoss: risk.stopLoss!,
-      takeProfit: risk.takeProfit1 ?? null,
+      takeProfit: legacyTakeProfit,
       positionSize: size,
       riskAmount,
       riskPercent: risk.riskPercent!,
       plannedRR: risk.plannedRR ?? null,
       status: "FILLED",
       rejectionReason: null,
+      tp1,
+      tp2,
       engine: this.engineSnapshot(result, release),
     };
 
@@ -513,7 +546,7 @@ export class PaperTradingService {
       entryPrice: entry,
       currentPrice: entry,
       stopLoss: risk.stopLoss!,
-      takeProfit: risk.takeProfit1 ?? null,
+      takeProfit: legacyTakeProfit,
       positionSize: size,
       pipSize: risk.pipSize!,
       pipValuePerLotAccountCurrency,
@@ -528,6 +561,14 @@ export class PaperTradingService {
       currentR: 0,
       maxFavorableR: 0,
       maxAdverseR: 0,
+      tp1,
+      tp1SizePercent,
+      tp1HitAt: null,
+      tp2,
+      tp2SizePercent,
+      tp2HitAt: null,
+      remainingSize: size,
+      realizedPnL: 0,
       engine: order.engine,
     };
 
@@ -544,6 +585,74 @@ export class PaperTradingService {
     });
   }
 
+  /**
+   * TRD-RR-003: dispatch one exit event from the calculator. Partial events
+   * book a leg and keep the position open; full events close the position.
+   */
+  private applyExitEvent(
+    state: PaperStoreState,
+    position: PaperPosition,
+    decision: ExitDecision,
+    closedAt: number
+  ): void {
+    if (decision.reason === "PARTIAL_TAKE_PROFIT") {
+      this.closePartial(state, position, decision, closedAt);
+      return;
+    }
+    this.closePosition(state, position, decision, closedAt);
+  }
+
+  /**
+   * TRD-RR-003: close a fraction of an open position and keep the remainder
+   * open for the next leg. Updates remainingSize, realizedPnL, tp1HitAt and
+   * records a TRADE_PARTIALLY_CLOSED ledger event. Idempotent: if tp1HitAt
+   * is already set, this is a no-op.
+   */
+  private closePartial(
+    state: PaperStoreState,
+    position: PaperPosition,
+    decision: ExitDecision,
+    closedAt: number
+  ): void {
+    const current = state.positions.find((item) => item.id === position.id);
+    if (!current || current.status !== "OPEN") return;
+    if (current.tp1HitAt != null) return;
+
+    const legSize = current.positionSize * decision.sizeFraction;
+    if (!(legSize > 0)) return;
+
+    const legPnL = calculatePnl({
+      side: current.side,
+      entryPrice: current.entryPrice,
+      exitPrice: decision.exitPrice,
+      pipSize: current.pipSize,
+      positionSize: legSize,
+      pipValuePerLotAccountCurrency: current.pipValuePerLotAccountCurrency,
+    });
+
+    const remainingSize = Math.max(0, (current.remainingSize ?? current.positionSize) - legSize);
+    const realizedPnL = (current.realizedPnL ?? 0) + legPnL;
+
+    this.replacePosition(state, {
+      ...current,
+      tp1HitAt: closedAt,
+      remainingSize,
+      realizedPnL,
+      currentPrice: decision.exitPrice,
+      updatedAt: closedAt,
+    });
+
+    state.ledger.push({
+      id: `ledger-partial-${current.signalId}-tp1`,
+      type: "TRADE_PARTIALLY_CLOSED",
+      timestamp: closedAt,
+      symbol: current.symbol,
+      signalId: current.signalId,
+      amount: legPnL,
+      note: `PARTIAL_TAKE_PROFIT at ${decision.exitPrice}; leg size ${legSize}; remaining ${remainingSize}; realized ${legPnL}.`,
+    });
+  }
+
   private closePosition(
     state: PaperStoreState,
     position: PaperPosition,
@@ -553,15 +662,19 @@ export class PaperTradingService {
     const current = state.positions.find((item) => item.id === position.id);
     if (!current || current.status !== "OPEN") return;
 
-    const realizedPnL = calculatePnl({
+    // TRD-RR-003: the final leg sizes on the OPEN remainder, and the trade
+    // record carries the aggregate P&L across every closed leg.
+    const openSize = current.remainingSize ?? current.positionSize;
+    const legPnL = calculatePnl({
       side: current.side,
       entryPrice: current.entryPrice,
       exitPrice: decision.exitPrice,
       pipSize: current.pipSize,
-      positionSize: current.positionSize,
+      positionSize: openSize,
       pipValuePerLotAccountCurrency: current.pipValuePerLotAccountCurrency,
     });
-    const realizedR = calculateR(realizedPnL, current.riskAmount);
+    const totalRealizedPnL = (current.realizedPnL ?? 0) + legPnL;
+    const realizedR = calculateR(totalRealizedPnL, current.riskAmount);
     const balanceBefore = this.accountSummary(state).balance;
     const trade: PaperTrade = {
       id: `trade-${current.signalId}`,
@@ -578,8 +691,8 @@ export class PaperTradingService {
       riskAmount: current.riskAmount,
       riskPercent: current.riskPercent,
       plannedRR: current.plannedRR,
-      realizedPnL,
-      realizedPnLPercent: balanceBefore > 0 ? (realizedPnL / balanceBefore) * 100 : 0,
+      realizedPnL: totalRealizedPnL,
+      realizedPnLPercent: balanceBefore > 0 ? (totalRealizedPnL / balanceBefore) * 100 : 0,
       realizedR,
       maxFavorableR: current.maxFavorableR ?? Math.max(0, realizedR),
       maxAdverseR: current.maxAdverseR ?? Math.min(0, realizedR),
@@ -597,6 +710,8 @@ export class PaperTradingService {
       status: "CLOSED",
       unrealizedPnL: 0,
       currentR: realizedR,
+      remainingSize: 0,
+      realizedPnL: totalRealizedPnL,
     });
     if (!state.trades.some((item) => item.id === trade.id)) {
       state.trades.push(trade);
@@ -606,8 +721,8 @@ export class PaperTradingService {
         timestamp: closedAt,
         symbol: current.symbol,
         signalId: current.signalId,
-        amount: realizedPnL,
-        note: `${decision.reason} at ${decision.exitPrice}; realized ${realizedPnL}.`,
+        amount: legPnL,
+        note: `${decision.reason} at ${decision.exitPrice}; final leg PnL ${legPnL}; trade total ${totalRealizedPnL}.`,
       });
     }
   }
@@ -638,8 +753,16 @@ export class PaperTradingService {
   }
 
   private accountSummary(state: PaperStoreState): PaperAccountSummary {
-    const realizedPnL = state.trades.reduce((sum, trade) => sum + trade.realizedPnL, 0);
+    // TRD-RR-003: closed trades already carry their aggregate P&L. Partial
+    // legs on still-open positions are booked here so balance reflects every
+    // realized leg exactly once.
+    const closedPnL = state.trades.reduce((sum, trade) => sum + trade.realizedPnL, 0);
     const openPositions = state.positions.filter((position) => position.status === "OPEN");
+    const partialPnL = openPositions.reduce(
+      (sum, position) => sum + (position.realizedPnL ?? 0),
+      0
+    );
+    const realizedPnL = closedPnL + partialPnL;
     const unrealizedPnL = openPositions.reduce(
       (sum, position) => sum + position.unrealizedPnL,
       0

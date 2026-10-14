@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { PaperTradingService } from "@/paper/paper-trading-service";
+import type { PaperTradingConfig } from "@/config/paper";
 import { InMemoryPaperStore } from "@/paper/store";
 import { MockMarketDataProvider } from "@/providers/market-data/mock-provider";
 import type { ScannerSnapshot, SymbolScanResult } from "@/scanner/scanner-result";
@@ -80,12 +81,13 @@ function snapshot(item: SymbolScanResult, at = T0): ScannerSnapshot {
   };
 }
 
-function service() {
+function service(overrides: Partial<PaperTradingConfig> = {}) {
   return new PaperTradingService(new InMemoryPaperStore(), {
     initialBalance: 10_000,
     accountCurrency: "USD",
     maxOpenPositions: 10,
     maxTotalOpenRiskPercent: 5,
+    ...overrides,
   });
 }
 
@@ -212,6 +214,35 @@ describe("PaperTradingService", () => {
 
     expect(data.openPositions).toHaveLength(0);
     expect(data.recentOrders).toHaveLength(1);
+    expect(data.recentOrders[0].status).toBe("REJECTED");
+    expect(data.recentOrders[0].rejectionReason).toBe("PAPER_MARKET_DATA_NOT_FRESH");
+  });
+
+  it("accepts DELAYED market data by default (allowDelayed true)", async () => {
+    const paper = service();
+    const provider = new MockMarketDataProvider();
+    const delayed = result({ freshness: "DELAYED" });
+
+    const data = await paper.processSnapshot(snapshot(delayed), provider);
+
+    expect(data.openPositions).toHaveLength(1);
+    expect(data.recentOrders[0].status).toBe("FILLED");
+  });
+
+  it("rejects DELAYED market data when allowDelayed is false", async () => {
+    const paper = new PaperTradingService(new InMemoryPaperStore(), {
+      initialBalance: 10_000,
+      accountCurrency: "USD",
+      maxOpenPositions: 10,
+      maxTotalOpenRiskPercent: 5,
+      allowDelayed: false,
+    });
+    const provider = new MockMarketDataProvider();
+    const delayed = result({ freshness: "DELAYED" });
+
+    const data = await paper.processSnapshot(snapshot(delayed), provider);
+
+    expect(data.openPositions).toHaveLength(0);
     expect(data.recentOrders[0].status).toBe("REJECTED");
     expect(data.recentOrders[0].rejectionReason).toBe("PAPER_MARKET_DATA_NOT_FRESH");
   });
@@ -354,7 +385,7 @@ describe("PaperTradingService", () => {
 
 
   it("blocks repeated entries while the same symbol position is already open", async () => {
-    const paper = service();
+    const paper = service({ maxOpenPositionsPerSymbol: 1 });
     const provider = new MockMarketDataProvider();
 
     await paper.processSnapshot(

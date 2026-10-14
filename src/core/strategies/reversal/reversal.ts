@@ -3,6 +3,7 @@ import type { StrategyDefinition } from "@/core/strategies/types";
 import { analyzeStructure } from "@/core/structure";
 import { classifyRegime } from "@/core/regime";
 import { evaluateRisk } from "@/core/risk";
+import { classifyObstacle } from "@/core/risk/obstacle-classifier";
 import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
@@ -129,6 +130,10 @@ export function analyzeReversal(
     context.targetLevels && context.targetLevels.length > 0
       ? context.targetLevels
       : undefined;
+  // TRD-RR-003: obstacle-aware execution plan, consistent with
+  // TREND_PULLBACK and BREAKOUT_RETEST. The nearest confirmed obstacle is
+  // classified into BLOCK / PARTIAL / FULL_2R; the risk engine gates on the
+  // plan, and explicit caller targets bypass classification.
   const structuralTargets = explicitTargets
     ? []
     : deriveStructuralTargetLevels({
@@ -139,9 +144,21 @@ export function analyzeReversal(
         biasStructure: structure.data,
         bufferPips: config.risk.structuralTargetBufferPips,
       });
-  const targetLevels =
-    explicitTargets ??
-    (structuralTargets.length > 0 ? structuralTargets : undefined);
+
+  const executionPlan = classifyObstacle({
+    entry,
+    stop: setup.data.invalidationLevel,
+    direction,
+    minRR: config.risk.minRR,
+    minObstacleR: config.risk.minObstacleR,
+    closeObstacleMaxR: config.risk.closeObstacleMaxR,
+    obstaclePolicyEnabled: config.risk.obstaclePolicyEnabled,
+    partialTP1SizePercent: config.risk.partialTP1SizePercent,
+    partialTPEnabled: config.risk.partialTPEnabled,
+    obstaclePrice: structuralTargets[0],
+  });
+
+  const targetLevels = explicitTargets;
 
   const risk =
     trigger.data.state === "CONFIRMED"
@@ -155,6 +172,7 @@ export function analyzeReversal(
               context.riskPercent ?? config.risk.defaultRiskPercent,
             instrument,
             targetLevels,
+            executionPlan,
             direction,
             quoteToAccountConversionRate:
               context.quoteToAccountConversionRate,

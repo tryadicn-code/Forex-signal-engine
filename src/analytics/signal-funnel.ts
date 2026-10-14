@@ -1,4 +1,8 @@
 import type { PipelineResult } from "@/core/orchestrator";
+import {
+  computeStrategyBreakdown,
+  type StrategyBreakdownEntry,
+} from "@/analytics/strategy-breakdown";
 import type { SymbolScanResult } from "@/scanner/scanner-result";
 
 export const SIGNAL_FUNNEL_STAGES = [
@@ -135,6 +139,18 @@ export interface StrategyRoutingFunnelStat {
   executionRate: number;
 }
 
+/**
+ * TRD-RR-003 analytics: minimal shape of one closed paper trade, consumed by
+ * the per-strategy breakdown. Kept separate from @/paper so this module never
+ * imports the paper implementation.
+ */
+export interface DownstreamTradeInput {
+  closedAt: number;
+  engine: { strategyId?: string | null };
+  realizedPnL: number;
+  realizedR: number;
+}
+
 export interface SignalFunnelSummary {
   window: SignalFunnelWindow;
   from: number;
@@ -146,6 +162,8 @@ export interface SignalFunnelSummary {
   failureCategoryStats: FailureCategoryStat[];
   regimeStats: RegimeFunnelStat[];
   strategyRoutingStats: StrategyRoutingFunnelStat[];
+  /** TRD-RR-003: per-strategy signal counts + closed-trade win rate. */
+  strategyBreakdown: StrategyBreakdownEntry[];
   /**
    * TRD-017 Change B: downstream paper/broker outcomes for the same window.
    * Computed at read time from the paper store; never stored in the funnel.
@@ -434,14 +452,15 @@ export function buildSignalFunnelObservation(
 export function buildSignalFunnelDashboard(
   observations: SignalFunnelObservation[],
   asOf: number,
-  downstream?: DownstreamOrderInput[]
+  downstream?: DownstreamOrderInput[],
+  trades?: DownstreamTradeInput[]
 ): SignalFunnelDashboard {
   return {
     asOf,
     windows: {
-      "24H": summarizeWindow(observations, "24H", asOf, downstream),
-      "7D": summarizeWindow(observations, "7D", asOf, downstream),
-      "30D": summarizeWindow(observations, "30D", asOf, downstream),
+      "24H": summarizeWindow(observations, "24H", asOf, downstream, trades),
+      "7D": summarizeWindow(observations, "7D", asOf, downstream, trades),
+      "30D": summarizeWindow(observations, "30D", asOf, downstream, trades),
     },
   };
 }
@@ -450,7 +469,8 @@ function summarizeWindow(
   observations: SignalFunnelObservation[],
   window: SignalFunnelWindow,
   asOf: number,
-  downstream: DownstreamOrderInput[] | undefined
+  downstream: DownstreamOrderInput[] | undefined,
+  trades: DownstreamTradeInput[] | undefined
 ): SignalFunnelSummary {
   const from = asOf - SIGNAL_FUNNEL_WINDOW_MS[window];
   const filtered = observations.filter(
@@ -594,6 +614,11 @@ function summarizeWindow(
       (a.category < b.category ? -1 : a.category > b.category ? 1 : 0)
     );
 
+  const tradesInWindow = (trades ?? []).filter(
+    (trade) => trade.closedAt >= from && trade.closedAt <= asOf
+  );
+  const strategyBreakdown = computeStrategyBreakdown(filtered, tradesInWindow);
+
   return {
     window,
     from,
@@ -604,6 +629,7 @@ function summarizeWindow(
     rejectionReasons,
     regimeStats,
     strategyRoutingStats,
+    strategyBreakdown,
     failureCategoryStats,
     downstream: summarizeDownstream(downstream, from, asOf),
   };

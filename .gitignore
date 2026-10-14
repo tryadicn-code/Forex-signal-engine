@@ -111,3 +111,7 @@ audit-batch*.txt
 audit-trd-batch*.txt
 *.bak
 run*-debug.log
+# TRD-RR-002 experiment outputs
+experiments/
+snippet.ps1
+HANDOVER*.txt

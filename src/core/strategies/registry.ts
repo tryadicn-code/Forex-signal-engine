@@ -10,6 +10,9 @@ import {
 import {
   REVERSAL_STRATEGY,
 } from "@/core/strategies/reversal";
+import {
+  PRICE_ACTION_STRATEGY,
+} from "@/core/strategies/price-action";
 import type {
   ImplementedStrategyId,
   StrategyDefinition,
@@ -21,6 +24,7 @@ const REGISTRY: Readonly<Record<ImplementedStrategyId, StrategyDefinition>> = {
   BREAKOUT_RETEST: BREAKOUT_RETEST_STRATEGY,
   RANGE_MEAN_REVERSION: RANGE_MEAN_REVERSION_STRATEGY,
   REVERSAL: REVERSAL_STRATEGY,
+  PRICE_ACTION: PRICE_ACTION_STRATEGY,
 };
 
 export const IMPLEMENTED_STRATEGY_IDS =

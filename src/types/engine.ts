@@ -244,6 +244,49 @@ export interface TriggerResultData {
   breakdown: TriggerBreakdown;
 }
 
+/**
+ * TRD-RR-003: execution plan derived from the nearest structural obstacle.
+ *
+ * - BLOCK: obstacle sits inside the minimum-risk window (obstacleR < minObstacleR);
+ *   the candidate is not allowed to open a position.
+ * - PARTIAL: obstacle sits between minObstacleR and minRR; TP1 at the obstacle,
+ *   TP2 at the baseline minRR target. Sizes split by partialTP1SizePercent.
+ * - FULL_2R: no obstacle, obstacle on the wrong side, or obstacle at/beyond minRR;
+ *   single TP at the baseline minRR target.
+ *
+ * Fase B (partialTPEnabled = false) downgrades PARTIAL to FULL_2R so paper
+ * execution that still supports only a single TP is never handed a multi-TP
+ * plan it cannot honor.
+ */
+export type ExecutionPlan =
+  | {
+      kind: "BLOCK";
+      reason: "RR_TOO_LOW_OBSTACLE";
+      obstaclePrice: number;
+      obstacleR: number;
+    }
+  | {
+      kind: "PARTIAL";
+      tp1: number;
+      tp1SizePercent: number;
+      tp2: number;
+      tp2SizePercent: number;
+      obstaclePrice: number;
+      obstacleR: number;
+    }
+  | {
+      kind: "FULL_2R";
+      tp: number;
+      obstaclePrice?: number;
+      obstacleR?: number;
+    }
+  | {
+      kind: "FULL_OBSTACLE";
+      tp: number;
+      obstaclePrice: number;
+      obstacleR: number;
+    };
+
 /** Risk Engine payload (Section 10 spec). */
 export interface RiskResultData {
   riskCapital: number;
@@ -258,6 +301,8 @@ export interface RiskResultData {
   tp2: number;
   approved: boolean;
   rejectionReason: string | null;
+  /** TRD-RR-003: execution plan carried forward to paper execution. */
+  executionPlan?: ExecutionPlan;
 }
 
 /** Execution Engine payload (Section 11 spec). */

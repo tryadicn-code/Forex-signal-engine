@@ -11,6 +11,18 @@ vi.mock("@/components/signals/price-chart", () => ({
   ),
 }));
 
+// TRD-RR-005: the strategy selector owns its own fetch lifecycle. Stub it in
+// dashboard tests so the fetch-mock assertions stay focused on the scanner.
+vi.mock("@/components/dashboard/strategy-selector", () => ({
+  StrategySelector: () => null,
+}));
+
+// TRD-RR-007: the paper config panel also owns its own fetch lifecycle.
+// Stub it for the same reason.
+vi.mock("@/components/dashboard/paper-config-panel", () => ({
+  PaperConfigPanel: () => null,
+}));
+
 const T0 = Date.UTC(2024, 5, 3, 12, 0, 0);
 
 function analysed(

@@ -37,6 +37,7 @@ import type { DeepPartial } from "@/core/config/engine-config";
 import type { PaperDashboardData } from "@/paper/types";
 import { DEFAULT_SYMBOL_UNIVERSE, type ScannerConfig } from "@/config/scanner";
 import { readScannerUniverse } from "@/server/scanner-universe-access";
+import { readStrategyConfigState } from "@/server/strategy-config-access";
 import {
   assertForwardValidationPersistenceHealthy,
   recordForwardValidationObservation,
@@ -119,8 +120,21 @@ async function scannerForRelease(
       ? releaseSymbols
       : stagedSymbols ?? DEFAULT_SYMBOL_UNIVERSE
   );
+  // TRD-RR-005: runtime strategy selection. When the persisted config is
+  // missing or invalid, readStrategyConfigState falls back to the full
+  // IMPLEMENTED_STRATEGY_IDS set (legacy behaviour).
+  const strategyState = await readStrategyConfigState();
+  const enabledStrategies = strategyState.config.enabledStrategies;
+  // TRD-RR-006: when PRICE_ACTION is enabled via the toggle, force it as
+  // the selected strategy. Otherwise the default regime mapping applies.
+  const forceStrategyId = enabledStrategies.includes("PRICE_ACTION")
+    ? ("PRICE_ACTION" as const)
+    : null;
   const identity =
-    releaseRuntimeIdentity(release) + "|symbols:" + universe.selected.join(",");
+    releaseRuntimeIdentity(release) +
+    "|symbols:" + universe.selected.join(",") +
+    "|strategies:" + enabledStrategies.join(",") +
+    "|force:" + (forceStrategyId ?? "none");
 
   if (
     runtime.__fseScannerApi &&
@@ -143,6 +157,10 @@ async function scannerForRelease(
     // Pair selection is an operational universe choice; strategy thresholds
     // and all other release-pinned settings remain untouched.
     symbols: universe.selected,
+    // TRD-RR-005: runtime strategy selection identity.
+    availableStrategyIds: [...enabledStrategies],
+    // TRD-RR-006: opt-in force for strategies outside the regime mapping.
+    forceStrategyId,
   };
 
   runtime.__fseScannerApi = new ScannerApi(overrides, {

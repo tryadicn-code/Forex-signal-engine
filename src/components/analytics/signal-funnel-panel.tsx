@@ -8,6 +8,7 @@ import {
   type SignalFunnelStage,
   type SignalFunnelWindow,
 } from "@/analytics/signal-funnel";
+import type { StrategyBreakdownEntry } from "@/analytics/strategy-breakdown";
 
 const STAGE_LABELS: Record<SignalFunnelStage, string> = {
   SCANNED: "Scanned",
@@ -21,6 +22,69 @@ const STAGE_LABELS: Record<SignalFunnelStage, string> = {
 };
 
 const WINDOWS: SignalFunnelWindow[] = ["24H", "7D", "30D"];
+
+function StrategyBreakdownTable({ rows }: { rows: StrategyBreakdownEntry[] }) {
+  if (rows.length === 0) return null;
+  const grid =
+    "grid grid-cols-[minmax(120px,1.6fr)_60px_54px_54px_54px_60px_66px]";
+  return (
+    <div className="overflow-hidden rounded-md border border-zinc-800/80">
+      <div
+        className={
+          grid +
+          " border-b border-zinc-800 bg-zinc-950/40 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-zinc-600"
+        }
+      >
+        <span>Strategy</span>
+        <span className="text-right">Signals</span>
+        <span className="text-right">Trig.</span>
+        <span className="text-right">Risk</span>
+        <span className="text-right">Exec.</span>
+        <span className="text-right">Trades</span>
+        <span className="text-right">WR%</span>
+      </div>
+      {rows.map((row) => (
+        <div
+          key={row.strategyId}
+          className={
+            grid +
+            " items-center border-b border-zinc-800/60 px-3 py-2.5 text-xs last:border-b-0"
+          }
+        >
+          <span className="truncate font-medium text-zinc-300">
+            {row.strategyId}
+          </span>
+          <span className="text-right font-mono tabular-nums text-zinc-200">
+            {row.signalObservations.toLocaleString()}
+          </span>
+          <span className="text-right font-mono tabular-nums text-zinc-500">
+            {row.reachedTrigger}
+          </span>
+          <span className="text-right font-mono tabular-nums text-zinc-500">
+            {row.reachedRisk}
+          </span>
+          <span className="text-right font-mono tabular-nums text-zinc-500">
+            {row.reachedExecute}
+          </span>
+          <span className="text-right font-mono tabular-nums text-zinc-200">
+            {row.closedTrades}
+          </span>
+          <span
+            className={
+              row.winRate === null
+                ? "text-right font-mono tabular-nums text-zinc-600"
+                : row.winRate >= 50
+                  ? "text-right font-mono tabular-nums text-emerald-300"
+                  : "text-right font-mono tabular-nums text-red-300"
+            }
+          >
+            {row.winRate === null ? "\u2014" : `${row.winRate.toFixed(1)}%`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function SignalFunnelPanel({
   analytics,
@@ -160,6 +224,8 @@ export function SignalFunnelPanel({
               );
             })}
           </div>
+
+          <StrategyBreakdownTable rows={summary.strategyBreakdown} />
         </div>
 
         <div className="min-w-0 space-y-3">

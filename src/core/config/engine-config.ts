@@ -108,6 +108,26 @@ export interface EngineConfig {
     tp2RR: number;
     /** Buffer placed in front of confirmed structural target levels. */
     structuralTargetBufferPips: number;
+    /**
+     * TRD-RR-003: block candidates whose nearest obstacle sits below this R
+     * multiple. Obstacles in [minObstacleR, closeObstacleMaxR) close 100% at
+     * the obstacle instead of running to TP2.
+     */
+    minObstacleR: number;
+    /** TRD-RR-003: upper bound for the "close 100% at obstacle" tier. */
+    closeObstacleMaxR: number;
+    /**
+     * TRD-RR-003 owner override: when false, the four-tier obstacle policy
+     * is bypassed and every candidate resolves to FULL_2R (single TP at
+     * baseline minRR). Use to A/B test whether obstacle gating is the
+     * bottleneck; flip back to true to restore BLOCK / FULL_OBSTACLE /
+     * PARTIAL classification.
+     */
+    obstaclePolicyEnabled: boolean;
+    /** TRD-RR-003: TP1 size percent for PARTIAL execution plans. */
+    partialTP1SizePercent: number;
+    /** TRD-RR-003: when false, PARTIAL plans downgrade to FULL_2R (Fase B transition). */
+    partialTPEnabled: boolean;
   };
   execution: {
     /** Market data older than this is stale and blocks execution. */
@@ -183,6 +203,14 @@ export const defaultEngineConfig: EngineConfig = {
     maxLotSize: 100,
     tp2RR: 3.0,
     structuralTargetBufferPips: 2,
+    minObstacleR: 0.5,
+    closeObstacleMaxR: 1.0,
+    partialTP1SizePercent: 50,
+    obstaclePolicyEnabled: false,
+    // TRD-RR-003 Fase C: paper execution now supports multi-TP positions
+    // (Blocks C1-C4). PARTIAL plans route to tp1/tp2 legs with partial
+    // close at TP1 and final close at TP2 or SL.
+    partialTPEnabled: true,
   },
   execution: {
     // Fallback freshness threshold when no per-timeframe classification exists.
@@ -253,6 +281,27 @@ export function assertEngineConfigValid(config: EngineConfig): void {
   if (!(risk.tp2RR >= risk.minRR)) {
     throw new Error(
       `Config invalid: tp2RR ${risk.tp2RR} < minRR ${risk.minRR}.`
+    );
+  }
+  if (!(risk.minObstacleR > 0) || !(risk.minObstacleR <= risk.minRR)) {
+    throw new Error(
+      `Config invalid: minObstacleR ${risk.minObstacleR} must be > 0 and <= minRR ${risk.minRR}.`
+    );
+  }
+  if (
+    !(risk.closeObstacleMaxR >= risk.minObstacleR) ||
+    !(risk.closeObstacleMaxR <= risk.minRR)
+  ) {
+    throw new Error(
+      `Config invalid: closeObstacleMaxR ${risk.closeObstacleMaxR} must be between minObstacleR ${risk.minObstacleR} and minRR ${risk.minRR}.`
+    );
+  }
+  if (
+    !(risk.partialTP1SizePercent > 0) ||
+    !(risk.partialTP1SizePercent < 100)
+  ) {
+    throw new Error(
+      `Config invalid: partialTP1SizePercent ${risk.partialTP1SizePercent} must be > 0 and < 100.`
     );
   }
   const weightSum = Object.values(bias.weights).reduce((a, b) => a + b, 0);

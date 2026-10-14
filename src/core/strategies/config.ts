@@ -11,17 +11,23 @@ import {
   DEFAULT_REVERSAL_CONFIG,
   type ReversalConfig,
 } from "@/core/strategies/reversal/config";
+import {
+  DEFAULT_PRICE_ACTION_CONFIG,
+  type PriceActionConfig,
+} from "@/core/strategies/price-action/config";
 
 export interface StrategyConfigBundle {
   breakoutRetest: BreakoutRetestConfig;
   rangeMeanReversion: RangeMeanReversionConfig;
   reversal: ReversalConfig;
+  priceAction: PriceActionConfig;
 }
 
 export const DEFAULT_STRATEGY_CONFIG: Readonly<StrategyConfigBundle> = {
   breakoutRetest: { ...DEFAULT_BREAKOUT_RETEST_CONFIG },
   rangeMeanReversion: { ...DEFAULT_RANGE_MEAN_REVERSION_CONFIG },
   reversal: { ...DEFAULT_REVERSAL_CONFIG },
+  priceAction: { ...DEFAULT_PRICE_ACTION_CONFIG },
 };
 
 export function resolveStrategyConfig(
@@ -42,6 +48,10 @@ export function resolveStrategyConfig(
     reversal: {
       ...base.reversal,
       ...(overrides.reversal ?? {}),
+    },
+    priceAction: {
+      ...base.priceAction,
+      ...(overrides.priceAction ?? {}),
     },
   };
 }

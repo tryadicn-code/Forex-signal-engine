@@ -296,8 +296,20 @@ function blockedReason(result: SymbolScanResult): string | null {
   if (result.executionDetail?.triggeredVetoes.length) {
     return result.executionDetail.triggeredVetoes[0] ?? null;
   }
-  if (result.riskDetail?.rejectionReason) {
-    return result.riskDetail.rejectionReason;
+  const risk = result.riskDetail;
+  if (risk?.rejectionReason) {
+    const plan = risk.executionPlan;
+    if (plan?.kind === "BLOCK" && risk.minObstacleR != null) {
+      return (
+        risk.rejectionReason +
+        " (obstacle at " +
+        plan.obstacleR.toFixed(2) +
+        "R, min " +
+        risk.minObstacleR.toFixed(2) +
+        "R)"
+      );
+    }
+    return risk.rejectionReason;
   }
   return null;
 }

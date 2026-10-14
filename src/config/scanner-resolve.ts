@@ -31,5 +31,11 @@ export function cloneScannerConfig(config: ScannerConfig): ScannerConfig {
     account: { ...config.account },
     engineConfig: structuredClone(config.engineConfig),
     strategyConfig: structuredClone(config.strategyConfig),
+    ...(config.availableStrategyIds
+      ? { availableStrategyIds: [...config.availableStrategyIds] }
+      : {}),
+    ...(config.forceStrategyId !== undefined
+      ? { forceStrategyId: config.forceStrategyId }
+      : {}),
   };
 }

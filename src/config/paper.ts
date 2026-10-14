@@ -21,6 +21,15 @@ export interface PaperTradingConfig {
   autoScanIntervalMs: number;
   /** Read-only browser sync cadence; never creates orders by itself. */
   dashboardSyncIntervalMs: number;
+  /**
+   * When true, paper accepts DELAYED market data (but still rejects STALE).
+   * Rationale: the scanner classifies data per timeframe, and the D1 candle
+   * closed on Friday is legitimately the newest valid D1 bar until the next
+   * daily close. Without this flag, every symbol is blocked for the first
+   * ~20 hours of each week simply because D1 rolled into the DELAYED band.
+   * Set to false to restore the previous FRESH-only gate.
+   */
+  allowDelayed: boolean;
 }
 
 export const DEFAULT_PAPER_TRADING_CONFIG: PaperTradingConfig = {
@@ -29,13 +38,14 @@ export const DEFAULT_PAPER_TRADING_CONFIG: PaperTradingConfig = {
   initialBalance: DEFAULT_ACCOUNT.balance,
   maxOpenPositions: 10,
   maxTotalOpenRiskPercent: 5,
-  maxOpenPositionsPerSymbol: 1,
+  maxOpenPositionsPerSymbol: 10,
   maxDirectionalCurrencyExposure: 2,
   stopLossReentryCooldownMs: 60 * 60_000,
   intrabarConflictPolicy: "STOP_FIRST",
   autoScanEnabled: true,
   autoScanIntervalMs: 60_000,
   dashboardSyncIntervalMs: 15_000,
+  allowDelayed: true,
 };
 
 export function resolvePaperTradingConfig(

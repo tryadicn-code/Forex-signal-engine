@@ -20,6 +20,13 @@ export interface StrategyRoutingContext {
     reasonCode: string;
     reason: string;
   } | null;
+  /**
+   * TRD-RR-006: when set and present in availableStrategyIds, the router
+   * selects this strategy immediately, bypassing the regime mapping. Used
+   * for opt-in strategies such as PRICE_ACTION that are not in the default
+   * regime routing policy.
+   */
+  forceStrategyId?: StrategyId | null;
 }
 
 export interface StrategyRoutingDecision {
@@ -41,7 +48,8 @@ export type StrategyRoutingReasonCode =
   | "HIGH_VOLATILITY_WAIT"
   | "REVERSAL_TRANSITION"
   | "PREFERRED_STRATEGY_UNAVAILABLE"
-  | "NO_AVAILABLE_STRATEGY";
+  | "NO_AVAILABLE_STRATEGY"
+  | "FORCED_STRATEGY";
 
 /**
  * Pure Market Regime -> Strategy Router.
@@ -67,6 +75,21 @@ export function routeStrategy(
   );
   const availability = new Set(availableStrategyIds);
   const confidence = regimeResult.confidence ?? null;
+
+  // TRD-RR-006: opt-in strategies bypass the regime mapping when forced.
+  const forced = context.forceStrategyId ?? null;
+  if (forced !== null && availability.has(forced)) {
+    return {
+      regime: regimeResult.data.regime,
+      regimeStrength: regimeResult.data.strength,
+      regimeConfidence: confidence,
+      preferredStrategyId: forced,
+      selectedStrategyId: forced,
+      mode: "REGIME_MATCH",
+      reasonCode: "FORCED_STRATEGY",
+      reason: `Strategy ${forced} selected by explicit runtime override.`,
+    };
+  }
 
   if (preferred.strategyId !== null && availability.has(preferred.strategyId)) {
     return {
@@ -198,6 +221,17 @@ function preferredStrategyForRegime(
         reasonCode: "HIGH_VOLATILITY_WAIT",
         reason:
           "Unconditional REVERSAL routing is not permitted by the Phase 12 policy.",
+      };
+
+    case "PRICE_ACTION":
+      // TRD-RR-006: PRICE_ACTION is opt-in only. It is never selected by the
+      // default regime mapping; the router returns a fail-closed WAIT so a
+      // malformed policy cannot silently activate it.
+      return {
+        strategyId: null,
+        reasonCode: "LOW_VOLATILITY_WAIT",
+        reason:
+          "PRICE_ACTION is opt-in and must not be selected by regime routing.",
       };
   }
 }

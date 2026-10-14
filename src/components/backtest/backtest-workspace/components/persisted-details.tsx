@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 
 export function PersistedDetails({
   id,
@@ -13,27 +13,32 @@ export function PersistedDetails({
   defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return defaultOpen;
+  // Hydration-safe: the <details> element is uncontrolled. The server and
+  // the client both render it without an `open` attribute, so React never
+  // flags a mismatch. After mount we apply the persisted (or default) state
+  // directly through the DOM ref, which avoids a setState-in-effect render.
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    const node = detailsRef.current;
+    if (!node) return;
     const stored = window.localStorage.getItem("fse:backtest:section:" + id);
-    if (stored === "open") return true;
-    if (stored === "closed") return false;
-    return defaultOpen;
-  });
+    if (stored === "open") node.open = true;
+    else if (stored === "closed") node.open = false;
+    else node.open = defaultOpen;
+  }, [id, defaultOpen]);
 
   const onToggle = (event: React.SyntheticEvent<HTMLDetailsElement>) => {
-    const isOpen = event.currentTarget.open;
-    setOpen(isOpen);
     window.localStorage.setItem(
       "fse:backtest:section:" + id,
-      isOpen ? "open" : "closed"
+      event.currentTarget.open ? "open" : "closed"
     );
   };
 
   return (
     <details
+      ref={detailsRef}
       id={anchorId}
-      open={open}
       onToggle={onToggle}
       className="group border-t border-zinc-800 pt-3"
     >

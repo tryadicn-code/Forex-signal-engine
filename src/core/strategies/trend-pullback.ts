@@ -7,6 +7,7 @@ import { analyzeBias } from "@/core/bias";
 import { analyzeSetup } from "@/core/setup";
 import { evaluateTrigger } from "@/core/trigger";
 import { evaluateRisk } from "@/core/risk";
+import { classifyObstacle } from "@/core/risk/obstacle-classifier";
 import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
@@ -194,6 +195,13 @@ export function analyzeTrendPullback(context: AnalysisContext): PipelineResult {
     context.targetLevels && context.targetLevels.length > 0
       ? context.targetLevels
       : undefined;
+
+
+  // TRD-RR-003: obstacle-aware execution plan. The nearest confirmed
+  // structural obstacle is classified into a BLOCK / PARTIAL / FULL_2R plan.
+  // The risk engine uses the plan only to gate approval; the baseline 2R
+  // target is preserved for RR accounting. Explicit caller targets bypass
+  // obstacle classification, mirroring the previous semantic.
   const structuralTargets = explicitTargets
     ? []
     : deriveStructuralTargetLevels({
@@ -205,20 +213,20 @@ export function analyzeTrendPullback(context: AnalysisContext): PipelineResult {
         bufferPips: config.risk.structuralTargetBufferPips,
       });
 
-  // Structure is used as a clearance gate, not as permission to stretch TP
-  // farther than the strategy's baseline target. If the nearest confirmed
-  // obstacle sits inside the minimum-R window, pass that obstacle to the Risk
-  // Engine so RR_TOO_LOW rejects the trade. Otherwise the Risk Engine keeps its
-  // normal 2R baseline. Explicit caller targets retain their existing meaning.
-  const minimumTargetDistance =
-    Math.abs(entry - setup.data.invalidationLevel) * config.risk.minRR;
-  const nearestStructuralTarget = structuralTargets[0];
-  const targetLevelsForRisk = explicitTargets
-    ? explicitTargets
-    : nearestStructuralTarget !== undefined &&
-        Math.abs(nearestStructuralTarget - entry) < minimumTargetDistance
-      ? [nearestStructuralTarget]
-      : undefined;
+  const executionPlan = classifyObstacle({
+    entry,
+    stop: setup.data.invalidationLevel,
+    direction: bias.data.direction,
+    minRR: config.risk.minRR,
+    minObstacleR: config.risk.minObstacleR,
+    closeObstacleMaxR: config.risk.closeObstacleMaxR,
+    obstaclePolicyEnabled: config.risk.obstaclePolicyEnabled,
+    partialTP1SizePercent: config.risk.partialTP1SizePercent,
+    partialTPEnabled: config.risk.partialTPEnabled,
+    obstaclePrice: structuralTargets[0],
+  });
+
+  const targetLevelsForRisk = explicitTargets;
 
   const risk =
     trigger.data.state === "CONFIRMED"
@@ -231,6 +239,7 @@ export function analyzeTrendPullback(context: AnalysisContext): PipelineResult {
             riskPercent: context.riskPercent ?? config.risk.defaultRiskPercent,
             instrument,
             targetLevels: targetLevelsForRisk,
+            executionPlan,
             direction: bias.data.direction,
             quoteToAccountConversionRate: context.quoteToAccountConversionRate,
             marketAsOf: triggerAsOf,

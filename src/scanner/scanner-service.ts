@@ -441,6 +441,8 @@ export class ScannerService {
       quoteToAccountConversionRate: context!.quoteToAccountConversionRate,
       configOverrides: this.config.engineConfig,
       strategyConfigOverrides: this.config.strategyConfig,
+      availableStrategyIds: this.config.availableStrategyIds,
+      forceStrategyId: this.config.forceStrategyId ?? null,
       execution: {
         now: asOf,
         mode: this.config.executionMode,
@@ -750,6 +752,8 @@ export class ScannerService {
             plannedRR: pipeline.risk.data.rr,
             pipSize: context!.metadata.pipSize,
             accountCurrency: this.config.account.currency,
+            executionPlan: pipeline.risk.data.executionPlan ?? null,
+            minObstacleR: resolveConfig(this.config.engineConfig).risk.minObstacleR,
           }
         : null,
       evidence: collectEvidence(pipeline),
@@ -856,6 +860,8 @@ export class ScannerService {
       quoteToAccountConversionRate: context.quoteToAccountConversionRate,
       configOverrides: this.config.engineConfig,
       strategyConfigOverrides: this.config.strategyConfig,
+      availableStrategyIds: this.config.availableStrategyIds,
+      forceStrategyId: this.config.forceStrategyId ?? null,
       execution: {
         now: asOf,
         mode: this.config.executionMode,

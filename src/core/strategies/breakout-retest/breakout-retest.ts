@@ -4,6 +4,7 @@ import { analyzeStructure } from "@/core/structure";
 import { classifyRegime } from "@/core/regime";
 import { analyzeBias } from "@/core/bias";
 import { evaluateRisk } from "@/core/risk";
+import { classifyObstacle } from "@/core/risk/obstacle-classifier";
 import { deriveStructuralTargetLevels } from "@/core/risk/structural-targets";
 import { decide } from "@/core/execution";
 import { resolveConfig } from "@/core/config/engine-config";
@@ -132,9 +133,8 @@ export function analyzeBreakoutRetest(
       ? context.targetLevels
       : undefined;
 
-  // Breakout trades still respect known structure ahead. A nearby obstacle is
-  // passed into the shared Risk Engine so the same minimum-RR rule can reject
-  // a breakout whose remaining room is insufficient.
+  // TRD-RR-003: obstacle-aware execution plan. See trend-pullback.ts for the
+  // rationale; the classification and risk contract are identical.
   const structuralTargets = explicitTargets
     ? []
     : deriveStructuralTargetLevels({
@@ -146,15 +146,20 @@ export function analyzeBreakoutRetest(
         bufferPips: config.risk.structuralTargetBufferPips,
       });
 
-  const minimumTargetDistance =
-    Math.abs(entry - setup.data.invalidationLevel) * config.risk.minRR;
-  const nearestStructuralTarget = structuralTargets[0];
-  const targetLevelsForRisk = explicitTargets
-    ? explicitTargets
-    : nearestStructuralTarget !== undefined &&
-        Math.abs(nearestStructuralTarget - entry) < minimumTargetDistance
-      ? [nearestStructuralTarget]
-      : undefined;
+  const executionPlan = classifyObstacle({
+    entry,
+    stop: setup.data.invalidationLevel,
+    direction: bias.data.direction,
+    minRR: config.risk.minRR,
+    minObstacleR: config.risk.minObstacleR,
+    closeObstacleMaxR: config.risk.closeObstacleMaxR,
+    obstaclePolicyEnabled: config.risk.obstaclePolicyEnabled,
+    partialTP1SizePercent: config.risk.partialTP1SizePercent,
+    partialTPEnabled: config.risk.partialTPEnabled,
+    obstaclePrice: structuralTargets[0],
+  });
+
+  const targetLevelsForRisk = explicitTargets;
 
   const risk =
     trigger.data.state === "CONFIRMED"
@@ -168,6 +173,7 @@ export function analyzeBreakoutRetest(
               context.riskPercent ?? config.risk.defaultRiskPercent,
             instrument,
             targetLevels: targetLevelsForRisk,
+            executionPlan,
             direction: bias.data.direction,
             quoteToAccountConversionRate:
               context.quoteToAccountConversionRate,

@@ -59,10 +59,19 @@ export function analyzeMarketWithRouting(
     strategyConfig: context.strategyConfigOverrides?.reversal,
   });
 
+  // TRD-RR-005: runtime strategy selection. Fall back to the static
+  // IMPLEMENTED_STRATEGY_IDS when the caller does not supply a list.
+  const availableStrategyIds =
+    context.availableStrategyIds ?? IMPLEMENTED_STRATEGY_IDS;
+  // TRD-RR-006: opt-in override. The caller must set forceStrategyId
+  // explicitly; a strategy being present in availableStrategyIds is NOT
+  // sufficient to take over the regime mapping. This keeps the default
+  // routing unchanged and prevents PRICE_ACTION from silently replacing
+  // an audited regime mapping just because it is available.
   const routing = routeStrategy(
     routingRegime,
-    IMPLEMENTED_STRATEGY_IDS,
-    { reversalQualification }
+    availableStrategyIds,
+    { reversalQualification, forceStrategyId: context.forceStrategyId ?? null }
   );
 
   // TRD-004 B1: when the trigger timeframe is explicitly unavailable, the
