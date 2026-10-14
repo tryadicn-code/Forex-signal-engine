@@ -113,4 +113,19 @@ Modif:
 
 ## 10. Status
 
-Draft. Implementasi bertahap 4 sesi.
+Implemented (4/4 step):
+- Step 1 (4b26c4b): paper-config type + validation + storage path.
+- Step 2 (9a43b7b): paper-config-access + paperService() identity rebuild.
+- Step 3 (9b6fa83): /api/paper-config route.
+- Step 4 (00b01d4): PaperConfigPanel UI + dashboard render.
+- Step 5 (fix): stub PaperConfigPanel in dashboard test.
+
+Test: 802 passed, 1 skipped, 0 failed. Typecheck + lint clean.
+
+Cara pakai:
+- Buka dashboard, scroll ke panel "Paper Config".
+- Ubah field, klik Apply.
+- Config tersimpan di .data/paper-config.json + audit trail.
+- Service rebuild pada request berikutnya (identity-based).
+
+Belum merge ke master.
