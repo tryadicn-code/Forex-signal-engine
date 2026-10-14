@@ -23,6 +23,7 @@ export function PortfolioWorkspace({
   const [resetting, setResetting] = useState(false);
   const [settingInitialBalance, setSettingInitialBalance] = useState(false);
   const [closingPositionId, setClosingPositionId] = useState<string | null>(null);
+  const [updatingRRId, setUpdatingRRId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const resetPaper = async () => {
@@ -133,6 +134,37 @@ export function PortfolioWorkspace({
     }
   };
 
+  const updatePositionRR = async (positionId: string, newRR: number) => {
+    if (updatingRRId) return;
+    setUpdatingRRId(positionId);
+    setError(null);
+    try {
+      const next = await apiFetch<PaperDashboardData>(
+        `/api/paper/positions/${encodeURIComponent(positionId)}/rr`,
+        {
+          method: "POST",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rr: newRR }),
+        }
+      );
+      setPaper(next);
+    } catch (rrError) {
+      if (rrError instanceof ApiError && rrError.code === "UNAUTHORIZED") {
+        setError(
+          "Approval secret is required to edit position RR. Set it from the dialog, then try again."
+        );
+      } else {
+        setError(
+          rrError instanceof Error ? rrError.message : String(rrError)
+        );
+      }
+      throw rrError;
+    } finally {
+      setUpdatingRRId(null);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-[1500px] space-y-3 p-3 sm:p-4 lg:p-5">
       <header className="flex items-start justify-between gap-3">
@@ -203,6 +235,8 @@ export function PortfolioWorkspace({
         resetting={resetting}
         onClosePosition={closePosition}
         closingPositionId={closingPositionId}
+        onUpdatePositionRR={updatePositionRR}
+        updatingRRId={updatingRRId}
         onSetInitialBalance={setInitialBalance}
         settingInitialBalance={settingInitialBalance}
         view={activeView}

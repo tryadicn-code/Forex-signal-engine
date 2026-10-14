@@ -33,13 +33,13 @@ export interface PaperEngineSnapshot {
   setupScore: number | null;
   /**
    * TRD-017 Change A: engine decision at the time this snapshot was written.
-   * Not always "EXECUTE" — a rejected order carries the actual decision value
+   * Not always "EXECUTE" â€” a rejected order carries the actual decision value
    * that the scanner produced. Null on legacy records written before this fix.
    */
   executionDecision: ExecutionDecision | null;
   /**
    * TRD-017 Change A: freshness of the symbol at the time this snapshot was
-   * written. Not always "FRESH" — a rejected order carries the actual status
+   * written. Not always "FRESH" â€” a rejected order carries the actual status
    * (DELAYED or STALE) that caused paper to refuse the fill. Null on legacy
    * records written before this fix.
    */
@@ -158,7 +158,8 @@ export type PaperLedgerEventType =
   | "TRADE_OPENED"
   | "TRADE_PARTIALLY_CLOSED"
   | "TRADE_CLOSED"
-  | "ORDER_REJECTED";
+  | "ORDER_REJECTED"
+  | "POSITION_MODIFIED";
 
 export interface PaperLedgerEvent {
   id: string;

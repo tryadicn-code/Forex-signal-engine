@@ -23,6 +23,8 @@ export function PortfolioSection({
   resetting,
   onClosePosition,
   closingPositionId,
+  onUpdatePositionRR,
+  updatingRRId = null,
   onOpenAnalysis,
 }: {
   paper: PaperDashboardData;
@@ -32,9 +34,14 @@ export function PortfolioSection({
   resetting: boolean;
   onClosePosition?: (positionId: string) => Promise<void>;
   closingPositionId: string | null;
+  onUpdatePositionRR?: (positionId: string, newRR: number) => Promise<void>;
+  updatingRRId?: string | null;
   onOpenAnalysis?: (symbol: string) => void;
 }) {
   const [ordersView, setOrdersView] = useState<OrdersView>({ mode: "collapsed" });
+  const [editingRRPositionId, setEditingRRPositionId] = useState<string | null>(null);
+  const [rrDraft, setRRDraft] = useState("");
+  const [rrError, setRRError] = useState<string | null>(null);
   const { account } = paper;
   const sortedOrders = sortOrdersByRequestedAt(paper.recentOrders);
   const shownOrders = visibleOrders(sortedOrders, ordersView);
@@ -96,7 +103,7 @@ export function PortfolioSection({
             Open positions
           </h3>
           <span className="font-mono text-[11px] text-zinc-600">
-            max {paper.config.maxOpenPositions} · {paper.config.maxOpenPositionsPerSymbol}/symbol · currency cap {paper.config.maxDirectionalCurrencyExposure}
+            max {paper.config.maxOpenPositions} Ã‚Â· {paper.config.maxOpenPositionsPerSymbol}/symbol Ã‚Â· currency cap {paper.config.maxDirectionalCurrencyExposure}
           </span>
         </div>
 
@@ -139,7 +146,7 @@ export function PortfolioSection({
                   </span>
                   {onOpenAnalysis && (
                     <span className="text-[11px] font-medium text-zinc-600">
-                      Analysis ›
+                      Analysis Ã¢â‚¬Âº
                     </span>
                   )}
 
@@ -181,11 +188,34 @@ export function PortfolioSection({
                         }}
                         className="rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-red-800/70 hover:bg-red-950/20 hover:text-red-300 disabled:opacity-40"
                       >
-                        {closingPositionId === position.id ? "Closing…" : "Close"}
+                        {closingPositionId === position.id ? "ClosingÃ¢â‚¬Â¦" : "Close"}
                       </button>
                     )}
                   </div>
                 </div>
+
+                {onUpdatePositionRR && position.tp1 == null && (
+                  <div className="mt-1.5 flex justify-end">
+                    <button
+                      type="button"
+                      disabled={updatingRRId !== null}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setEditingRRPositionId(position.id);
+                        setRRDraft(
+                          Number(
+                            position.plannedRR ??
+                              riskReward(position.entryPrice, position.takeProfit, position.stopLoss)
+                          ).toFixed(2)
+                        );
+                        setRRError(null);
+                      }}
+                      className="rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-emerald-800/70 hover:bg-emerald-950/20 hover:text-emerald-300 disabled:opacity-40"
+                    >
+                      {updatingRRId === position.id ? "Saving..." : "Edit RR"}
+                    </button>
+                  </div>
+                )}
 
                 {position.tp1 != null ? (
                   <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] sm:grid-cols-5">
@@ -238,8 +268,8 @@ export function PortfolioSection({
 
                 <div className="mt-1.5 font-mono text-[11px] text-zinc-600">
                   MFE {(position.maxFavorableR ?? 0) >= 0 ? "+" : ""}
-                  {(position.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
-                  {(position.maxAdverseR ?? 0).toFixed(2)}R · RR{" "}
+                  {(position.maxFavorableR ?? 0).toFixed(2)}R Ã‚Â· MAE{" "}
+                  {(position.maxAdverseR ?? 0).toFixed(2)}R Ã‚Â· RR{" "}
                   {riskReward(
                     position.entryPrice,
                     position.takeProfit,
@@ -273,7 +303,7 @@ export function PortfolioSection({
                 }
                 className="rounded border border-zinc-800 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
               >
-                {ordersView.mode === "collapsed" ? "▸ Show" : "▾ Hide"}
+                {ordersView.mode === "collapsed" ? "Ã¢â€“Â¸ Show" : "Ã¢â€“Â¾ Hide"}
               </button>
             )}
           </div>
@@ -357,7 +387,7 @@ export function PortfolioSection({
                   onClick={() => setOrdersView({ mode: "paged", page: 1 })}
                   className="font-mono text-[11px] text-zinc-400 hover:text-zinc-200"
                 >
-                  Show all ({sortedOrders.length}) →
+                  Show all ({sortedOrders.length}) Ã¢â€ â€™
                 </button>
               </div>
             )}
@@ -373,7 +403,7 @@ export function PortfolioSection({
                     }
                     className="rounded border border-zinc-800 px-2 py-0.5 font-mono text-[11px] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
                   >
-                    ◀ Prev
+                    Ã¢â€”â‚¬ Prev
                   </button>
                   <span className="font-mono text-[11px] text-zinc-500">
                     Page {ordersView.page} / {totalOrderPages}
@@ -386,7 +416,7 @@ export function PortfolioSection({
                     }
                     className="rounded border border-zinc-800 px-2 py-0.5 font-mono text-[11px] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
                   >
-                    Next ▸
+                    Next Ã¢â€“Â¸
                   </button>
                 </div>
                 <div className="mt-1.5 text-right">
@@ -395,7 +425,7 @@ export function PortfolioSection({
                     onClick={() => setOrdersView({ mode: "preview" })}
                     className="font-mono text-[11px] text-zinc-500 hover:text-zinc-300"
                   >
-                    ← Show less
+                    Ã¢â€ Â Show less
                   </button>
                 </div>
               </div>
@@ -403,6 +433,123 @@ export function PortfolioSection({
           </>
         )}
       </div>
+
+      {editingRRPositionId !== null && (() => {
+        const pos = paper.openPositions.find((p) => p.id === editingRRPositionId);
+        if (!pos) return null;
+        const newRR = Number(rrDraft);
+        const validRR = Number.isFinite(newRR) && newRR >= 0.5 && newRR <= 10;
+        const stopDistance = Math.abs(pos.entryPrice - pos.stopLoss);
+        const long = pos.side === "LONG";
+        const newTP = validRR
+          ? long
+            ? pos.entryPrice + stopDistance * newRR
+            : pos.entryPrice - stopDistance * newRR
+          : null;
+        const tpHidden =
+          validRR &&
+          newTP !== null &&
+          ((long && newTP <= pos.currentPrice) ||
+            (!long && newTP >= pos.currentPrice));
+
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit position RR"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => {
+              if (updatingRRId) return;
+              setEditingRRPositionId(null);
+            }}
+          >
+            <div
+              className="w-full max-w-md rounded-lg border border-zinc-700 bg-zinc-900 p-4 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-sm font-semibold text-zinc-100">
+                Edit RR - {pos.symbol} {pos.side}
+              </h3>
+              <p className="mt-1 text-[11px] text-zinc-500">
+                SL tetap. TP dihitung ulang dari RR baru. Hanya legacy single-TP.
+              </p>
+
+              <div className="mt-3 space-y-2 text-[11px]">
+                <div className="flex justify-between font-mono text-zinc-400">
+                  <span>Entry</span>
+                  <span className="text-zinc-200">{formatPrice(pos.symbol, pos.entryPrice)}</span>
+                </div>
+                <div className="flex justify-between font-mono text-zinc-400">
+                  <span>SL</span>
+                  <span className="text-rose-300">{formatPrice(pos.symbol, pos.stopLoss)}</span>
+                </div>
+                <div className="flex justify-between font-mono text-zinc-400">
+                  <span>RR sekarang</span>
+                  <span className="text-zinc-200">
+                    {riskReward(pos.entryPrice, pos.takeProfit, pos.stopLoss)}
+                  </span>
+                </div>
+                {newTP !== null && !tpHidden && (
+                  <div className="flex justify-between font-mono text-zinc-400">
+                    <span>TP baru (RR {newRR.toFixed(2)})</span>
+                    <span className="text-emerald-300">{formatPrice(pos.symbol, newTP)}</span>
+                  </div>
+                )}
+              </div>
+
+              <label className="mt-3 block text-[11px] text-zinc-400">
+                <span>RR baru (0.5 - 10)</span>
+                <input
+                  type="number"
+                  min={0.5}
+                  max={10}
+                  step={0.1}
+                  value={rrDraft}
+                  onChange={(e) => setRRDraft(e.target.value)}
+                  className="mt-1 w-full rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm text-zinc-100"
+                  autoFocus
+                />
+              </label>
+
+              {(rrError || (!validRR && rrDraft.length > 0) || tpHidden) && (
+                <div className="mt-2 rounded border border-red-900/60 bg-red-950/20 px-2 py-1.5 text-[11px] text-red-200">
+                  {rrError ??
+                    (!validRR
+                      ? "RR harus di antara 0.5 dan 10."
+                      : "TP baru berada di belakang harga saat ini.")}
+                </div>
+              )}
+
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={updatingRRId !== null}
+                  onClick={() => setEditingRRPositionId(null)}
+                  className="rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[11px] text-zinc-300 disabled:opacity-40"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={!validRR || tpHidden || updatingRRId !== null}
+                  onClick={async () => {
+                    try {
+                      setRRError(null);
+                      await onUpdatePositionRR!(pos.id, newRR);
+                      setEditingRRPositionId(null);
+                    } catch (err) {
+                      setRRError(err instanceof Error ? err.message : String(err));
+                    }
+                  }}
+                  className="rounded border border-emerald-700 bg-emerald-900/30 px-3 py-1.5 text-[11px] font-medium text-emerald-200 disabled:opacity-40"
+                >
+                  {updatingRRId === pos.id ? "Menyimpan..." : "Apply"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 }

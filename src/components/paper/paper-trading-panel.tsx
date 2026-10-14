@@ -14,6 +14,8 @@ export function PaperTradingPanel({
   onReset,
   resetting,
   onClosePosition,
+  onUpdatePositionRR,
+  updatingRRId = null,
   onOpenAnalysis,
   closingPositionId = null,
   onSetInitialBalance,
@@ -24,6 +26,8 @@ export function PaperTradingPanel({
   onReset: () => Promise<void>;
   resetting: boolean;
   onClosePosition?: (positionId: string) => Promise<void>;
+  onUpdatePositionRR?: (positionId: string, newRR: number) => Promise<void>;
+  updatingRRId?: string | null;
   onOpenAnalysis?: (symbol: string) => void;
   closingPositionId?: string | null;
   onSetInitialBalance?: (initialBalance: number) => Promise<void>;
@@ -43,6 +47,8 @@ export function PaperTradingPanel({
           resetting={resetting}
           onClosePosition={onClosePosition}
           closingPositionId={closingPositionId}
+          onUpdatePositionRR={onUpdatePositionRR}
+          updatingRRId={updatingRRId}
           onOpenAnalysis={onOpenAnalysis}
         />
       )}

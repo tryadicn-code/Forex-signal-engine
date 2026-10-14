@@ -132,6 +132,88 @@ export class PaperTradingService {
     });
   }
 
+  /**
+   * TRD-RR-008: ubah planned RR untuk posisi OPEN.
+   * SL tetap. TP dihitung ulang: newTP = entry +/- |entry - SL| * newRR.
+   * Hanya legacy single-TP position (bukan partial TRD-RR-003).
+   */
+  async updatePositionRR(
+    positionId: string,
+    newRR: number,
+    marketData: MarketDataProvider,
+    at: number = Date.now()
+  ): Promise<PaperDashboardData> {
+    return this.serialize(async () => {
+      if (!Number.isFinite(newRR) || newRR < 0.5 || newRR > 10) {
+        throw new Error("RR harus di antara 0.5 dan 10.");
+      }
+
+      const state = await this.loadOrCreate(at);
+      const position = state.positions.find(
+        (item) => item.id === positionId && item.status === "OPEN"
+      );
+      if (!position) {
+        throw new Error("Paper position is not open or does not exist.");
+      }
+
+      if (position.tp1 != null) {
+        throw new Error(
+          "Partial-TP position tidak didukung di MVP. Fitur ini hanya untuk legacy single-TP."
+        );
+      }
+
+      const stopDistance = Math.abs(position.entryPrice - position.stopLoss);
+      if (!(stopDistance > 0)) {
+        throw new Error("Stop distance tidak valid.");
+      }
+
+      const long = position.side === "LONG";
+      const newTP = long
+        ? position.entryPrice + stopDistance * newRR
+        : position.entryPrice - stopDistance * newRR;
+
+      const quote = await marketData.getLatestPrice(position.symbol, at);
+      if (!quote.ok || !Number.isFinite(quote.data.price) || quote.data.price <= 0) {
+        throw new Error(
+          quote.ok
+            ? "Latest market price is invalid."
+            : "Latest market price is unavailable: " + quote.error.message
+        );
+      }
+      const currentPrice = quote.data.price;
+
+      if (long && newTP <= currentPrice) {
+        throw new Error("TP baru harus di atas harga sekarang (LONG).");
+      }
+      if (!long && newTP >= currentPrice) {
+        throw new Error("TP baru harus di bawah harga sekarang (SHORT).");
+      }
+
+      const previousRR = position.plannedRR;
+      const marked = markPosition(position, currentPrice, at);
+
+      this.replacePosition(state, {
+        ...marked,
+        takeProfit: newTP,
+        plannedRR: newRR,
+        updatedAt: at,
+      });
+
+      state.ledger.push({
+        id: `ledger-rr-${position.signalId}-${at}`,
+        type: "POSITION_MODIFIED",
+        timestamp: at,
+        symbol: position.symbol,
+        signalId: position.signalId,
+        amount: 0,
+        note: `RR modified: previous ${previousRR ?? "n/a"} -> ${newRR}. TP: ${position.takeProfit ?? "n/a"} -> ${newTP}.`,
+      });
+
+      await this.store.save(state);
+      return this.toDashboard(state, null);
+    });
+  }
+
   async processSnapshot(
     snapshot: ScannerSnapshot,
     marketData: MarketDataProvider,

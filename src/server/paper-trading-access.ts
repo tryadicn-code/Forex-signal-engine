@@ -119,6 +119,26 @@ export async function closePaperPosition(
   }
 }
 
+export async function updatePaperPositionRR(
+  positionId: string,
+  newRR: number
+): Promise<PaperDashboardData> {
+  try {
+    const service = await paperService();
+    const data = await service.updatePositionRR(
+      positionId,
+      newRR,
+      runtimeMarketDataProvider(),
+      Date.now()
+    );
+    setLastPaperError(null);
+    return data;
+  } catch (error) {
+    setLastPaperError(error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+}
+
 export async function resetPaperAccount(
   initialBalance?: number
 ): Promise<PaperDashboardData> {
