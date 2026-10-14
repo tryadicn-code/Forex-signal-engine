@@ -14,6 +14,8 @@ export interface StoragePaths {
   signalFunnel: string;
   strategyConfig: string;
   strategyConfigAudit: string;
+  paperConfig: string;
+  paperConfigAudit: string;
 }
 
 export function resolveStoragePaths(
@@ -54,6 +56,12 @@ export function resolveStoragePaths(
     strategyConfigAudit:
       env.FSE_STRATEGY_CONFIG_AUDIT_PATH?.trim() ||
       path.join(dataDirectory, "strategy-config-audit.json"),
+    paperConfig:
+      env.FSE_PAPER_CONFIG_PATH?.trim() ||
+      path.join(dataDirectory, "paper-config.json"),
+    paperConfigAudit:
+      env.FSE_PAPER_CONFIG_AUDIT_PATH?.trim() ||
+      path.join(dataDirectory, "paper-config-audit.json"),
   };
 }
 
