@@ -11,6 +11,7 @@ import { ScannerTable } from "@/components/scanner/scanner-table";
 import { ScannerUniverseControl } from "@/components/scanner/scanner-universe-control";
 import { SignalDetailPanel } from "@/components/signals/signal-detail-panel";
 import { StrategySelector } from "@/components/dashboard/strategy-selector";
+import { PaperConfigPanel } from "@/components/dashboard/paper-config-panel";
 import {
   DEFAULT_QUERY,
   DEFAULT_SORT,
@@ -381,6 +382,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
 
       <StrategySelector />
 
+      <PaperConfigPanel />
+
       <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-3 text-[11px] text-zinc-600">
         <span>
           {(data.liveMarketData
@@ -421,7 +424,7 @@ function DownstreamStatusBanner({ status }: { status: DownstreamStatus }) {
           const kind = s.ok === false ? "ERROR" : "SKIPPED";
           return (
             <li key={key} className="text-amber-200/80">
-              <span className="font-medium">{label}:</span> {kind} — {detail}
+              <span className="font-medium">{label}:</span> {kind} â€” {detail}
             </li>
           );
         })}
