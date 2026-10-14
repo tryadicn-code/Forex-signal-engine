@@ -424,7 +424,7 @@ function DownstreamStatusBanner({ status }: { status: DownstreamStatus }) {
           const kind = s.ok === false ? "ERROR" : "SKIPPED";
           return (
             <li key={key} className="text-amber-200/80">
-              <span className="font-medium">{label}:</span> {kind} â€” {detail}
+              <span className="font-medium">{label}:</span> {kind} — {detail}
             </li>
           );
         })}

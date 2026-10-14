@@ -103,7 +103,7 @@ export function PortfolioSection({
             Open positions
           </h3>
           <span className="font-mono text-[11px] text-zinc-600">
-            max {paper.config.maxOpenPositions} Ã‚Â· {paper.config.maxOpenPositionsPerSymbol}/symbol Ã‚Â· currency cap {paper.config.maxDirectionalCurrencyExposure}
+            max {paper.config.maxOpenPositions} · {paper.config.maxOpenPositionsPerSymbol}/symbol · currency cap {paper.config.maxDirectionalCurrencyExposure}
           </span>
         </div>
 
@@ -146,7 +146,7 @@ export function PortfolioSection({
                   </span>
                   {onOpenAnalysis && (
                     <span className="text-[11px] font-medium text-zinc-600">
-                      Analysis Ã¢â‚¬Âº
+                      Analysis ›
                     </span>
                   )}
 
@@ -188,7 +188,7 @@ export function PortfolioSection({
                         }}
                         className="rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-red-800/70 hover:bg-red-950/20 hover:text-red-300 disabled:opacity-40"
                       >
-                        {closingPositionId === position.id ? "ClosingÃ¢â‚¬Â¦" : "Close"}
+                        {closingPositionId === position.id ? "Closing…" : "Close"}
                       </button>
                     )}
                   </div>
@@ -268,8 +268,8 @@ export function PortfolioSection({
 
                 <div className="mt-1.5 font-mono text-[11px] text-zinc-600">
                   MFE {(position.maxFavorableR ?? 0) >= 0 ? "+" : ""}
-                  {(position.maxFavorableR ?? 0).toFixed(2)}R Ã‚Â· MAE{" "}
-                  {(position.maxAdverseR ?? 0).toFixed(2)}R Ã‚Â· RR{" "}
+                  {(position.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
+                  {(position.maxAdverseR ?? 0).toFixed(2)}R · RR{" "}
                   {riskReward(
                     position.entryPrice,
                     position.takeProfit,
@@ -303,7 +303,7 @@ export function PortfolioSection({
                 }
                 className="rounded border border-zinc-800 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
               >
-                {ordersView.mode === "collapsed" ? "Ã¢â€“Â¸ Show" : "Ã¢â€“Â¾ Hide"}
+                {ordersView.mode === "collapsed" ? "▸ Show" : "▾ Hide"}
               </button>
             )}
           </div>
@@ -387,7 +387,7 @@ export function PortfolioSection({
                   onClick={() => setOrdersView({ mode: "paged", page: 1 })}
                   className="font-mono text-[11px] text-zinc-400 hover:text-zinc-200"
                 >
-                  Show all ({sortedOrders.length}) Ã¢â€ â€™
+                  Show all ({sortedOrders.length}) →
                 </button>
               </div>
             )}
@@ -403,7 +403,7 @@ export function PortfolioSection({
                     }
                     className="rounded border border-zinc-800 px-2 py-0.5 font-mono text-[11px] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
                   >
-                    Ã¢â€”â‚¬ Prev
+                    ◀ Prev
                   </button>
                   <span className="font-mono text-[11px] text-zinc-500">
                     Page {ordersView.page} / {totalOrderPages}
@@ -416,7 +416,7 @@ export function PortfolioSection({
                     }
                     className="rounded border border-zinc-800 px-2 py-0.5 font-mono text-[11px] text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
                   >
-                    Next Ã¢â€“Â¸
+                    Next ▸
                   </button>
                 </div>
                 <div className="mt-1.5 text-right">
@@ -425,7 +425,7 @@ export function PortfolioSection({
                     onClick={() => setOrdersView({ mode: "preview" })}
                     className="font-mono text-[11px] text-zinc-500 hover:text-zinc-300"
                   >
-                    Ã¢â€ Â Show less
+                    ← Show less
                   </button>
                 </div>
               </div>
