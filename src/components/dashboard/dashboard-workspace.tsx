@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
 import { SignalFunnelSummary } from "@/components/analytics/signal-funnel-summary";
-import { ScannerCompactGrid } from "@/components/scanner/scanner-compact-grid";
+import { ScannerAccordionGrid } from "@/components/scanner/scanner-accordion-grid";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
 import { ScannerUniverseControl } from "@/components/scanner/scanner-universe-control";
@@ -336,7 +336,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
                 />
               </div>
             ) : (
-              <ScannerCompactGrid
+              <ScannerAccordionGrid
                 results={visibleResults}
                 selectedSymbol={selectedSymbol}
                 onSelect={setSelectedSymbol}
