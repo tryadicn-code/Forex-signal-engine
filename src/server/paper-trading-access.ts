@@ -1,6 +1,6 @@
 import "server-only";
 
-import { DEFAULT_PAPER_TRADING_CONFIG } from "@/config/paper";
+import { readPaperTradingConfig } from "@/server/paper-config-access";
 import { STORAGE_PATHS } from "@/config/storage";
 import { JsonFilePaperStore } from "@/paper/store";
 import { TransactionalPaperStore } from "@/transactional/domain-stores";
@@ -22,19 +22,32 @@ const storePath = STORAGE_PATHS.paper;
 
 type PaperRuntimeGlobal = typeof globalThis & {
   __fsePaperTradingService?: PaperTradingService;
+  __fsePaperConfigIdentity?: string;
   __fsePaperLastError?: string | null;
 };
 
-function paperService(): PaperTradingService {
+/**
+ * TRD-RR-007: paper service sekarang membaca config dari
+ * .data/paper-config.json. Identity berubah saat config berubah, sehingga
+ * service instance di-rebuild (state tetap di store, tidak ada yang hilang).
+ */
+async function paperService(): Promise<PaperTradingService> {
   const runtime = globalThis as PaperRuntimeGlobal;
-  if (!runtime.__fsePaperTradingService) {
-    runtime.__fsePaperTradingService = new PaperTradingService(
-      sharedTransactionalMode()
-        ? new TransactionalPaperStore(transactionalStore())
-        : new JsonFilePaperStore(storePath),
-      DEFAULT_PAPER_TRADING_CONFIG
-    );
+  const { config, identity } = await readPaperTradingConfig();
+
+  if (
+    runtime.__fsePaperTradingService &&
+    runtime.__fsePaperConfigIdentity === identity
+  ) {
+    return runtime.__fsePaperTradingService;
   }
+
+  const store = sharedTransactionalMode()
+    ? new TransactionalPaperStore(transactionalStore())
+    : new JsonFilePaperStore(storePath);
+
+  runtime.__fsePaperTradingService = new PaperTradingService(store, config);
+  runtime.__fsePaperConfigIdentity = identity;
   return runtime.__fsePaperTradingService;
 }
 
@@ -54,12 +67,14 @@ function withLastError(data: PaperDashboardData): PaperDashboardData {
 }
 
 export async function readPaperDashboard(): Promise<PaperDashboardData> {
-  return withLastError(await paperService().getDashboard());
+  const service = await paperService();
+  return withLastError(await service.getDashboard());
 }
 
 export async function paperBalance(): Promise<number> {
   try {
-    const balance = await paperService().getBalance();
+    const service = await paperService();
+    const balance = await service.getBalance();
     setLastPaperError(null);
     return balance;
   } catch (error) {
@@ -73,7 +88,8 @@ export async function processPaperSnapshot(
   releaseRuntime?: ReleaseRuntimeState
 ): Promise<PaperDashboardData> {
   try {
-    const data = await paperService().processSnapshot(
+    const service = await paperService();
+    const data = await service.processSnapshot(
       snapshot,
       runtimeMarketDataProvider(),
       toPaperReleaseIdentity(releaseRuntime)
@@ -90,7 +106,8 @@ export async function closePaperPosition(
   positionId: string
 ): Promise<PaperDashboardData> {
   try {
-    const data = await paperService().closePositionManually(
+    const service = await paperService();
+    const data = await service.closePositionManually(
       positionId,
       runtimeMarketDataProvider()
     );
@@ -106,7 +123,8 @@ export async function resetPaperAccount(
   initialBalance?: number
 ): Promise<PaperDashboardData> {
   try {
-    const data = await paperService().reset(Date.now(), initialBalance);
+    const service = await paperService();
+    const data = await service.reset(Date.now(), initialBalance);
     setLastPaperError(null);
     return data;
   } catch (error) {
@@ -117,7 +135,8 @@ export async function resetPaperAccount(
 
 
 export async function readPaperState(): Promise<PaperStoreState> {
-  return paperService().getStateSnapshot();
+  const service = await paperService();
+  return service.getStateSnapshot();
 }
 
 function toPaperReleaseIdentity(
