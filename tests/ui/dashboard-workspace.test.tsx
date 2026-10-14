@@ -226,6 +226,7 @@ describe("Phase 10.5 trading workstation dashboard", () => {
   it("opens the signal detail from a mobile scanner action and can close it", () => {
     render(<DashboardWorkspace initialData={dashboard([analysed("EURUSD")])} />);
 
+    fireEvent.click(screen.getByText("EURUSD"));
     fireEvent.click(
       screen.getByRole("button", { name: "Open signal detail for EURUSD" })
     );
@@ -267,6 +268,7 @@ describe("Phase 10.5 trading workstation dashboard", () => {
   it("renders engine evidence, conflicts, and lifecycle without generating new analysis", () => {
     render(<DashboardWorkspace initialData={dashboard([analysed("EURUSD")])} />);
 
+    fireEvent.click(screen.getByText("EURUSD"));
     fireEvent.click(
       screen.getByRole("button", { name: "Open signal detail for EURUSD" })
     );
@@ -295,6 +297,7 @@ describe("Phase 10.5 trading workstation dashboard", () => {
     });
 
     render(<DashboardWorkspace initialData={dashboard([blocked])} />);
+    fireEvent.click(screen.getByText("GBPUSD"));
     fireEvent.click(
       screen.getByRole("button", { name: "Open signal detail for GBPUSD" })
     );

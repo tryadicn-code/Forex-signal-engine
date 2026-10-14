@@ -234,6 +234,11 @@ function CompactRow({
             {expanded ? "\u2304" : "\u203A"}
           </span>
         </div>
+        {failed && (
+          <div className="mt-0.5 font-mono text-[10px] text-zinc-600">
+            Engine status {result.status.replaceAll("_", " ")}
+          </div>
+        )}
       </button>
 
       {expanded && (
@@ -302,6 +307,7 @@ function CompactRow({
           <div className="mt-2 flex justify-end">
             <button
               type="button"
+              aria-label={`Open signal detail for ${result.symbol}`}
               onClick={(event) => {
                 event.stopPropagation();
                 onSelect(result.symbol);
