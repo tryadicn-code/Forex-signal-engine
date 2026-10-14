@@ -227,9 +227,6 @@ describe("Phase 10.5 trading workstation dashboard", () => {
     render(<DashboardWorkspace initialData={dashboard([analysed("EURUSD")])} />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Toggle details for EURUSD" })
-    );
-    fireEvent.click(
       screen.getByRole("button", { name: "Open signal detail for EURUSD" })
     );
 
@@ -271,9 +268,6 @@ describe("Phase 10.5 trading workstation dashboard", () => {
     render(<DashboardWorkspace initialData={dashboard([analysed("EURUSD")])} />);
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Toggle details for EURUSD" })
-    );
-    fireEvent.click(
       screen.getByRole("button", { name: "Open signal detail for EURUSD" })
     );
 
@@ -301,9 +295,6 @@ describe("Phase 10.5 trading workstation dashboard", () => {
     });
 
     render(<DashboardWorkspace initialData={dashboard([blocked])} />);
-    fireEvent.click(
-      screen.getByRole("button", { name: "Toggle details for GBPUSD" })
-    );
     fireEvent.click(
       screen.getByRole("button", { name: "Open signal detail for GBPUSD" })
     );
