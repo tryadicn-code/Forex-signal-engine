@@ -122,13 +122,16 @@ export function analyzePriceActionSetup(
     }
   }
 
-  // Keluarga 3: REVERSAL (belum aktif di MVP)
+  // Keluarga 3: REVERSAL
   if (config.enableReversal) {
-    evidence.push({
-      code: "REVERSAL_DISABLED",
-      label: "Reversal family",
-      description: "Reversal family belum diimplementasi di MVP.",
-    });
+    const reversal = tryReversal(input, config, price, evidence);
+    if (reversal) {
+      return {
+        result: reversal,
+        family: "REVERSAL",
+        emaContext,
+      };
+    }
   }
 
   return { result: empty, family: "none", emaContext };
@@ -247,6 +250,75 @@ function tryBreakoutRetest(
       setupScore: 65,
       invalidationLevel: invalidation,
       zoneSource: "price-action-breakout",
+    },
+    timestamp: engineTimestamp(input.marketAsOf),
+  };
+}
+
+/**
+ * REVERSAL family (countertrend).
+ *
+ * Sinyal muncul saat struktur baru saja berubah arah (fresh CHOCH) dan
+ * harga retest level CHOCH dari sisi baru. Tidak memerlukan regime gate
+ * HIGH_VOLATILITY seperti reversal strategy existing; memakai struktur
+ * (CHOCH), S/R extreme (swing opposite), dan price action (candle konfirmasi
+ * di trigger.ts).
+ */
+function tryReversal(
+  input: PriceActionSetupInput,
+  config: PriceActionConfig,
+  price: number,
+  evidence: Evidence[]
+): EngineResult<SetupResultData> | null {
+  const lastCHOCH = input.setupStructure.lastCHOCH;
+  if (!lastCHOCH) return null;
+  if (lastCHOCH.direction === "NEUTRAL") return null;
+
+  const long = lastCHOCH.direction === "LONG";
+  const buffer = config.zoneBufferPips * input.pipSize;
+  const level = lastCHOCH.price;
+  const zoneLow = level - buffer;
+  const zoneHigh = level + buffer;
+
+  // Retest: harga harus di dalam atau dekat zona CHOCH.
+  const nearZone =
+    price >= zoneLow - config.zoneBufferPips * 2 * input.pipSize &&
+    price <= zoneHigh + config.zoneBufferPips * 2 * input.pipSize;
+  if (!nearZone) return null;
+
+  // Invalidation: di luar swing extreme yang di-sweep (swing opposite arah).
+  const swings = long ? input.setupStructure.swingLows : input.setupStructure.swingHighs;
+  const lastSwing = swings[swings.length - 1];
+  if (!lastSwing) return null;
+
+  const invalidation = long
+    ? lastSwing.price - buffer
+    : lastSwing.price + buffer;
+
+  if (long && invalidation >= price) return null;
+  if (!long && invalidation <= price) return null;
+
+  evidence.push({
+    code: "REVERSAL_CHOCH_ZONE",
+    label: "Reversal CHOCH retest zone",
+    description: `CHOCH ${lastCHOCH.direction} at ${level.toFixed(5)}, retest zone ${zoneLow.toFixed(5)}-${zoneHigh.toFixed(5)}.`,
+    value: level,
+  });
+
+  return {
+    status: "SETUP_ARMED",
+    score: 60,
+    evidence,
+    conflicts: [],
+    data: {
+      state: "ARMED",
+      zoneLow,
+      zoneHigh,
+      distanceToZone: Math.abs(price - level) / input.pipSize,
+      setupType: "reversal-choch-retest",
+      setupScore: 60,
+      invalidationLevel: invalidation,
+      zoneSource: "price-action-reversal",
     },
     timestamp: engineTimestamp(input.marketAsOf),
   };

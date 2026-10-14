@@ -50,5 +50,5 @@ export const DEFAULT_PRICE_ACTION_CONFIG: Readonly<PriceActionConfig> = {
   requireEmaAlignment: true,
   enableTrendPullback: true,
   enableBreakoutRetest: true,
-  enableReversal: false,
+  enableReversal: true,
 };

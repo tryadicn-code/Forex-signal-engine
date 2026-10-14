@@ -22,8 +22,8 @@ describe("PRICE_ACTION config", () => {
     expect(DEFAULT_PRICE_ACTION_CONFIG.enableBreakoutRetest).toBe(true);
   });
 
-  it("default enableReversal false (MVP)", () => {
-    expect(DEFAULT_PRICE_ACTION_CONFIG.enableReversal).toBe(false);
+  it("default enableReversal true (setelah reversal family ditambahkan)", () => {
+    expect(DEFAULT_PRICE_ACTION_CONFIG.enableReversal).toBe(true);
   });
 });
 
