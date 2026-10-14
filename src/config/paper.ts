@@ -38,7 +38,7 @@ export const DEFAULT_PAPER_TRADING_CONFIG: PaperTradingConfig = {
   initialBalance: DEFAULT_ACCOUNT.balance,
   maxOpenPositions: 10,
   maxTotalOpenRiskPercent: 5,
-  maxOpenPositionsPerSymbol: 1,
+  maxOpenPositionsPerSymbol: 10,
   maxDirectionalCurrencyExposure: 2,
   stopLossReentryCooldownMs: 60 * 60_000,
   intrabarConflictPolicy: "STOP_FIRST",
