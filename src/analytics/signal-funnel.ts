@@ -83,6 +83,8 @@ export interface SignalFunnelObservation {
   regime: SymbolScanResult["regime"];
   biasDirection: SymbolScanResult["biasDirection"];
   setupState: SymbolScanResult["setupState"];
+  /** TRD-RR-006: strategy-specific setup family/type (optional). */
+  setupType?: SymbolScanResult["setupType"];
   triggerState: SymbolScanResult["triggerState"];
   executionDecision: SymbolScanResult["executionDecision"];
   passedStages: SignalFunnelStage[];
@@ -192,6 +194,7 @@ export function buildSignalFunnelObservation(
     regime: result.regime,
     biasDirection: result.biasDirection,
     setupState: result.setupState,
+    setupType: result.setupType ?? null,
     triggerState: result.triggerState,
     executionDecision: result.executionDecision,
   };
@@ -850,7 +853,7 @@ function round2(value: number): number {
  *
  * Infrastructure codes are those where the pipeline could not produce a
  * result for the symbol at all (data problem or engine not evaluated). Every
- * other code — including deliberate WAIT and all strategy gate rejections —
+ * other code Ã¢â‚¬â€ including deliberate WAIT and all strategy gate rejections Ã¢â‚¬â€
  * is a strategy rejection.
  */
 const INFRASTRUCTURE_REJECTION_CODES: ReadonlySet<string> = new Set([

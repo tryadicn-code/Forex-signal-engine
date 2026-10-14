@@ -708,6 +708,7 @@ export class ScannerService {
       biasDirection: pipeline.bias.data.direction,
       setupState: setup.state,
       setupScore: setup.setupScore,
+      setupType: setup.setupType,
       triggerState: trigger?.state ?? null,
       triggerScore: trigger?.breakdown.score ?? null,
       triggerAgeInBars: trigger?.ageInBars ?? null,
@@ -765,7 +766,7 @@ export class ScannerService {
 
 
   // -------------------------------------------------------------------------
-  // TRD-004 B1 — partial pipeline (trigger timeframe unavailable)
+  // TRD-004 B1 â€” partial pipeline (trigger timeframe unavailable)
   // -------------------------------------------------------------------------
 
   private async tryBuildPartialContext(
@@ -903,6 +904,7 @@ export class ScannerService {
       biasDirection: pipeline.bias.data.direction,
       setupState: setup.state,
       setupScore: setup.setupScore,
+      setupType: setup.setupType,
       triggerState: null,
       triggerScore: null,
       triggerAgeInBars: null,

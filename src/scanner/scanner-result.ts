@@ -140,6 +140,11 @@ export interface SymbolScanResult {
 
   setupState: SetupState | null;
   setupScore: number | null;
+  /**
+   * TRD-RR-006 observability: strategy-specific setup family/type
+   * (e.g. "trend-pullback-ema", "breakout-retest", "reversal-choch-retest").
+   */
+  setupType?: string | null;
 
   triggerState: TriggerState | null;
   triggerScore: number | null;
@@ -226,6 +231,7 @@ export function failureResult(
     biasDirection: null,
     setupState: null,
     setupScore: null,
+    setupType: null,
     triggerState: null,
     triggerScore: null,
     triggerAgeInBars: null,
