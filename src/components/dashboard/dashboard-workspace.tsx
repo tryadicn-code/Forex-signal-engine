@@ -4,10 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
 import { SignalFunnelSummary } from "@/components/analytics/signal-funnel-summary";
-import { ScannerCards } from "@/components/scanner/scanner-cards";
+import { ScannerCompactRows } from "@/components/scanner/scanner-compact-rows";
 import { ScannerEmptyState } from "@/components/scanner/scanner-empty-state";
 import { ScannerFilters } from "@/components/scanner/scanner-filters";
-import { ScannerTable } from "@/components/scanner/scanner-table";
 import { ScannerUniverseControl } from "@/components/scanner/scanner-universe-control";
 import { SignalDetailPanel } from "@/components/signals/signal-detail-panel";
 import { StrategySelector } from "@/components/dashboard/strategy-selector";
@@ -337,22 +336,11 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
                 />
               </div>
             ) : (
-              <>
-                <div className="hidden xl:block">
-                  <ScannerTable
-                    results={visibleResults}
-                    selectedSymbol={selectedSymbol}
-                    onSelect={setSelectedSymbol}
-                  />
-                </div>
-                <div className="xl:hidden">
-                  <ScannerCards
-                    results={visibleResults}
-                    selectedSymbol={selectedSymbol}
-                    onSelect={setSelectedSymbol}
-                  />
-                </div>
-              </>
+              <ScannerCompactRows
+                results={visibleResults}
+                selectedSymbol={selectedSymbol}
+                onSelect={setSelectedSymbol}
+              />
             )}
           </div>
         </section>
