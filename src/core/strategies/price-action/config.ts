@@ -45,7 +45,7 @@ export const DEFAULT_PRICE_ACTION_CONFIG: Readonly<PriceActionConfig> = {
   rejectionWickRatio: 2.0,
   engulfMinBodyRatio: 0.7,
   maxTriggerAgeBars: 3,
-  zoneBufferPips: 2,
+  zoneBufferPips: 5,
   minRoomToObstacleR: 1.0,
   requireEmaAlignment: true,
   enableTrendPullback: true,
