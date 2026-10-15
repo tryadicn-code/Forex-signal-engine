@@ -273,6 +273,8 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
         )}
       </section>
 
+      <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
+
       {errorMessage && (
         <div
           role="alert"
@@ -365,8 +367,6 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
       </div>
 
       <SignalFunnelSummary analytics={data.signalFunnel} />
-
-      <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
 
       <StrategySelector />
 
