@@ -12,12 +12,10 @@ import {
   stageGlyph,
   workstationStages,
   workstationStatus,
+  type WorkstationStage,
+  type WorkstationTone,
 } from "@/lib/workstation-status";
 import { cn } from "@/lib/utils";
-
-function isFailed(result: SymbolScanResult): boolean {
-  return result.status !== "ANALYSED" && result.status !== "ANALYSED_PARTIAL";
-}
 
 function directionArrow(result: SymbolScanResult): {
   glyph: string;
@@ -32,32 +30,65 @@ function directionArrow(result: SymbolScanResult): {
   return { glyph: "\u00B7", tone: "text-zinc-500" };
 }
 
-function statusLabel(result: SymbolScanResult): {
-  label: string;
-  tone: string;
-} {
-  if (isFailed(result)) return { label: "FAIL", tone: "text-zinc-500" };
-  if (result.executionDecision === "EXECUTE") {
-    return { label: "EXEC", tone: "text-emerald-300" };
+function badgeLabel(tone: WorkstationTone): string {
+  switch (tone) {
+    case "ready":
+      return "READY";
+    case "waiting":
+      return "WAIT";
+    case "blocked":
+      return "BLOCKED";
+    case "invalid":
+      return "INVALID";
+    default:
+      return "SCAN";
   }
-  if (result.executionDecision === "BLOCKED") {
-    return { label: "BLOCK", tone: "text-red-300" };
+}
+
+function badgeClass(tone: WorkstationTone): string {
+  switch (tone) {
+    case "ready":
+      return "border-emerald-700/70 bg-emerald-950/30 text-emerald-300";
+    case "waiting":
+      return "border-amber-700/70 bg-amber-950/30 text-amber-300";
+    case "blocked":
+      return "border-red-800/70 bg-red-950/30 text-red-300";
+    default:
+      return "border-zinc-700 bg-zinc-900/50 text-zinc-400";
   }
-  if (result.executionDecision === "INVALIDATED") {
-    return { label: "FAIL", tone: "text-zinc-500" };
-  }
-  if (result.signalState === "ARMED") {
-    return { label: "ARMED", tone: "text-amber-300" };
-  }
-  if (result.executionDecision === "WAIT" || result.signalState === "WATCH") {
-    return { label: "WAIT", tone: "text-amber-300" };
-  }
-  return { label: "NONE", tone: "text-zinc-500" };
+}
+
+function borderTone(tone: WorkstationTone): string {
+  if (tone === "ready") return "border-l-emerald-500";
+  if (tone === "waiting") return "border-l-amber-500";
+  if (tone === "blocked") return "border-l-red-500";
+  return "border-l-zinc-700";
+}
+
+function stageBarClass(state: WorkstationStage["state"]): string {
+  if (state === "done") return "bg-emerald-500";
+  if (state === "current") return "bg-amber-400";
+  if (state === "blocked") return "bg-red-500";
+  return "bg-zinc-800";
+}
+
+function stageTextClass(state: WorkstationStage["state"]): string {
+  if (state === "done") return "text-emerald-400";
+  if (state === "current") return "text-amber-300";
+  if (state === "blocked") return "text-red-400";
+  return "text-zinc-600";
+}
+
+function stageStateLabel(state: WorkstationStage["state"]): string {
+  if (state === "done") return "PASSED";
+  if (state === "current") return "CURRENT";
+  if (state === "blocked") return "BLOCKED";
+  return "PENDING";
 }
 
 function setupChipClass(score: number | null): string {
   if (score === null || !Number.isFinite(score)) {
-    return "border-zinc-700 bg-zinc-900/50 text-zinc-400";
+    return "border-zinc-700 bg-zinc-900/50 text-zinc-500";
   }
   if (score >= 80) {
     return "border-emerald-700/70 bg-emerald-950/25 text-emerald-300";
@@ -68,24 +99,17 @@ function setupChipClass(score: number | null): string {
   return "border-rose-800/70 bg-rose-950/25 text-rose-300";
 }
 
-function borderTone(tone: string): string {
-  if (tone === "ready") return "border-l-emerald-500";
-  if (tone === "waiting") return "border-l-amber-500";
-  if (tone === "blocked") return "border-l-red-500";
-  return "border-l-zinc-700";
-}
-
-function stageToneClass(state: string): string {
-  if (state === "done") return "text-emerald-400";
-  if (state === "current") return "text-amber-300";
-  if (state === "blocked") return "text-red-400";
-  return "text-zinc-700";
-}
-
 function entryTone(result: SymbolScanResult): string {
   if (result.biasDirection === "LONG") return "text-emerald-300";
   if (result.biasDirection === "SHORT") return "text-rose-300";
   return "text-zinc-400";
+}
+
+function scoreDisplay(score: number | null | undefined): string {
+  if (score === null || score === undefined || !Number.isFinite(score)) {
+    return formatScore(score);
+  }
+  return `${formatScore(score)}/100`;
 }
 
 export function ScannerAccordionGrid({
@@ -103,7 +127,7 @@ export function ScannerAccordionGrid({
     setExpanded((prev) => (prev === symbol ? null : symbol));
 
   return (
-    <ul className="divide-y divide-zinc-800/60">
+    <ul className="flex flex-col gap-1.5 p-2">
       {results.map((result) => (
         <AccordionRow
           key={result.symbol}
@@ -112,7 +136,6 @@ export function ScannerAccordionGrid({
           selected={result.symbol === selectedSymbol}
           onToggle={() => toggle(result.symbol)}
           onOpen={() => onSelect(result.symbol)}
-          onClose={() => setExpanded(null)}
         />
       ))}
     </ul>
@@ -125,20 +148,17 @@ function AccordionRow({
   selected,
   onToggle,
   onOpen,
-  onClose,
 }: {
   result: SymbolScanResult;
   expanded: boolean;
   selected: boolean;
   onToggle: () => void;
   onOpen: () => void;
-  onClose: () => void;
 }) {
   const status = workstationStatus(result);
   const stages = workstationStages(result);
-  const failed = isFailed(result);
   const dir = directionArrow(result);
-  const st = statusLabel(result);
+  const badge = badgeLabel(status.tone);
   const risk = result.riskDetail;
   const planned = result.plannedLevels ?? null;
   const entryVal = risk?.entryPrice ?? planned?.entry ?? null;
@@ -150,142 +170,209 @@ function AccordionRow({
     <li
       data-signal-symbol={result.symbol}
       className={cn(
-        "border-l-2 bg-zinc-950/10 transition-colors",
+        "overflow-hidden rounded-md border border-zinc-800/60 border-l-2 bg-zinc-950/40 transition-colors",
         borderTone(status.tone),
-        selected && "bg-zinc-800/45",
-        expanded && "bg-zinc-900/55"
+        selected && "border-zinc-700/60 bg-zinc-800/45",
+        expanded && "bg-zinc-900/60"
       )}
     >
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        aria-label={`Toggle details for ${result.symbol}`}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+        className="flex w-full flex-col gap-1.5 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
       >
-        {/* Symbol */}
-        <span className="font-mono text-sm font-semibold tracking-wide text-zinc-100">
-          {result.symbol}
-        </span>
+        {/* Row 1: symbol · arrow · badge */}
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm font-semibold tracking-wide text-zinc-100">
+            {result.symbol}
+          </span>
+          <span
+            aria-label={result.biasDirection ?? "NEUTRAL"}
+            className={cn("font-mono text-[11px] leading-none", dir.tone)}
+          >
+            {dir.glyph}
+          </span>
+          <span
+            className={cn(
+              "ml-auto rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider",
+              badgeClass(status.tone)
+            )}
+          >
+            {badge}
+          </span>
+        </div>
 
-        {/* Direction arrow */}
-        <span
-          aria-label={result.biasDirection ?? "NEUTRAL"}
-          className={cn("font-mono text-[11px] leading-none", dir.tone)}
+        {/* Row 2: entry price · score */}
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={cn(
+              "font-mono text-[12px] tabular-nums",
+              entryTone(result)
+            )}
+          >
+            {entryVal !== null ? (
+              <>
+                {"e "}
+                {formatPrice(result.symbol, entryVal)}
+              </>
+            ) : (
+              <span className="text-zinc-600">{"e \u2014"}</span>
+            )}
+          </span>
+          <span
+            className={cn(
+              "rounded border px-1.5 py-0 font-mono text-[10px] font-semibold tabular-nums",
+              setupChipClass(result.setupScore)
+            )}
+          >
+            {scoreDisplay(result.setupScore)}
+          </span>
+        </div>
+
+        {/* Row 3: stage bar */}
+        <div
+          className="flex gap-0.5"
+          role="img"
+          aria-label={stages.map((s) => `${s.label}: ${s.state}`).join(", ")}
         >
-          {dir.glyph}
-        </span>
-
-        {/* Entry price */}
-        <span className={cn("font-mono text-[12px] tabular-nums", entryTone(result))}>
-          {entryVal !== null ? (
-            <>
-              {"e "}
-              {formatPrice(result.symbol, entryVal)}
-            </>
-          ) : (
-            <span className="text-zinc-600">{"e \u2014"}</span>
-          )}
-        </span>
-
-        {/* Pipeline glyph */}
-        <span className="ml-auto flex items-center gap-0.5 font-mono text-[11px] leading-none">
           {stages.map((stage) => (
             <span
               key={stage.label}
-              aria-label={`${stage.label}: ${stage.state}`}
-              className={cn("leading-none", stageToneClass(stage.state))}
-            >
-              {stageGlyph(stage)}
-            </span>
+              title={`${stage.label}: ${stage.state}`}
+              className={cn("h-1 flex-1 rounded-sm", stageBarClass(stage.state))}
+            />
           ))}
-        </span>
+        </div>
 
-        {/* Status text */}
-        <span className={cn("text-[10px] font-medium", st.tone)}>
-          {st.label}
-        </span>
-
-        {/* Score chip */}
-        <span
-          className={cn(
-            "rounded border px-1 py-0 font-mono text-[10px] font-semibold tabular-nums",
-            setupChipClass(result.setupScore)
-          )}
-        >
-          {formatScore(result.setupScore)}
-        </span>
+        {/* Row 4: reason · chevron */}
+        <div className="flex items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">
+            {status.detail}
+          </span>
+          <span
+            aria-hidden="true"
+            className={cn(
+              "inline-block font-mono text-[12px] leading-none text-zinc-500 transition-transform duration-200 motion-reduce:transition-none",
+              expanded && "rotate-90"
+            )}
+          >
+            {"\u203A"}
+          </span>
+        </div>
       </button>
 
-      {failed && (
-        <div className="px-3 pb-2 font-mono text-[10px] text-zinc-600">
-          Engine status {result.status.replaceAll("_", " ")}
-        </div>
-      )}
+      {/* Expanded panel — animated grid-rows 0fr → 1fr */}
+      <div
+        className="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none"
+        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+        aria-hidden={!expanded}
+        inert={!expanded}
+      >
+        <div className="overflow-hidden">
+          <div className="space-y-3 border-t border-zinc-800/60 px-3 py-2.5 text-[11px]">
+            {/* Section: Mengapa */}
+            <section>
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                Mengapa {badge.toLowerCase()}?
+              </div>
+              <div className="mt-0.5 text-zinc-200">{status.headline}</div>
+              <div className="mt-0.5 leading-snug text-zinc-400">
+                {status.detail}
+              </div>
+            </section>
 
-      {expanded && !failed && (
-        <div className="border-t border-zinc-800/60 px-3 py-2.5 transition-all duration-200">
-          <div className="flex items-start justify-between gap-2">
-            <div className="grid flex-1 grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-              <div className="flex justify-between">
-                <span className="text-zinc-500">TP</span>
-                <span className="font-mono tabular-nums text-emerald-300">
-                  {formatPrice(result.symbol, tpVal)}
-                </span>
+            {/* Section: Ringkasan validasi */}
+            <section>
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                Ringkasan validasi
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">R:R</span>
-                <span className="font-mono tabular-nums text-zinc-300">
-                  {formatRatio(rrVal)}
-                </span>
+              <ul className="mt-1 space-y-0.5">
+                {stages.map((stage) => (
+                  <li
+                    key={stage.label}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "font-mono text-[10px]",
+                          stageTextClass(stage.state)
+                        )}
+                      >
+                        {stageGlyph(stage)}
+                      </span>
+                      <span className="text-zinc-300">{stage.label}</span>
+                    </span>
+                    <span
+                      className={cn(
+                        "font-mono text-[10px] uppercase tracking-wider",
+                        stageTextClass(stage.state)
+                      )}
+                    >
+                      {stageStateLabel(stage.state)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* Section: Levels */}
+            <section>
+              <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                Levels
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">SL</span>
-                <span className="font-mono tabular-nums text-red-300">
-                  {formatPrice(result.symbol, slVal)}
-                </span>
+              <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">TP</span>
+                  <span className="font-mono tabular-nums text-emerald-300">
+                    {formatPrice(result.symbol, tpVal)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">R:R</span>
+                  <span className="font-mono tabular-nums text-zinc-300">
+                    {formatRatio(rrVal)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">SL</span>
+                  <span className="font-mono tabular-nums text-red-300">
+                    {formatPrice(result.symbol, slVal)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Time</span>
+                  <span className="font-mono tabular-nums text-zinc-500">
+                    {formatTimeShort(result.updatedAt)}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Time</span>
-                <span className="font-mono tabular-nums text-zinc-500">
-                  {formatTimeShort(result.updatedAt)}
+            </section>
+
+            {/* Section: Action */}
+            <div className="flex items-center justify-between gap-2 pt-0.5">
+              {result.signalState && (
+                <span className="font-mono text-[10px] text-zinc-500">
+                  {result.signalState}
                 </span>
-              </div>
+              )}
+              <button
+                type="button"
+                aria-label={`Open signal detail for ${result.symbol}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpen();
+                }}
+                className="ml-auto rounded border border-emerald-800/60 bg-emerald-950/20 px-2.5 py-1 text-[10px] font-medium text-emerald-200 hover:border-emerald-700 hover:bg-emerald-950/40"
+              >
+                Open Analysis {"\u203A"}
+              </button>
             </div>
-            <button
-              type="button"
-              aria-label="Close details"
-              onClick={(event) => {
-                event.stopPropagation();
-                onClose();
-              }}
-              className="rounded border border-zinc-700 px-1.5 py-0 font-mono text-[10px] text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-            >
-              {"\u00D7"}
-            </button>
-          </div>
-
-          {result.signalState && (
-            <div className="mt-1.5 font-mono text-[10px] text-zinc-500">
-              {result.signalState}
-            </div>
-          )}
-
-          <div className="mt-2 flex justify-end">
-            <button
-              type="button"
-              aria-label={`Open signal detail for ${result.symbol}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                onOpen();
-              }}
-              className="rounded border border-emerald-800/60 bg-emerald-950/20 px-2.5 py-1 text-[10px] font-medium text-emerald-200 hover:border-emerald-700 hover:bg-emerald-950/40"
-            >
-              Open Analysis {"\u203A"}
-            </button>
           </div>
         </div>
-      )}
+      </div>
     </li>
   );
 }
