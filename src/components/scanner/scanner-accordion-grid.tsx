@@ -19,15 +19,16 @@ import { cn } from "@/lib/utils";
 
 function directionArrow(result: SymbolScanResult): {
   glyph: string;
+  label: string;
   tone: string;
 } {
   if (result.biasDirection === "LONG") {
-    return { glyph: "\u25B2", tone: "text-emerald-300" };
+    return { glyph: "\u25B2", label: "LONG", tone: "text-emerald-300" };
   }
   if (result.biasDirection === "SHORT") {
-    return { glyph: "\u25BC", tone: "text-rose-300" };
+    return { glyph: "\u25BC", label: "SHORT", tone: "text-rose-300" };
   }
-  return { glyph: "\u00B7", tone: "text-zinc-500" };
+  return { glyph: "\u00B7", label: "NEUTRAL", tone: "text-zinc-500" };
 }
 
 function badgeLabel(tone: WorkstationTone): string {
@@ -45,18 +46,6 @@ function badgeLabel(tone: WorkstationTone): string {
   }
 }
 
-function badgeClass(tone: WorkstationTone): string {
-  switch (tone) {
-    case "ready":
-      return "border-emerald-700/70 bg-emerald-950/30 text-emerald-300";
-    case "waiting":
-      return "border-amber-700/70 bg-amber-950/30 text-amber-300";
-    case "blocked":
-      return "border-red-800/70 bg-red-950/30 text-red-300";
-    default:
-      return "border-zinc-700 bg-zinc-900/50 text-zinc-400";
-  }
-}
 
 function borderTone(tone: WorkstationTone): string {
   if (tone === "ready") return "border-l-emerald-500";
@@ -79,13 +68,6 @@ function stageTextClass(state: WorkstationStage["state"]): string {
   return "text-zinc-600";
 }
 
-function stageStateLabel(state: WorkstationStage["state"]): string {
-  if (state === "done") return "PASSED";
-  if (state === "current") return "CURRENT";
-  if (state === "blocked") return "BLOCKED";
-  return "PENDING";
-}
-
 function setupChipClass(score: number | null): string {
   if (score === null || !Number.isFinite(score) || score <= 0) {
     return "border-zinc-700 bg-zinc-900/50 text-zinc-500";
@@ -97,6 +79,32 @@ function setupChipClass(score: number | null): string {
     return "border-amber-700/70 bg-amber-950/25 text-amber-300";
   }
   return "border-rose-800/70 bg-rose-950/25 text-rose-300";
+}
+
+function badgeTextClass(tone: WorkstationTone): string {
+  switch (tone) {
+    case "ready":
+      return "text-emerald-300";
+    case "waiting":
+      return "text-amber-300";
+    case "blocked":
+      return "text-red-300";
+    default:
+      return "text-zinc-500";
+  }
+}
+
+function scoreTextClass(score: number | null): string {
+  if (score === null || !Number.isFinite(score) || score <= 0) {
+    return "text-zinc-500";
+  }
+  if (score >= 80) {
+    return "text-emerald-300";
+  }
+  if (score >= 60) {
+    return "text-amber-300";
+  }
+  return "text-rose-300";
 }
 
 function entryTone(result: SymbolScanResult): string {
@@ -122,23 +130,165 @@ export function ScannerAccordionGrid({
   onSelect: (symbol: string) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [activeOpen, setActiveOpen] = useState(true);
+  const [idleOpen, setIdleOpen] = useState(false);
 
   const toggle = (symbol: string) =>
     setExpanded((prev) => (prev === symbol ? null : symbol));
 
+  const active: SymbolScanResult[] = [];
+  const idle: SymbolScanResult[] = [];
+  for (const r of results) {
+    if (workstationStatus(r).tone === "neutral") idle.push(r);
+    else active.push(r);
+  }
+
   return (
-    <ul className="flex flex-col gap-1.5 p-2">
-      {results.map((result) => (
-        <AccordionRow
-          key={result.symbol}
-          result={result}
-          expanded={expanded === result.symbol}
-          selected={result.symbol === selectedSymbol}
-          onToggle={() => toggle(result.symbol)}
-          onOpen={() => onSelect(result.symbol)}
-        />
-      ))}
-    </ul>
+    <div className="flex flex-col gap-2 p-2">
+      {active.length > 0 && (
+        <section>
+          <button
+            type="button"
+            onClick={() => setActiveOpen((v) => !v)}
+            aria-expanded={activeOpen}
+            className="flex w-full items-center gap-2 rounded-md border border-amber-900/40 bg-amber-950/10 px-3 py-1.5 text-left text-[11px] hover:bg-amber-950/20"
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                "inline-block font-mono text-[10px] leading-none text-amber-400 transition-transform duration-200 motion-reduce:transition-none",
+                activeOpen && "rotate-90"
+              )}
+            >
+              {"\u25B8"}
+            </span>
+            <span className="font-semibold uppercase tracking-wider text-amber-300">
+              Active
+            </span>
+            <span className="text-zinc-500">({active.length})</span>
+          </button>
+          {activeOpen && (
+            <ul className="mt-1.5 flex flex-col gap-1.5">
+              {active.map((result) => (
+                <AccordionRow
+                  key={result.symbol}
+                  result={result}
+                  expanded={expanded === result.symbol}
+                  selected={result.symbol === selectedSymbol}
+                  onToggle={() => toggle(result.symbol)}
+                  onOpen={() => onSelect(result.symbol)}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {idle.length > 0 && (
+        <section>
+          <button
+            type="button"
+            onClick={() => setIdleOpen((v) => !v)}
+            aria-expanded={idleOpen}
+            className="flex w-full items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900/30 px-3 py-1.5 text-left text-[11px] hover:bg-zinc-800/40"
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                "inline-block font-mono text-[10px] leading-none text-zinc-500 transition-transform duration-200 motion-reduce:transition-none",
+                idleOpen && "rotate-90"
+              )}
+            >
+              {"\u25B8"}
+            </span>
+            <span className="font-semibold uppercase tracking-wider text-zinc-400">
+              Idle
+            </span>
+            <span className="text-zinc-600">({idle.length})</span>
+          </button>
+          {idleOpen && (
+            <ul className="mt-1.5 flex flex-col overflow-hidden rounded-md border border-zinc-800/60">
+              {idle.map((result) => (
+                <IdleRow
+                  key={result.symbol}
+                  result={result}
+                  selected={result.symbol === selectedSymbol}
+                  onSelect={() => onSelect(result.symbol)}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
+function IdleRow({
+  result,
+  selected,
+  onSelect,
+}: {
+  result: SymbolScanResult;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const dir = directionArrow(result);
+  const risk = result.riskDetail;
+  const planned = result.plannedLevels ?? null;
+  const entryVal = risk?.entryPrice ?? planned?.entry ?? null;
+
+  return (
+    <li
+      data-signal-symbol={result.symbol}
+      className={cn(
+        "border-b border-zinc-800/40 last:border-b-0",
+        selected && "bg-zinc-800/45"
+      )}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+      >
+        <span className="font-mono text-[12px] font-semibold tracking-wide text-zinc-300">
+          {result.symbol}
+        </span>
+        <span
+          aria-label={result.biasDirection ?? "NEUTRAL"}
+          className={cn(
+            "flex items-center gap-1 font-mono text-[10px] leading-none",
+            dir.tone
+          )}
+        >
+          <span aria-hidden="true">{dir.glyph}</span>
+          <span>{dir.label}</span>
+        </span>
+        <span
+          className={cn(
+            "ml-auto font-mono text-[11px] tabular-nums",
+            entryTone(result)
+          )}
+        >
+          {entryVal !== null ? (
+            <>
+              {"e "}
+              {formatPrice(result.symbol, entryVal)}
+            </>
+          ) : (
+            <span className="text-zinc-600">{"e \u2014"}</span>
+          )}
+        </span>
+        <span
+          className={cn(
+            "rounded border px-1.5 py-0 font-mono text-[10px] font-semibold tabular-nums",
+            setupChipClass(result.setupScore)
+          )}
+        >
+          {scoreDisplay(result.setupScore)}
+        </span>
+      </button>
+    </li>
   );
 }
 
@@ -161,7 +311,6 @@ function AccordionRow({
   const badge = badgeLabel(status.tone);
   const risk = result.riskDetail;
   const planned = result.plannedLevels ?? null;
-  const entryVal = risk?.entryPrice ?? planned?.entry ?? null;
   const tpVal = risk?.takeProfit1 ?? planned?.takeProfit ?? null;
   const slVal = risk?.stopLoss ?? planned?.stop ?? null;
   const rrVal = result.riskReward ?? risk?.plannedRR ?? planned?.rr ?? null;
@@ -180,59 +329,39 @@ function AccordionRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex w-full flex-col gap-1.5 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
       >
-        {/* Row 1: symbol · arrow · badge */}
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-sm font-semibold tracking-wide text-zinc-100">
-            {result.symbol}
-          </span>
-          <span
-            aria-label={result.biasDirection ?? "NEUTRAL"}
-            className={cn("font-mono text-[11px] leading-none", dir.tone)}
-          >
-            {dir.glyph}
-          </span>
-          <span
-            className={cn(
-              "ml-auto rounded border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider",
-              badgeClass(status.tone)
-            )}
-          >
-            {badge}
-          </span>
-        </div>
-
-        {/* Row 2: entry price · score */}
-        <div className="flex items-center justify-between gap-2">
-          <span
-            className={cn(
-              "font-mono text-[12px] tabular-nums",
-              entryTone(result)
-            )}
-          >
-            {entryVal !== null ? (
-              <>
-                {"e "}
-                {formatPrice(result.symbol, entryVal)}
-              </>
-            ) : (
-              <span className="text-zinc-600">{"e \u2014"}</span>
-            )}
-          </span>
-          <span
-            className={cn(
-              "rounded border px-1.5 py-0 font-mono text-[10px] font-semibold tabular-nums",
-              setupChipClass(result.setupScore)
-            )}
-          >
-            {scoreDisplay(result.setupScore)}
-          </span>
-        </div>
-
-        {/* Row 3: stage bar */}
-        <div
-          className="flex gap-0.5"
+        <span className="font-mono text-[13px] font-semibold tracking-wide text-zinc-100">
+          {result.symbol}
+        </span>
+        <span
+          aria-label={result.biasDirection ?? "NEUTRAL"}
+          className={cn(
+            "flex items-center gap-1 font-mono text-[10px] leading-none",
+            dir.tone
+          )}
+        >
+          <span aria-hidden="true">{dir.glyph}</span>
+          <span>{dir.label}</span>
+        </span>
+        <span
+          className={cn(
+            "font-mono text-[10px] font-semibold uppercase tracking-wider",
+            badgeTextClass(status.tone)
+          )}
+        >
+          {badge}
+        </span>
+        <span
+          className={cn(
+            "font-mono text-[11px] font-semibold tabular-nums",
+            scoreTextClass(result.setupScore)
+          )}
+        >
+          {formatScore(result.setupScore)}
+        </span>
+        <span
+          className="flex flex-1 gap-0.5"
           role="img"
           aria-label={stages.map((s) => `${s.label}: ${s.state}`).join(", ")}
         >
@@ -243,23 +372,16 @@ function AccordionRow({
               className={cn("h-1 flex-1 rounded-sm", stageBarClass(stage.state))}
             />
           ))}
-        </div>
-
-        {/* Row 4: reason · chevron */}
-        <div className="flex items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">
-            {status.detail}
-          </span>
-          <span
-            aria-hidden="true"
-            className={cn(
-              "inline-block font-mono text-[12px] leading-none text-zinc-500 transition-transform duration-200 motion-reduce:transition-none",
-              expanded && "rotate-90"
-            )}
-          >
-            {"\u25B8"}
-          </span>
-        </div>
+        </span>
+        <span
+          aria-hidden="true"
+          className={cn(
+            "inline-block font-mono text-[12px] leading-none text-zinc-500 transition-transform duration-200 motion-reduce:transition-none",
+            expanded && "rotate-90"
+          )}
+        >
+          {"\u25B8"}
+        </span>
       </button>
 
       {/* Expanded panel — animated grid-rows 0fr → 1fr */}
@@ -282,40 +404,44 @@ function AccordionRow({
               </div>
             </section>
 
-            {/* Section: Ringkasan validasi */}
+            {/* Section: Pipeline */}
             <section>
               <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                Ringkasan validasi
+                Pipeline
               </div>
-              <ul className="mt-1 space-y-0.5">
+              <div
+                className="mt-1.5 flex gap-1"
+                role="img"
+                aria-label={stages
+                  .map((s) => `${s.label}: ${s.state}`)
+                  .join(", ")}
+              >
                 {stages.map((stage) => (
-                  <li
+                  <div
                     key={stage.label}
-                    className="flex items-center justify-between"
+                    className="flex flex-1 flex-col items-center gap-0.5"
                   >
-                    <span className="flex items-center gap-1.5">
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "font-mono text-[10px]",
-                          stageTextClass(stage.state)
-                        )}
-                      >
-                        {stageGlyph(stage)}
-                      </span>
-                      <span className="text-zinc-300">{stage.label}</span>
+                    <span className="text-[9px] uppercase tracking-wider text-zinc-500">
+                      {stage.label}
                     </span>
                     <span
                       className={cn(
-                        "font-mono text-[10px] uppercase tracking-wider",
+                        "h-1 w-full rounded-sm",
+                        stageBarClass(stage.state)
+                      )}
+                    />
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "font-mono text-[10px] leading-none",
                         stageTextClass(stage.state)
                       )}
                     >
-                      {stageStateLabel(stage.state)}
+                      {stageGlyph(stage)}
                     </span>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </section>
 
             {/* Section: Levels */}
