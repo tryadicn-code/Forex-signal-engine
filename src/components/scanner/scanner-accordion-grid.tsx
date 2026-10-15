@@ -87,7 +87,7 @@ function stageStateLabel(state: WorkstationStage["state"]): string {
 }
 
 function setupChipClass(score: number | null): string {
-  if (score === null || !Number.isFinite(score)) {
+  if (score === null || !Number.isFinite(score) || score <= 0) {
     return "border-zinc-700 bg-zinc-900/50 text-zinc-500";
   }
   if (score >= 80) {
@@ -257,7 +257,7 @@ function AccordionRow({
               expanded && "rotate-90"
             )}
           >
-            {"\u203A"}
+            {"\u25B8"}
           </span>
         </div>
       </button>
