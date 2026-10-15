@@ -853,7 +853,7 @@ function round2(value: number): number {
  *
  * Infrastructure codes are those where the pipeline could not produce a
  * result for the symbol at all (data problem or engine not evaluated). Every
- * other code Ã¢â‚¬â€ including deliberate WAIT and all strategy gate rejections Ã¢â‚¬â€
+ * other code — including deliberate WAIT and all strategy gate rejections —
  * is a strategy rejection.
  */
 const INFRASTRUCTURE_REJECTION_CODES: ReadonlySet<string> = new Set([
