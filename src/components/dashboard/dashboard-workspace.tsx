@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
+import {
+  DashboardSummary,
+  summarizeResults,
+} from "@/components/dashboard/dashboard-summary";
+import { formatTimeShort } from "@/lib/format";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
 import { SignalFunnelSummary } from "@/components/analytics/signal-funnel-summary";
 import { ScannerAccordionGrid } from "@/components/scanner/scanner-accordion-grid";
@@ -48,6 +52,7 @@ async function requestDashboard(
 export function DashboardWorkspace({ initialData }: { initialData: DashboardData }) {
   const [data, setData] = useState(initialData);
   const [query, setQuery] = useState<ScannerQuery>(DEFAULT_QUERY);
+  const [overviewExpanded, setOverviewExpanded] = useState(false);
   const [sort, setSort] = useState<ScannerSort>(DEFAULT_SORT);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -230,6 +235,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
     }
   };
   const errorMessage = requestError ?? data.scanError;
+  const overviewCounts = summarizeResults(data.snapshot?.results ?? []);
   const runtimeIssue =
     data.releaseRuntime && data.releaseRuntime.status !== "ACTIVE"
       ? data.releaseRuntime
@@ -242,7 +248,53 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
   return (
     <div className="mx-auto w-full max-w-[1900px] space-y-3 p-3 sm:p-4 lg:p-5">
       <section id="overview" aria-label="Market overview" className="scroll-mt-20">
-        <DashboardSummary
+        <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/20">
+          <button
+            type="button"
+            onClick={() => setOverviewExpanded((v) => !v)}
+            aria-expanded={overviewExpanded}
+            aria-label="Toggle market overview details"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] text-zinc-400 hover:bg-zinc-800/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 sm:text-xs"
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                "inline-block font-mono text-[10px] leading-none text-zinc-500 transition-transform duration-200 motion-reduce:transition-none",
+                overviewExpanded && "rotate-90"
+              )}
+            >
+              {"\u25B8"}
+            </span>
+            <span className="font-medium text-zinc-300">Overview</span>
+            <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
+            <span>
+              <span className="font-mono tabular-nums text-zinc-200">{overviewCounts.ready}</span>{" Rdy"}
+            </span>
+            <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
+            <span>
+              <span className="font-mono tabular-nums text-zinc-200">{overviewCounts.armed}</span>{" Arm"}
+            </span>
+            <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
+            <span className={cn("font-mono text-[10px] uppercase tracking-wide", data.liveMarketData ? "text-emerald-400" : "text-zinc-600")}>
+              {data.liveMarketData ? "[LIVE]" : "[MOCK]"}
+            </span>
+            <span className="font-mono text-zinc-300">
+              {(data.providerId ?? "unknown").toUpperCase()}
+            </span>
+            <span className="ml-auto font-mono tabular-nums text-zinc-500">
+              {formatTimeShort(data.health?.lastScanCompletedAt)}
+            </span>
+          </button>
+
+          <div
+            className="grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none"
+            style={{ gridTemplateRows: overviewExpanded ? "1fr" : "0fr" }}
+            aria-hidden={!overviewExpanded}
+            inert={!overviewExpanded}
+          >
+            <div className="overflow-hidden">
+              <div className="space-y-3 border-t border-zinc-800 p-3 sm:p-4">
+                <DashboardSummary
           snapshot={data.snapshot}
           health={data.health}
           liveMarketData={Boolean(data.liveMarketData)}
@@ -271,9 +323,13 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             <span className="shrink-0 text-amber-300">System {"\u203A"}</span>
           </a>
         )}
-      </section>
 
-      <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
+                <MarketHealthPanel snapshot={data.snapshot} health={data.health} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {errorMessage && (
         <div
