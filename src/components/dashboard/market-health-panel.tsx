@@ -1,4 +1,4 @@
-import { FreshnessBadge, ProviderStateBadge } from "@/components/common/badges";
+import { FreshnessBadge } from "@/components/common/badges";
 import { formatDuration, formatTime, NOT_AVAILABLE } from "@/lib/format";
 import type { ScannerHealth, ScannerSnapshot } from "@/scanner/scanner-result";
 
@@ -22,20 +22,9 @@ export function MarketHealthPanel({
 
   return (
     <section
-      aria-labelledby="market-health-title"
+      aria-label="Market data health"
       className="rounded-md border border-zinc-800 bg-zinc-900/30"
     >
-      <header className="flex items-center justify-between gap-3 border-b border-zinc-800 px-3 py-2.5 sm:px-4 sm:py-3">
-        <div className="min-w-0">
-          <h2 id="market-health-title" className="text-sm font-semibold text-zinc-100">
-            Market data health
-          </h2>
-          <p className="mt-0.5 hidden text-[11px] text-zinc-500 sm:block">
-            Provider state, freshness, and scan isolation.
-          </p>
-        </div>
-        <ProviderStateBadge state={provider?.state ?? null} />
-      </header>
 
       <div className="flex flex-wrap gap-2 p-3 sm:p-4">
         <FreshnessCount label="FRESH" count={freshness.FRESH} />
