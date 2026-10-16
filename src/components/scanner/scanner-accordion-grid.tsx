@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { SymbolScanResult } from "@/scanner/scanner-result";
-import { formatPrice, formatScore } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
+import { defaultEngineConfig } from "@/core/config/engine-config";
 import {
   workstationStatus,
   type WorkstationTone,
@@ -92,6 +93,15 @@ function formatSetupType(setupType: string | null | undefined): string {
   if (setupType === "breakout-retest") return "breakout";
   if (setupType === "reversal-choch-retest") return "reversal";
   return "\u2014";
+}
+
+function formatSetupScore(
+  strategyId: string | null | undefined,
+  score: number | null
+): string {
+  if (strategyId === "PRICE_ACTION") return "\u2014";
+  if (score === null || !Number.isFinite(score) || score <= 0) return "\u2014";
+  return Math.round(score) + "/" + defaultEngineConfig.trigger.minTriggerScore;
 }
 
 function entryTone(result: SymbolScanResult): string {
@@ -275,7 +285,7 @@ function IdleRow({
             scoreTextClass(result.setupScore)
           )}
         >
-          {formatScore(result.setupScore)}
+          {formatSetupScore(result.strategyId, result.setupScore)}
         </span>
         <span className="text-right font-mono text-[10px] tabular-nums text-zinc-500">
           {formatSetupType(result.setupType)}
@@ -367,7 +377,7 @@ function AccordionRow({
             scoreTextClass(result.setupScore)
           )}
         >
-          {formatScore(result.setupScore)}
+          {formatSetupScore(result.strategyId, result.setupScore)}
         </span>
         <span className="text-right font-mono text-[10px] tabular-nums text-zinc-500">
           {formatSetupType(result.setupType)}
