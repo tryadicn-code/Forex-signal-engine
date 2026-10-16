@@ -325,6 +325,7 @@ function AccordionRow({
   const badge = badgeLabel(status.tone);
   const risk = result.riskDetail;
   const planned = result.plannedLevels ?? null;
+  const entryVal = risk?.entryPrice ?? planned?.entry ?? null;
   const tpVal = risk?.takeProfit1 ?? planned?.takeProfit ?? null;
   const slVal = risk?.stopLoss ?? planned?.stop ?? null;
   const rrVal = result.riskReward ?? risk?.plannedRR ?? planned?.rr ?? null;
@@ -440,6 +441,19 @@ function AccordionRow({
             </div>
 
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] tabular-nums">
+              <span>
+                <span className="text-zinc-500">{"E "}</span>
+                <span className={entryTone(result)}>
+                  {entryVal !== null ? (
+                    formatPrice(result.symbol, entryVal)
+                  ) : (
+                    <span className="text-zinc-600">{"\u2014"}</span>
+                  )}
+                </span>
+              </span>
+              <span aria-hidden="true" className="text-zinc-700">
+                {"\u00B7"}
+              </span>
               <span>
                 <span className="text-zinc-500">{"TP "}</span>
                 <span className="text-emerald-300">
