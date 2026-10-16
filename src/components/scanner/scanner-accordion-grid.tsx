@@ -2,18 +2,12 @@
 
 import { useState } from "react";
 import type { SymbolScanResult } from "@/scanner/scanner-result";
+import { formatPrice, formatScore } from "@/lib/format";
 import {
-  formatPrice,
-  formatRatio,
-  formatScore,
-  formatTimeShort,
-} from "@/lib/format";
-import {
-  workstationStages,
   workstationStatus,
-  type WorkstationStage,
   type WorkstationTone,
 } from "@/lib/workstation-status";
+import { SignalNarrative } from "@/components/signals/signal-narrative";
 import { cn } from "@/lib/utils";
 
 function directionArrow(result: SymbolScanResult): {
@@ -52,12 +46,6 @@ function borderTone(tone: WorkstationTone): string {
   return "border-l-zinc-700";
 }
 
-function stageBarClass(state: WorkstationStage["state"]): string {
-  if (state === "done") return "bg-emerald-500";
-  if (state === "current") return "bg-amber-400";
-  if (state === "blocked") return "bg-red-500";
-  return "bg-zinc-800";
-}
 
 function badgeTextClass(tone: WorkstationTone): string {
   switch (tone) {
@@ -328,15 +316,8 @@ function AccordionRow({
   onOpen: () => void;
 }) {
   const status = workstationStatus(result);
-  const stages = workstationStages(result);
   const dir = directionArrow(result);
   const badge = badgeLabel(status.tone);
-  const risk = result.riskDetail;
-  const planned = result.plannedLevels ?? null;
-  const entryVal = risk?.entryPrice ?? planned?.entry ?? null;
-  const tpVal = risk?.takeProfit1 ?? planned?.takeProfit ?? null;
-  const slVal = risk?.stopLoss ?? planned?.stop ?? null;
-  const rrVal = result.riskReward ?? risk?.plannedRR ?? planned?.rr ?? null;
 
   return (
     <li
@@ -427,80 +408,9 @@ function AccordionRow({
         inert={!expanded}
       >
         <div className="overflow-hidden">
-          <div className="space-y-1.5 border-t border-zinc-800/60 px-3 py-2 text-[11px]">
-            <div
-              className="flex gap-1"
-              role="img"
-              aria-label={stages
-                .map((s) => `${s.label}: ${s.state}`)
-                .join(", ")}
-            >
-              {stages.map((stage) => (
-                <div
-                  key={stage.label}
-                  className="flex flex-1 flex-col items-center gap-0.5"
-                >
-                  <span className="text-[9px] uppercase tracking-wider text-zinc-500">
-                    {stage.label}
-                  </span>
-                  <span
-                    className={cn(
-                      "h-1 w-full rounded-sm",
-                      stageBarClass(stage.state)
-                    )}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] tabular-nums">
-              <span>
-                <span className="text-zinc-500">{"E "}</span>
-                <span className={entryTone(result)}>
-                  {entryVal !== null ? (
-                    formatPrice(result.symbol, entryVal)
-                  ) : (
-                    <span className="text-zinc-600">{"\u2014"}</span>
-                  )}
-                </span>
-              </span>
-              <span aria-hidden="true" className="text-zinc-700">
-                {"\u00B7"}
-              </span>
-              <span>
-                <span className="text-zinc-500">{"TP "}</span>
-                <span className="text-emerald-300">
-                  {formatPrice(result.symbol, tpVal)}
-                </span>
-              </span>
-              <span aria-hidden="true" className="text-zinc-700">
-                {"\u00B7"}
-              </span>
-              <span>
-                <span className="text-zinc-500">{"RR "}</span>
-                <span className="text-zinc-300">{formatRatio(rrVal)}</span>
-              </span>
-              <span aria-hidden="true" className="text-zinc-700">
-                {"\u00B7"}
-              </span>
-              <span>
-                <span className="text-zinc-500">{"SL "}</span>
-                <span className="text-red-300">
-                  {formatPrice(result.symbol, slVal)}
-                </span>
-              </span>
-              <span aria-hidden="true" className="text-zinc-700">
-                {"\u00B7"}
-              </span>
-              <span className="text-zinc-500">
-                {formatTimeShort(result.updatedAt)}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-[10px] text-zinc-500">
-                {result.signalState ?? ""}
-              </span>
+          <div className="space-y-2 border-t border-zinc-800/60 px-3 py-2">
+            <SignalNarrative result={result} />
+            <div className="flex justify-end">
               <button
                 type="button"
                 aria-label={`Open signal detail for ${result.symbol}`}
