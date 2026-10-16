@@ -32,16 +32,14 @@ export function SignalFunnelSummary({
       aria-labelledby="signal-funnel-title"
       className="scroll-mt-20 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/25"
     >
-      <header className="flex flex-col gap-3 border-b border-zinc-800 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3">
-        <div className="min-w-0">
-          <h2 id="signal-funnel-title" className="text-base font-semibold text-zinc-100">
-            Signal Funnel
-          </h2>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            Observability only - shows where opportunities are being filtered.
-          </p>
-        </div>
-        <div className="flex w-fit rounded-md border border-zinc-800 bg-zinc-950/60 p-0.5">
+      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 px-3 py-2">
+        <h2
+          id="signal-funnel-title"
+          className="text-sm font-semibold text-zinc-100"
+        >
+          Signal Funnel
+        </h2>
+        <div className="flex rounded-md border border-zinc-800 bg-zinc-950/60 p-0.5">
           {WINDOWS.map((item) => (
             <button
               key={item}
@@ -49,42 +47,44 @@ export function SignalFunnelSummary({
               onClick={() => setWindowKey(item)}
               className={
                 item === windowKey
-                  ? "rounded px-2.5 py-1 text-xs font-medium text-emerald-300 bg-emerald-950/40"
-                  : "rounded px-2.5 py-1 text-xs text-zinc-500 hover:text-zinc-300"
+                  ? "rounded px-2 py-0.5 font-mono text-[10px] font-medium text-emerald-300 bg-emerald-950/40"
+                  : "rounded px-2 py-0.5 font-mono text-[10px] text-zinc-500 hover:text-zinc-300"
               }
             >
               {item}
             </button>
           ))}
         </div>
-      </header>
+      </div>
 
-      <div className="space-y-3 p-3 sm:p-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Metric label="Observations" value={summary.observations.toLocaleString()} />
-          <Metric label="Executions" value={summary.executions.toLocaleString()} />
-          <Metric label="Execute rate" value={`${executeRate}%`} />
+      <div className="flex items-center justify-between gap-2 px-3 py-1.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[11px] tabular-nums">
+          <span className="text-zinc-300">
+            {summary.observations.toLocaleString()}
+            <span className="text-zinc-600">{" obs"}</span>
+          </span>
+          <span aria-hidden="true" className="text-zinc-700">
+            {"\u00B7"}
+          </span>
+          <span className="text-zinc-300">
+            {summary.executions.toLocaleString()}
+            <span className="text-zinc-600">{" exec"}</span>
+          </span>
+          <span aria-hidden="true" className="text-zinc-700">
+            {"\u00B7"}
+          </span>
+          <span className="text-zinc-300">
+            {executeRate}%
+            <span className="text-zinc-600">{" rate"}</span>
+          </span>
         </div>
-        <div className="flex justify-end">
-          <Link
-            href="/system#signal-funnel"
-            className="text-xs font-medium text-zinc-400 transition-colors hover:text-emerald-300"
-          >
-            Detail funnel {"\u2192"}
-          </Link>
-        </div>
+        <Link
+          href="/system#signal-funnel"
+          className="shrink-0 text-[10px] font-medium text-zinc-400 transition-colors hover:text-emerald-300"
+        >
+          Detail {"\u2192"}
+        </Link>
       </div>
     </section>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-zinc-800/80 bg-zinc-950/25 px-3 py-2">
-      <p className="text-[11px] uppercase tracking-wide text-zinc-600">{label}</p>
-      <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-zinc-200">
-        {value}
-      </p>
-    </div>
   );
 }
