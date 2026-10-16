@@ -9,7 +9,6 @@ import {
   formatTimeShort,
 } from "@/lib/format";
 import {
-  stageGlyph,
   workstationStages,
   workstationStatus,
   type WorkstationStage,
@@ -58,13 +57,6 @@ function stageBarClass(state: WorkstationStage["state"]): string {
   if (state === "current") return "bg-amber-400";
   if (state === "blocked") return "bg-red-500";
   return "bg-zinc-800";
-}
-
-function stageTextClass(state: WorkstationStage["state"]): string {
-  if (state === "done") return "text-emerald-400";
-  if (state === "current") return "text-amber-300";
-  if (state === "blocked") return "text-red-400";
-  return "text-zinc-600";
 }
 
 function badgeTextClass(tone: WorkstationTone): string {
@@ -421,87 +413,67 @@ function AccordionRow({
         inert={!expanded}
       >
         <div className="overflow-hidden">
-          <div className="space-y-3 border-t border-zinc-800/60 px-3 py-2.5 text-[11px]">
-            {/* Section: Pipeline */}
-            <section>
-              <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                Pipeline
-              </div>
-              <div
-                className="mt-1.5 flex gap-1"
-                role="img"
-                aria-label={stages
-                  .map((s) => `${s.label}: ${s.state}`)
-                  .join(", ")}
-              >
-                {stages.map((stage) => (
-                  <div
-                    key={stage.label}
-                    className="flex flex-1 flex-col items-center gap-0.5"
-                  >
-                    <span className="text-[9px] uppercase tracking-wider text-zinc-500">
-                      {stage.label}
-                    </span>
-                    <span
-                      className={cn(
-                        "h-1 w-full rounded-sm",
-                        stageBarClass(stage.state)
-                      )}
-                    />
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "font-mono text-[10px] leading-none",
-                        stageTextClass(stage.state)
-                      )}
-                    >
-                      {stageGlyph(stage)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
+          <div className="space-y-1.5 border-t border-zinc-800/60 px-3 py-2 text-[11px]">
+            <div
+              className="flex gap-1"
+              role="img"
+              aria-label={stages
+                .map((s) => `${s.label}: ${s.state}`)
+                .join(", ")}
+            >
+              {stages.map((stage) => (
+                <div
+                  key={stage.label}
+                  className="flex flex-1 flex-col items-center gap-0.5"
+                >
+                  <span className="text-[9px] uppercase tracking-wider text-zinc-500">
+                    {stage.label}
+                  </span>
+                  <span
+                    className={cn(
+                      "h-1 w-full rounded-sm",
+                      stageBarClass(stage.state)
+                    )}
+                  />
+                </div>
+              ))}
+            </div>
 
-            {/* Section: Levels */}
-            <section>
-              <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                Levels
-              </div>
-              <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1">
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">TP</span>
-                  <span className="font-mono tabular-nums text-emerald-300">
-                    {formatPrice(result.symbol, tpVal)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">R:R</span>
-                  <span className="font-mono tabular-nums text-zinc-300">
-                    {formatRatio(rrVal)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">SL</span>
-                  <span className="font-mono tabular-nums text-red-300">
-                    {formatPrice(result.symbol, slVal)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Time</span>
-                  <span className="font-mono tabular-nums text-zinc-500">
-                    {formatTimeShort(result.updatedAt)}
-                  </span>
-                </div>
-              </div>
-            </section>
-
-            {/* Section: Action */}
-            <div className="flex items-center justify-between gap-2 pt-0.5">
-              {result.signalState && (
-                <span className="font-mono text-[10px] text-zinc-500">
-                  {result.signalState}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[10px] tabular-nums">
+              <span>
+                <span className="text-zinc-500">{"TP "}</span>
+                <span className="text-emerald-300">
+                  {formatPrice(result.symbol, tpVal)}
                 </span>
-              )}
+              </span>
+              <span aria-hidden="true" className="text-zinc-700">
+                {"\u00B7"}
+              </span>
+              <span>
+                <span className="text-zinc-500">{"RR "}</span>
+                <span className="text-zinc-300">{formatRatio(rrVal)}</span>
+              </span>
+              <span aria-hidden="true" className="text-zinc-700">
+                {"\u00B7"}
+              </span>
+              <span>
+                <span className="text-zinc-500">{"SL "}</span>
+                <span className="text-red-300">
+                  {formatPrice(result.symbol, slVal)}
+                </span>
+              </span>
+              <span aria-hidden="true" className="text-zinc-700">
+                {"\u00B7"}
+              </span>
+              <span className="text-zinc-500">
+                {formatTimeShort(result.updatedAt)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-mono text-[10px] text-zinc-500">
+                {result.signalState ?? ""}
+              </span>
               <button
                 type="button"
                 aria-label={`Open signal detail for ${result.symbol}`}
@@ -509,7 +481,7 @@ function AccordionRow({
                   event.stopPropagation();
                   onOpen();
                 }}
-                className="ml-auto rounded border border-emerald-800/60 bg-emerald-950/20 px-2.5 py-1 text-[10px] font-medium text-emerald-200 hover:border-emerald-700 hover:bg-emerald-950/40"
+                className="rounded border border-emerald-800/60 bg-emerald-950/20 px-2.5 py-0.5 text-[10px] font-medium text-emerald-200 hover:border-emerald-700 hover:bg-emerald-950/40"
               >
                 Open Analysis {"\u203A"}
               </button>
