@@ -101,7 +101,7 @@ function formatSetupScore(
 ): string {
   if (strategyId === "PRICE_ACTION") return "\u2014";
   if (score === null || !Number.isFinite(score) || score <= 0) return "\u2014";
-  return Math.round(score) + "/" + defaultEngineConfig.trigger.minTriggerScore;
+  return Math.round(score) + "/" + defaultEngineConfig.setup.minSetupScore;
 }
 
 function entryTone(result: SymbolScanResult): string {
