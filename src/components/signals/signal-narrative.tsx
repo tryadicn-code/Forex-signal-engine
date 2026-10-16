@@ -31,13 +31,33 @@ function pipSizeFor(symbol: string): number | null {
   return SYMBOL_METADATA[symbol]?.pipSize ?? null;
 }
 
-function levelsSummary(result: SymbolScanResult): string {
+interface ResolvedLevels {
+  entry: number | null;
+  stop: number | null;
+  tp: number | null;
+  rr: number | null;
+}
+
+/**
+ * Single source of truth for level resolution.
+ *
+ * Priority: riskDetail (frozen at risk approval) > plannedLevels
+ * (provisional setup zone before trigger). Both narrative body and the
+ * PlannedCell grid must use this so the two views never disagree.
+ */
+function resolveLevels(result: SymbolScanResult): ResolvedLevels {
   const risk = result.riskDetail;
   const planned = result.plannedLevels ?? null;
-  const entry = risk?.entryPrice ?? planned?.entry ?? null;
-  const stop = risk?.stopLoss ?? planned?.stop ?? null;
-  const tp = risk?.takeProfit1 ?? planned?.takeProfit ?? null;
-  const rr = result.riskReward ?? risk?.plannedRR ?? planned?.rr ?? null;
+  return {
+    entry: risk?.entryPrice ?? planned?.entry ?? null,
+    stop: risk?.stopLoss ?? planned?.stop ?? null,
+    tp: risk?.takeProfit1 ?? planned?.takeProfit ?? null,
+    rr: result.riskReward ?? risk?.plannedRR ?? planned?.rr ?? null,
+  };
+}
+
+function levelsSummary(result: SymbolScanResult): string {
+  const { entry, stop, tp, rr } = resolveLevels(result);
   if (entry === null || stop === null || tp === null) return "";
   let text =
     "Entry " +
@@ -479,6 +499,7 @@ export function SignalNarrative({
   const biasLabel = result.bias ? result.bias.replace(/_/g, " ") : null;
   const biasScore = result.biasScore;
   const planned = result.plannedLevels ?? null;
+  const resolved = resolveLevels(result);
   const gates = gatesData(result);
   const regime = regimeBox(result);
   const dq = dataQualityBanner(result);
@@ -582,19 +603,31 @@ export function SignalNarrative({
           >
             <PlannedCell
               label="Entry"
-              value={planned ? formatPrice(result.symbol, planned.entry) : "\u2014"}
+              value={
+                resolved.entry !== null
+                  ? formatPrice(result.symbol, resolved.entry)
+                  : "\u2014"
+              }
             />
             <PlannedCell
               label="Stop"
-              value={planned ? formatPrice(result.symbol, planned.stop) : "\u2014"}
+              value={
+                resolved.stop !== null
+                  ? formatPrice(result.symbol, resolved.stop)
+                  : "\u2014"
+              }
             />
             <PlannedCell
               label="Target"
-              value={planned ? formatPrice(result.symbol, planned.takeProfit) : "\u2014"}
+              value={
+                resolved.tp !== null
+                  ? formatPrice(result.symbol, resolved.tp)
+                  : "\u2014"
+              }
             />
             <PlannedCell
-              label="Min R:R"
-              value={planned ? formatRatio(planned.rr) : "\u2014"}
+              label="R:R"
+              value={resolved.rr !== null ? formatRatio(resolved.rr) : "\u2014"}
             />
           </div>
         )}
