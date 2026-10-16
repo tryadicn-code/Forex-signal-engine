@@ -150,13 +150,11 @@ function setupBody(result: SymbolScanResult, state: string): string {
     );
   }
   if (state === "SETUP" && inside) {
-    return (
-      "Price inside " +
-      zoneName +
-      " " +
-      zoneStr +
-      ". Awaiting confirmation to arm (structural break, momentum, or volume)."
-    );
+    const isPriceAction = result.strategyId === "PRICE_ACTION";
+    const awaiting = isPriceAction
+      ? ". Awaiting confirmation to arm (structural break + candle)."
+      : ". Awaiting confirmation to arm (structural break, momentum, or volume).";
+    return "Price inside " + zoneName + " " + zoneStr + awaiting;
   }
   let text = "Waiting for price to reach " + zoneName + " " + zoneStr + ".";
   if (price !== null && pipSize !== null && pipSize > 0) {
@@ -239,8 +237,9 @@ function triggerStageNarrative(
   } else if (state === "INVALIDATED") {
     body = "Trigger invalidated. The setup no longer qualifies.";
   } else {
-    body =
-      "Awaiting a confirmation candle in the setup zone (structural break, momentum, or volume expansion).";
+    body = isPriceAction
+      ? "Awaiting a confirmation candle in the setup zone (structural break + location + candle)."
+      : "Awaiting a confirmation candle in the setup zone (structural break, momentum, or volume expansion).";
   }
   return {
     title: "TRIGGER",
