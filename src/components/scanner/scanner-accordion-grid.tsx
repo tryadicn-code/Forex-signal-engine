@@ -25,7 +25,10 @@ function directionArrow(result: SymbolScanResult): {
   return { glyph: "\u00B7", label: "NEUTRAL", tone: "text-zinc-500" };
 }
 
-function badgeLabel(tone: WorkstationTone): string {
+function badgeLabel(
+  tone: WorkstationTone,
+  setupState: string | null | undefined
+): string {
   switch (tone) {
     case "ready":
       return "READY";
@@ -36,6 +39,7 @@ function badgeLabel(tone: WorkstationTone): string {
     case "invalid":
       return "INVALID";
     default:
+      if (setupState === "SETUP") return "SETUP";
       return "IDLE";
   }
 }
@@ -192,7 +196,7 @@ export function ScannerAccordionGrid({
               {"\u25B8"}
             </span>
             <span className="font-semibold uppercase tracking-wider text-zinc-400">
-              Idle
+              Forming
             </span>
             <span className="text-zinc-600">({idle.length})</span>
           </button>
@@ -224,7 +228,7 @@ function IdleRow({
   onSelect: () => void;
 }) {
   const status = workstationStatus(result);
-  const badge = badgeLabel(status.tone);
+  const badge = badgeLabel(status.tone, result.setupState);
   const dir = directionArrow(result);
   const risk = result.riskDetail;
   const planned = result.plannedLevels ?? null;
@@ -316,7 +320,7 @@ function AccordionRow({
 }) {
   const status = workstationStatus(result);
   const dir = directionArrow(result);
-  const badge = badgeLabel(status.tone);
+  const badge = badgeLabel(status.tone, result.setupState);
 
   return (
     <li
