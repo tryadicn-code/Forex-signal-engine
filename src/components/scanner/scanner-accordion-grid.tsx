@@ -46,7 +46,6 @@ function badgeLabel(tone: WorkstationTone): string {
   }
 }
 
-
 function borderTone(tone: WorkstationTone): string {
   if (tone === "ready") return "border-l-emerald-500";
   if (tone === "waiting") return "border-l-amber-500";
@@ -66,19 +65,6 @@ function stageTextClass(state: WorkstationStage["state"]): string {
   if (state === "current") return "text-amber-300";
   if (state === "blocked") return "text-red-400";
   return "text-zinc-600";
-}
-
-function setupChipClass(score: number | null): string {
-  if (score === null || !Number.isFinite(score) || score <= 0) {
-    return "border-zinc-700 bg-zinc-900/50 text-zinc-500";
-  }
-  if (score >= 80) {
-    return "border-emerald-700/70 bg-emerald-950/25 text-emerald-300";
-  }
-  if (score >= 60) {
-    return "border-amber-700/70 bg-amber-950/25 text-amber-300";
-  }
-  return "border-rose-800/70 bg-rose-950/25 text-rose-300";
 }
 
 function badgeTextClass(tone: WorkstationTone): string {
@@ -107,17 +93,34 @@ function scoreTextClass(score: number | null): string {
   return "text-rose-300";
 }
 
+function isScoreFilled(score: number | null, index: number): boolean {
+  if (score === null || !Number.isFinite(score) || score <= 0) return false;
+  const filled = Math.round(score / 10);
+  return index < filled;
+}
+
+function scoreBarFill(score: number | null): string {
+  if (score === null || !Number.isFinite(score)) return "bg-zinc-700";
+  if (score >= 80) return "bg-emerald-400";
+  if (score >= 60) return "bg-amber-400";
+  return "bg-rose-400";
+}
+
+function formatAge(epoch: number | null | undefined): string {
+  if (epoch === null || epoch === undefined || !Number.isFinite(epoch)) return "\u2014";
+  const ageMs = Date.now() - epoch;
+  if (ageMs < 60_000) return "now";
+  const min = Math.floor(ageMs / 60_000);
+  if (min < 60) return min + "m";
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return hr + "h";
+  return Math.floor(hr / 24) + "d";
+}
+
 function entryTone(result: SymbolScanResult): string {
   if (result.biasDirection === "LONG") return "text-emerald-300";
   if (result.biasDirection === "SHORT") return "text-rose-300";
   return "text-zinc-400";
-}
-
-function scoreDisplay(score: number | null | undefined): string {
-  if (score === null || score === undefined || !Number.isFinite(score)) {
-    return formatScore(score);
-  }
-  return `${formatScore(score)}/100`;
 }
 
 export function ScannerAccordionGrid({
@@ -233,6 +236,8 @@ function IdleRow({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const status = workstationStatus(result);
+  const badge = badgeLabel(status.tone);
   const dir = directionArrow(result);
   const risk = result.riskDetail;
   const planned = result.plannedLevels ?? null;
@@ -249,7 +254,7 @@ function IdleRow({
       <button
         type="button"
         onClick={onSelect}
-        className="flex w-full items-center gap-2 px-3 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+        className="grid w-full grid-cols-[auto_5rem_3.5rem_1fr_2rem_2rem_auto] items-center gap-2 px-3 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
       >
         <span className="font-mono text-[12px] font-semibold tracking-wide text-zinc-300">
           {result.symbol}
@@ -266,7 +271,15 @@ function IdleRow({
         </span>
         <span
           className={cn(
-            "ml-auto font-mono text-[11px] tabular-nums",
+            "font-mono text-[10px] font-semibold uppercase tracking-wider",
+            badgeTextClass(status.tone)
+          )}
+        >
+          {badge}
+        </span>
+        <span
+          className={cn(
+            "truncate text-right font-mono text-[11px] tabular-nums",
             entryTone(result)
           )}
         >
@@ -281,11 +294,20 @@ function IdleRow({
         </span>
         <span
           className={cn(
-            "rounded border px-1.5 py-0 font-mono text-[10px] font-semibold tabular-nums",
-            setupChipClass(result.setupScore)
+            "font-mono text-[11px] font-semibold tabular-nums text-right",
+            scoreTextClass(result.setupScore)
           )}
         >
-          {scoreDisplay(result.setupScore)}
+          {formatScore(result.setupScore)}
+        </span>
+        <span className="text-right font-mono text-[10px] tabular-nums text-zinc-500">
+          {formatAge(result.updatedAt)}
+        </span>
+        <span
+          aria-hidden="true"
+          className="inline-block font-mono text-[12px] leading-none text-zinc-500"
+        >
+          {"\u203A"}
         </span>
       </button>
     </li>
@@ -329,7 +351,7 @@ function AccordionRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+        className="grid w-full grid-cols-[auto_5rem_3.5rem_1fr_2rem_2rem_auto] items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
       >
         <span className="font-mono text-[13px] font-semibold tracking-wide text-zinc-100">
           {result.symbol}
@@ -353,26 +375,33 @@ function AccordionRow({
           {badge}
         </span>
         <span
+          aria-hidden="true"
+          className="flex flex-1 gap-[2px]"
+        >
+          {Array.from({ length: 10 }).map((_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "h-1 flex-1 rounded-sm",
+                isScoreFilled(result.setupScore, i)
+                  ? scoreBarFill(result.setupScore)
+                  : "bg-zinc-800"
+              )}
+            />
+          ))}
+        </span>
+        <span
           className={cn(
-            "font-mono text-[11px] font-semibold tabular-nums",
+            "font-mono text-[11px] font-semibold tabular-nums text-right",
             scoreTextClass(result.setupScore)
           )}
         >
           {formatScore(result.setupScore)}
         </span>
-        <span
-          className="flex flex-1 gap-0.5"
-          role="img"
-          aria-label={stages.map((s) => `${s.label}: ${s.state}`).join(", ")}
-        >
-          {stages.map((stage) => (
-            <span
-              key={stage.label}
-              title={`${stage.label}: ${stage.state}`}
-              className={cn("h-1 flex-1 rounded-sm", stageBarClass(stage.state))}
-            />
-          ))}
+        <span className="text-right font-mono text-[10px] tabular-nums text-zinc-500">
+          {formatAge(result.updatedAt)}
         </span>
+
         <span
           aria-hidden="true"
           className={cn(
@@ -393,17 +422,6 @@ function AccordionRow({
       >
         <div className="overflow-hidden">
           <div className="space-y-3 border-t border-zinc-800/60 px-3 py-2.5 text-[11px]">
-            {/* Section: Mengapa */}
-            <section>
-              <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                Mengapa {badge.toLowerCase()}?
-              </div>
-              <div className="mt-0.5 text-zinc-200">{status.headline}</div>
-              <div className="mt-0.5 leading-snug text-zinc-400">
-                {status.detail}
-              </div>
-            </section>
-
             {/* Section: Pipeline */}
             <section>
               <div className="text-[10px] uppercase tracking-wider text-zinc-500">
