@@ -6,10 +6,13 @@ import { ProductionHealthPanel } from "@/components/production/production-health
 import { NotificationPanel } from "@/components/notifications/notification-panel";
 import { TransitionHistory } from "@/components/signals/transition-history";
 import { SystemSignalFunnel } from "@/components/system/system-signal-funnel";
+import { StrategySelector } from "@/components/dashboard/strategy-selector";
+import { PaperConfigPanel } from "@/components/dashboard/paper-config-panel";
 import type { BrokerExecutionDashboard } from "@/broker/types";
 import type { DashboardData } from "@/types/dashboard";
 
 const SECTION_LINKS = [
+  { id: "system-config", label: "Config" },
   { id: "system-strategy", label: "Strategy" },
   { id: "system-funnel", label: "Funnel" },
   { id: "system-operations", label: "Operations" },
@@ -58,6 +61,11 @@ export function SystemWorkspace({
           ))}
         </div>
       </nav>
+
+      <section id="system-config" className="scroll-mt-28 space-y-3">
+        <StrategySelector />
+        <PaperConfigPanel />
+      </section>
 
       <section id="system-strategy" className="scroll-mt-28 space-y-3">
         {data.releaseRuntime && (
