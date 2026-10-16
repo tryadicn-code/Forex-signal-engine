@@ -98,15 +98,18 @@ function scoreBarFill(score: number | null): string {
   return "bg-rose-400";
 }
 
-function formatAge(epoch: number | null | undefined): string {
-  if (epoch === null || epoch === undefined || !Number.isFinite(epoch)) return "\u2014";
-  const ageMs = Date.now() - epoch;
-  if (ageMs < 60_000) return "now";
-  const min = Math.floor(ageMs / 60_000);
-  if (min < 60) return min + "m";
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return hr + "h";
-  return Math.floor(hr / 24) + "d";
+function formatSpread(pips: number | null | undefined): string {
+  if (pips === null || pips === undefined || !Number.isFinite(pips)) return "\u2014";
+  return pips.toFixed(1) + "p";
+}
+
+function spreadToneClass(pips: number | null | undefined): string {
+  if (pips === null || pips === undefined || !Number.isFinite(pips)) {
+    return "text-zinc-600";
+  }
+  if (pips < 1.0) return "text-emerald-300";
+  if (pips <= 2.0) return "text-amber-300";
+  return "text-rose-300";
 }
 
 function entryTone(result: SymbolScanResult): string {
@@ -292,8 +295,13 @@ function IdleRow({
         >
           {formatScore(result.setupScore)}
         </span>
-        <span className="text-right font-mono text-[10px] tabular-nums text-zinc-500">
-          {formatAge(result.updatedAt)}
+        <span
+          className={cn(
+            "text-right font-mono text-[10px] tabular-nums",
+            spreadToneClass(result.spreadPips)
+          )}
+        >
+          {formatSpread(result.spreadPips)}
         </span>
         <span
           aria-hidden="true"
@@ -391,8 +399,13 @@ function AccordionRow({
         >
           {formatScore(result.setupScore)}
         </span>
-        <span className="text-right font-mono text-[10px] tabular-nums text-zinc-500">
-          {formatAge(result.updatedAt)}
+        <span
+          className={cn(
+            "text-right font-mono text-[10px] tabular-nums",
+            spreadToneClass(result.spreadPips)
+          )}
+        >
+          {formatSpread(result.spreadPips)}
         </span>
 
         <span
