@@ -223,8 +223,14 @@ function triggerStageNarrative(
   let tone: StageTone = "current";
   if (state === "CONFIRMED") tone = "done";
   else if (state === "INVALIDATED") tone = "blocked";
-  const meta =
-    result.triggerScore !== null && Number.isFinite(result.triggerScore)
+  const isPriceAction = result.strategyId === "PRICE_ACTION";
+  const meta = isPriceAction
+    ? state === "CONFIRMED"
+      ? "Confirmed"
+      : state === "INVALIDATED"
+        ? "Invalidated"
+        : "Pending"
+    : result.triggerScore !== null && Number.isFinite(result.triggerScore)
       ? Math.round(result.triggerScore) + " (min 80)"
       : null;
   let body: string;
