@@ -21,6 +21,7 @@ function resolveDevOrigins(): string[] {
 }
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   // Phase 9 self-hosting uses the minimal standalone server bundle so
   // stateless application replicas can sit behind a load balancer.
   output: "standalone",
