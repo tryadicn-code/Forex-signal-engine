@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { SymbolScanResult } from "@/scanner/scanner-result";
-import { formatPrice } from "@/lib/format";
+
 import { defaultEngineConfig } from "@/core/config/engine-config";
 import {
   workstationStatus,
@@ -50,7 +50,6 @@ function borderTone(tone: WorkstationTone): string {
   if (tone === "blocked") return "border-l-red-500";
   return "border-l-zinc-700";
 }
-
 
 function badgeTextClass(tone: WorkstationTone): string {
   switch (tone) {
@@ -106,12 +105,6 @@ function formatSetupScore(
   if (strategyId === "PRICE_ACTION") return "\u2014";
   if (score === null || !Number.isFinite(score) || score <= 0) return "\u2014";
   return Math.round(score) + "/" + defaultEngineConfig.setup.minSetupScore;
-}
-
-function entryTone(result: SymbolScanResult): string {
-  if (result.biasDirection === "LONG") return "text-emerald-300";
-  if (result.biasDirection === "SHORT") return "text-rose-300";
-  return "text-zinc-400";
 }
 
 export function ScannerAccordionGrid({
