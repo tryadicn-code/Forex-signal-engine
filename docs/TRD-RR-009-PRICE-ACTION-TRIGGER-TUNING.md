@@ -55,8 +55,22 @@ Efek kombinasi:
 
 ## 6. Hasil (setelah evaluasi)
 
-[ ] TRIGGER_NO_STRUCTURE post-apply: ___
-[ ] EXECUTE post-apply: ___
+STATUS: EVALUASI DITUNDA (2026-10-17 02:15 WITA)
+
+Alasan: strategy config diubah ke legacy (4 strategi) pada 2026-10-17
+01:16:24 sebelum evaluation window dimulai. PRICE_ACTION off sejak itu.
+Semua observasi post-restart (cutoff 1792171734457, 01:28:54) berasal
+dari legacy strategy, sehingga perubahan TRD-RR-009 tidak teruji.
+
+Config saat ini: TREND_PULLBACK + BREAKOUT_RETEST + RANGE_MEAN_REVERSION
++ REVERSAL (source: .data/strategy-config.json updatedAt 1792169784080).
+
+Kode TRD-RR-009 sudah di-apply + pushed (commit b75c39c). Untuk evaluasi
+lanjut: re-enable PRICE_ACTION, restart dev server, tunggu 30-60 menit,
+jalankan query evaluasi di section 4.
+
+[ ] TRIGGER_NO_STRUCTURE post-apply: ___ (n/a — PA off)
+[ ] EXECUTE post-apply: ___ (n/a)
 [ ] Evaluasi: ___
 
 ## 7. Rollback
