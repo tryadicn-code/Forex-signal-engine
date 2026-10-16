@@ -86,18 +86,12 @@ function scoreBarFill(score: number | null): string {
   return "bg-rose-400";
 }
 
-function formatSpread(pips: number | null | undefined): string {
-  if (pips === null || pips === undefined || !Number.isFinite(pips)) return "\u2014";
-  return pips.toFixed(1) + "p";
-}
-
-function spreadToneClass(pips: number | null | undefined): string {
-  if (pips === null || pips === undefined || !Number.isFinite(pips)) {
-    return "text-zinc-600";
-  }
-  if (pips < 1.0) return "text-emerald-300";
-  if (pips <= 2.0) return "text-amber-300";
-  return "text-rose-300";
+function formatSetupType(setupType: string | null | undefined): string {
+  if (!setupType) return "\u2014";
+  if (setupType === "trend-pullback-ema") return "trend-pb";
+  if (setupType === "breakout-retest") return "breakout";
+  if (setupType === "reversal-choch-retest") return "reversal";
+  return "\u2014";
 }
 
 function entryTone(result: SymbolScanResult): string {
@@ -237,7 +231,7 @@ function IdleRow({
       <button
         type="button"
         onClick={onSelect}
-        className="grid w-full grid-cols-[auto_5rem_3.5rem_1fr_2rem_2rem_auto] items-center gap-2 px-3 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+        className="grid w-full grid-cols-[auto_5rem_3.5rem_1fr_2rem_4.5rem_auto] items-center gap-2 px-3 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
       >
         <span className="font-mono text-[12px] font-semibold tracking-wide text-zinc-300">
           {result.symbol}
@@ -283,13 +277,8 @@ function IdleRow({
         >
           {formatScore(result.setupScore)}
         </span>
-        <span
-          className={cn(
-            "text-right font-mono text-[10px] tabular-nums",
-            spreadToneClass(result.spreadPips)
-          )}
-        >
-          {formatSpread(result.spreadPips)}
+        <span className="text-right font-mono text-[10px] tabular-nums text-zinc-500">
+          {formatSetupType(result.setupType)}
         </span>
         <span
           aria-hidden="true"
@@ -333,7 +322,7 @@ function AccordionRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="grid w-full grid-cols-[auto_5rem_3.5rem_1fr_2rem_2rem_auto] items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+        className="grid w-full grid-cols-[auto_5rem_3.5rem_1fr_2rem_4.5rem_auto] items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
       >
         <span className="font-mono text-[13px] font-semibold tracking-wide text-zinc-100">
           {result.symbol}
@@ -380,13 +369,8 @@ function AccordionRow({
         >
           {formatScore(result.setupScore)}
         </span>
-        <span
-          className={cn(
-            "text-right font-mono text-[10px] tabular-nums",
-            spreadToneClass(result.spreadPips)
-          )}
-        >
-          {formatSpread(result.spreadPips)}
+        <span className="text-right font-mono text-[10px] tabular-nums text-zinc-500">
+          {formatSetupType(result.setupType)}
         </span>
 
         <span
