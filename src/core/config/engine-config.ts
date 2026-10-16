@@ -193,7 +193,7 @@ export const defaultEngineConfig: EngineConfig = {
     minTriggerScore: 80,
     volumeLookback: 20,
     volumeExpansionRatio: 1.2,
-    maxTriggerAgeBars: 3,
+    maxTriggerAgeBars: 5,
   },
   risk: {
     minRR: 2.0,

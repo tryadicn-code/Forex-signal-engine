@@ -47,12 +47,26 @@ function detectStructural(
 ): TriggerComponentState {
   const lastIndex = candles.length - 1;
   const candidates: Array<{ name: string; index: number }> = [];
-  if (structure.lastBOS && structure.lastBOS.direction === direction) {
-    candidates.push({ name: "BOS", index: structure.lastBOS.index });
+
+  // TRD-RR-009: scan breakEvents backward for the most recent BOS and
+  // CHOCH in the wanted direction. The legacy code only looked at
+  // lastBOS/lastCHOCH (whichever fired last, regardless of direction),
+  // so a recent opposite-side event could mask a valid same-side one.
+  for (let i = structure.breakEvents.length - 1; i >= 0; i--) {
+    const ev = structure.breakEvents[i];
+    if (ev.type === "BOS" && ev.direction === direction) {
+      candidates.push({ name: "BOS", index: ev.index });
+      break;
+    }
   }
-  if (structure.lastCHOCH && structure.lastCHOCH.direction === direction) {
-    candidates.push({ name: "CHOCH", index: structure.lastCHOCH.index });
+  for (let i = structure.breakEvents.length - 1; i >= 0; i--) {
+    const ev = structure.breakEvents[i];
+    if (ev.type === "CHOCH" && ev.direction === direction) {
+      candidates.push({ name: "CHOCH", index: ev.index });
+      break;
+    }
   }
+
   const lastBreak = structure.breakEvents[structure.breakEvents.length - 1] ?? null;
   if (lastBreak && lastBreak.direction !== direction && lastIndex >= 0) {
     const close = candles[lastIndex].close;
