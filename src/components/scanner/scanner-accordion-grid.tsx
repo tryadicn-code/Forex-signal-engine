@@ -231,7 +231,7 @@ function IdleRow({
       <button
         type="button"
         onClick={onSelect}
-        className="grid w-full grid-cols-[auto_5rem_3.5rem_1fr_2rem_4.5rem_auto] items-center gap-2 px-3 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+        className="grid w-full grid-cols-[auto_4.25rem_3rem_1fr_1.75rem_3.75rem_auto] items-center gap-1.5 px-2 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
       >
         <span className="font-mono text-[12px] font-semibold tracking-wide text-zinc-300">
           {result.symbol}
@@ -322,7 +322,7 @@ function AccordionRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        className="grid w-full grid-cols-[auto_5rem_3.5rem_1fr_2rem_4.5rem_auto] items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+        className="grid w-full grid-cols-[auto_4.25rem_3rem_1fr_1.75rem_3.75rem_auto] items-center gap-1.5 px-2 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
       >
         <span className="font-mono text-[13px] font-semibold tracking-wide text-zinc-100">
           {result.symbol}
