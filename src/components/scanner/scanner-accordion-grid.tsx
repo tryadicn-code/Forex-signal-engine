@@ -230,24 +230,22 @@ function IdleRow({
   const status = workstationStatus(result);
   const badge = badgeLabel(status.tone, result.setupState);
   const dir = directionArrow(result);
-  const risk = result.riskDetail;
-  const planned = result.plannedLevels ?? null;
-  const entryVal = risk?.entryPrice ?? planned?.entry ?? null;
 
   return (
     <li
       data-signal-symbol={result.symbol}
       className={cn(
-        "border-b border-zinc-800/40 last:border-b-0",
-        selected && "bg-zinc-800/45"
+        "overflow-hidden rounded-md border border-zinc-800/60 border-l-2 bg-zinc-950/40 transition-colors",
+        borderTone(status.tone),
+        selected && "border-zinc-700/60 bg-zinc-800/45"
       )}
     >
       <button
         type="button"
         onClick={onSelect}
-        className="grid w-full grid-cols-[auto_4.25rem_3rem_1fr_1.75rem_3.75rem_auto] items-center gap-1.5 px-2 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
+        className="grid w-full grid-cols-[auto_4.25rem_3rem_1fr_1.75rem_3.75rem_auto] items-center gap-1.5 px-2 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 hover:bg-zinc-800/25"
       >
-        <span className="font-mono text-[12px] font-semibold tracking-wide text-zinc-300">
+        <span className="font-mono text-[13px] font-semibold tracking-wide text-zinc-100">
           {result.symbol}
         </span>
         <span
@@ -269,19 +267,20 @@ function IdleRow({
           {badge}
         </span>
         <span
-          className={cn(
-            "truncate text-right font-mono text-[11px] tabular-nums",
-            entryTone(result)
-          )}
+          aria-hidden="true"
+          className="flex flex-1 gap-[2px]"
         >
-          {entryVal !== null ? (
-            <>
-              {"e "}
-              {formatPrice(result.symbol, entryVal)}
-            </>
-          ) : (
-            <span className="text-zinc-600">{"e \u2014"}</span>
-          )}
+          {Array.from({ length: 10 }).map((_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "h-1 flex-1 rounded-sm",
+                isScoreFilled(result.setupScore, i)
+                  ? scoreBarFill(result.setupScore)
+                  : "bg-zinc-800"
+              )}
+            />
+          ))}
         </span>
         <span
           className={cn(
