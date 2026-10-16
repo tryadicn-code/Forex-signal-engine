@@ -482,7 +482,10 @@ export function SignalNarrative({
     <>
       <section
         aria-label="Signal pipeline and status"
-        className="rounded border border-zinc-800 bg-zinc-900/30 px-3 py-3"
+        className={cn(
+          "rounded border border-zinc-800 bg-zinc-900/30",
+          compact ? "px-2.5 py-2" : "px-3 py-3"
+        )}
       >
         {dq && (
           <div className="mb-3 rounded border border-amber-900/50 bg-amber-950/15 px-2.5 py-2 text-[11px] leading-relaxed text-amber-200">
@@ -526,13 +529,24 @@ export function SignalNarrative({
                   stage.state === "pending" && "text-zinc-600"
                 )}
               >
-                {stageGlyph(stage)} {stage.label}
+                {compact ? (
+                  stage.label
+                ) : (
+                  <>
+                    {stageGlyph(stage)} {stage.label}
+                  </>
+                )}
               </div>
             </div>
           ))}
         </div>
         {active && (
-          <div className="mt-3 border-t border-zinc-800/70 pt-3">
+          <div
+            className={cn(
+              "border-t border-zinc-800/70",
+              compact ? "mt-2 pt-2" : "mt-3 pt-3"
+            )}
+          >
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
                 {active.title} {"\u2014"}{" "}
@@ -546,13 +560,21 @@ export function SignalNarrative({
                 </span>
               )}
             </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
+            <p className={cn(
+              "text-[11px] leading-relaxed text-zinc-400",
+              compact ? "mt-1.5" : "mt-2"
+            )}>
               {active.body}
             </p>
           </div>
         )}
         {(planned || compact) && (
-          <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded border border-zinc-800 bg-zinc-800">
+          <div
+            className={cn(
+              "gap-px overflow-hidden rounded border border-zinc-800 bg-zinc-800",
+              compact ? "mt-2 grid grid-cols-4" : "mt-3 grid grid-cols-2"
+            )}
+          >
             <PlannedCell
               label="Entry"
               value={planned ? formatPrice(result.symbol, planned.entry) : "\u2014"}
@@ -572,7 +594,12 @@ export function SignalNarrative({
           </div>
         )}
         {regime && (
-          <div className="mt-3 rounded border border-zinc-800 bg-zinc-950/35 px-3 py-2.5">
+          <div
+            className={cn(
+              "rounded border border-zinc-800 bg-zinc-950/35",
+              compact ? "mt-2 px-2.5 py-2" : "mt-3 px-3 py-2.5"
+            )}
+          >
             <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px]">
               <span className="text-zinc-500">
                 Regime{" "}
@@ -607,7 +634,12 @@ export function SignalNarrative({
           </div>
         )}
         {gates && (
-          <div className="mt-3 border-t border-zinc-800/70 pt-3">
+          <div
+            className={cn(
+              "border-t border-zinc-800/70",
+              compact ? "mt-2 pt-2" : "mt-3 pt-3"
+            )}
+          >
             <GatesBar passed={gates.passed} total={gates.total} />
             <div className="mt-1.5 font-mono text-[10px] leading-relaxed text-zinc-500">
               <span className="tabular-nums">
