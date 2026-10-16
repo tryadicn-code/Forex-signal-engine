@@ -5,7 +5,6 @@ import {
   DashboardSummary,
   summarizeResults,
 } from "@/components/dashboard/dashboard-summary";
-import { formatTimeShort } from "@/lib/format";
 import { MarketHealthPanel } from "@/components/dashboard/market-health-panel";
 import { SignalFunnelSummary } from "@/components/analytics/signal-funnel-summary";
 import { ScannerAccordionGrid } from "@/components/scanner/scanner-accordion-grid";
@@ -265,25 +264,20 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
             >
               {"\u25B8"}
             </span>
-            <span className="font-medium text-zinc-300">Overview</span>
-            <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
+          <div className="flex flex-1 items-center justify-between pl-3 pr-3">
             <span>
-              <span className="font-mono tabular-nums text-zinc-200">{overviewCounts.ready}</span>{" Rdy"}
+              <span className="font-mono text-[13px] font-semibold tabular-nums text-zinc-100">{overviewCounts.ready}</span>{" Ready"}
             </span>
-            <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
             <span>
-              <span className="font-mono tabular-nums text-zinc-200">{overviewCounts.armed}</span>{" Arm"}
+              <span className="font-mono text-[13px] font-semibold tabular-nums text-zinc-100">{overviewCounts.armed}</span>{" Armed"}
             </span>
-            <span aria-hidden="true" className="text-zinc-600">{"\u00B7"}</span>
-            <span className={cn("font-mono text-[10px] uppercase tracking-wide", data.liveMarketData ? "text-emerald-400" : "text-zinc-600")}>
-              {data.liveMarketData ? "[LIVE]" : "[MOCK]"}
+            <span>
+              <span className="font-mono text-[13px] font-semibold tabular-nums text-zinc-100">{overviewCounts.blocked}</span>{" Blocked"}
             </span>
-            <span className="font-mono text-zinc-300">
-              {(data.providerId ?? "unknown").toUpperCase()}
+            <span>
+              <span className="font-mono text-[13px] font-semibold tabular-nums text-zinc-100">{overviewCounts.dataIssues}</span>{" Issue"}
             </span>
-            <span className="ml-auto font-mono tabular-nums text-zinc-500">
-              {formatTimeShort(data.health?.lastScanCompletedAt)}
-            </span>
+          </div>
           </button>
 
           <div
@@ -301,6 +295,7 @@ export function DashboardWorkspace({ initialData }: { initialData: DashboardData
           providerId={data.providerId ?? null}
           onRefresh={refresh}
           refreshing={refreshing}
+          hideKpi
           onFilter={(state) => {
             setQuery({ ...DEFAULT_QUERY, state });
             const target = document.getElementById("scanner");

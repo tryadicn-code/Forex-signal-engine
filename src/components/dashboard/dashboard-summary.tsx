@@ -99,6 +99,7 @@ export function DashboardSummary({
   providerId,
   onRefresh,
   refreshing,
+  hideKpi = false,
 }: {
   snapshot: ScannerSnapshot | null;
   health: ScannerHealth | null;
@@ -110,6 +111,8 @@ export function DashboardSummary({
   /** UIUX-M: refresh control owned by the parent workspace. */
   onRefresh?: () => void;
   refreshing?: boolean;
+  /** When true, omit the KPI row. */
+  hideKpi?: boolean;
 }) {
   const counts = summarizeResults(snapshot?.results ?? []);
 
@@ -118,7 +121,7 @@ export function DashboardSummary({
       aria-label="Actionable market summary"
       className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/20"
     >
-      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-3 py-2">
+      <div className={cn("flex-wrap items-center justify-center gap-x-2 gap-y-0.5 px-3 py-2", hideKpi ? "hidden" : "flex")}>
         <Kpi
           label="Ready"
           value={counts.ready}
@@ -148,7 +151,7 @@ export function DashboardSummary({
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 border-t border-zinc-800 px-3 py-2 text-[11px] text-zinc-500 sm:text-xs">
+      <div className={cn("flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 px-3 py-2 text-[11px] text-zinc-500 sm:text-xs", !hideKpi && "border-t border-zinc-800")}>
         <span className={cn("font-mono text-[10px] uppercase tracking-wide", liveMarketData ? "text-emerald-400" : "text-zinc-600")}>
           {liveMarketData ? "[LIVE]" : "[MOCK]"}
         </span>
