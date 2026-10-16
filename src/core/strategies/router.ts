@@ -134,7 +134,7 @@ export function routeStrategy(
       reason:
         preferred.strategyId === null
           ? `${preferred.reason} TREND_PULLBACK remains active only as the Phase 12.3 compatibility fallback.`
-          : `Regime prefers ${preferredLabel}, but it is not implemented yet. TREND_PULLBACK remains active as the audited compatibility fallback.`,
+          : `Regime prefers ${preferredLabel}, but it is not in your enabled strategies. TREND_PULLBACK remains active as the compatibility fallback.`,
     };
   }
 
