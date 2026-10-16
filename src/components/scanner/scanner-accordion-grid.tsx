@@ -409,7 +409,7 @@ function AccordionRow({
       >
         <div className="overflow-hidden">
           <div className="space-y-2 border-t border-zinc-800/60 px-3 py-2">
-            <SignalNarrative result={result} />
+            <SignalNarrative result={result} compact />
             <div className="flex justify-end">
               <button
                 type="button"

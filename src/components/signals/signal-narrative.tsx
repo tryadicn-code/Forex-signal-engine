@@ -461,7 +461,13 @@ function PlannedCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function SignalNarrative({ result }: { result: SymbolScanResult }) {
+export function SignalNarrative({
+  result,
+  compact = false,
+}: {
+  result: SymbolScanResult;
+  compact?: boolean;
+}) {
   const stages = workstationStages(result);
   const active = activeStageNarrative(result, stages);
   const reasons = biasReasons(result);
@@ -545,23 +551,23 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
             </p>
           </div>
         )}
-        {planned && (
+        {(planned || compact) && (
           <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded border border-zinc-800 bg-zinc-800">
             <PlannedCell
               label="Entry"
-              value={formatPrice(result.symbol, planned.entry)}
+              value={planned ? formatPrice(result.symbol, planned.entry) : "\u2014"}
             />
             <PlannedCell
               label="Stop"
-              value={formatPrice(result.symbol, planned.stop)}
+              value={planned ? formatPrice(result.symbol, planned.stop) : "\u2014"}
             />
             <PlannedCell
               label="Target"
-              value={formatPrice(result.symbol, planned.takeProfit)}
+              value={planned ? formatPrice(result.symbol, planned.takeProfit) : "\u2014"}
             />
             <PlannedCell
               label="Min R:R"
-              value={formatRatio(planned.rr)}
+              value={planned ? formatRatio(planned.rr) : "\u2014"}
             />
           </div>
         )}
@@ -615,7 +621,7 @@ export function SignalNarrative({ result }: { result: SymbolScanResult }) {
         )}
       </section>
 
-      {biasLabel && biasScore !== null && (
+      {!compact && biasLabel && biasScore !== null && (
         <section
           aria-labelledby="narrative-bias-title"
           className="rounded border border-zinc-800 bg-zinc-900/30 px-3 py-3"
