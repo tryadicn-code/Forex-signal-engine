@@ -23,6 +23,26 @@ function isPayload(value: unknown): value is StrategyConfigPayload {
   );
 }
 
+const LEGACY_STRATEGIES: readonly string[] = [
+  "TREND_PULLBACK",
+  "BREAKOUT_RETEST",
+  "RANGE_MEAN_REVERSION",
+  "REVERSAL",
+];
+
+function detectConflict(selected: string[]): string | null {
+  const hasPriceAction = selected.includes("PRICE_ACTION");
+  const legacySelected = selected.filter((s) => LEGACY_STRATEGIES.includes(s));
+  if (hasPriceAction && legacySelected.length > 0) {
+    return (
+      "PRICE_ACTION cannot be combined with legacy strategies (" +
+      legacySelected.join(", ") +
+      "). Choose one paradigm."
+    );
+  }
+  return null;
+}
+
 export function StrategySelector() {
   const [data, setData] = useState<StrategyConfigPayload | null>(null);
   const [draft, setDraft] = useState<string[]>([]);
@@ -66,11 +86,16 @@ export function StrategySelector() {
     data !== null &&
     (draft.length !== data.enabledStrategies.length ||
       draft.some((id) => !data.enabledStrategies.includes(id)));
+  const conflict = detectConflict(draft);
 
   const apply = async () => {
     if (busy || !data) return;
     if (draft.length === 0) {
       setError("Minimal 1 strategy harus aktif.");
+      return;
+    }
+    if (conflict !== null) {
+      setError(conflict);
       return;
     }
     setBusy(true);
@@ -133,6 +158,16 @@ export function StrategySelector() {
           </div>
         )}
 
+        {conflict && (
+          <div
+            role="alert"
+            className="mb-2 rounded border border-amber-900/60 bg-amber-950/20 px-2 py-1.5 text-xs text-amber-200"
+          >
+            <strong className="text-amber-300">{"\u26A0 "}Conflict:</strong>{" "}
+            {conflict}
+          </div>
+        )}
+
         {data === null && !error && (
           <div className="text-xs text-zinc-500">Loading strategy config...</div>
         )}
@@ -171,7 +206,7 @@ export function StrategySelector() {
                 <button
                   type="button"
                   onClick={apply}
-                  disabled={!dirty || busy || draft.length === 0}
+                  disabled={!dirty || busy || draft.length === 0 || conflict !== null}
                   className="rounded border border-emerald-700 bg-emerald-900/30 px-2.5 py-1 text-[11px] font-medium text-emerald-200 disabled:opacity-40"
                 >
                   {busy ? "Menyimpan..." : "Apply"}
