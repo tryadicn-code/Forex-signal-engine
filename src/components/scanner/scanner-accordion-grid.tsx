@@ -42,7 +42,7 @@ function badgeLabel(tone: WorkstationTone): string {
     case "invalid":
       return "INVALID";
     default:
-      return "SCAN";
+      return "IDLE";
   }
 }
 
