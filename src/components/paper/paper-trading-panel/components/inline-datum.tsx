@@ -15,7 +15,7 @@ export function InlineDatum({
         : "text-zinc-300";
 
   return (
-    <div className="min-w-0 whitespace-nowrap text-center">
+    <div className="min-w-0 whitespace-nowrap text-left">
       <span className={tone === "neutral" ? "text-zinc-600" : toneClass}>
         {label}
       </span>

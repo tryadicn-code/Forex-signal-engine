@@ -64,7 +64,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             R-based
           </span>
         </div>
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 px-3 pb-3">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-3 pb-3 sm:grid-cols-3">
           {metricInline(
             "E[R]",
             performance.expectancyR === null ? "—" : performance.expectancyR.toFixed(2) + "R"
@@ -109,7 +109,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             {performance.totalTrades} closed
           </span>
         </div>
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 px-3 pb-3">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-3 pb-3 sm:grid-cols-3">
           {metricInline("Trades", String(performance.totalTrades))}
           {metricInline("Win rate", pct(performance.winRate))}
           {metricInline("Cur DD", pct(performance.currentDrawdownPercent))}
@@ -312,7 +312,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
                         {" · "}
                         {formatDuration(trade.holdingDurationMs)}
                       </div>
-                      <div className="mt-1 font-mono text-[11px] text-zinc-500">
+                      <div className="mt-1 whitespace-nowrap font-mono text-[11px] text-zinc-500">
                         {trade.plannedRR !== null && "Planned 1:" + trade.plannedRR.toFixed(2) + " · "}MFE {(trade.maxFavorableR ?? 0) >= 0 ? "+" : ""}
                         {(trade.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
                         {(trade.maxAdverseR ?? 0).toFixed(2)}R

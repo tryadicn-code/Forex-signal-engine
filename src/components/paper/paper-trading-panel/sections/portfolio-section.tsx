@@ -72,7 +72,7 @@ export function PortfolioSection({
         </div>
       )}
 
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 px-3 py-2">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-3 py-2 sm:grid-cols-3 lg:grid-cols-6">
         {metricInline("Balance", money(account.balance, account.currency))}
         {metricInline("Equity", money(account.equity, account.currency))}
         {metricInline(
@@ -161,11 +161,11 @@ export function PortfolioSection({
                     {position.side}
                   </span>
 
-                  <span className="rounded border border-sky-700/60 bg-sky-950/25 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-sky-300">
+                  <span className="whitespace-nowrap rounded border border-sky-700/60 bg-sky-950/25 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-sky-300">
                     {position.positionSize.toFixed(2)} lot
                   </span>
 
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="ml-auto flex shrink-0 items-center gap-2">
                     <span
                       className={
                         "whitespace-nowrap font-mono text-xs font-semibold " +
@@ -186,7 +186,7 @@ export function PortfolioSection({
                           event.stopPropagation();
                           void onClosePosition(position.id);
                         }}
-                        className="rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-red-800/70 hover:bg-red-950/20 hover:text-red-300 disabled:opacity-40"
+                        className="shrink-0 whitespace-nowrap rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-red-800/70 hover:bg-red-950/20 hover:text-red-300 disabled:opacity-40"
                       >
                         {closingPositionId === position.id ? "Closing…" : "Close"}
                       </button>
@@ -206,7 +206,7 @@ export function PortfolioSection({
                           );
                           setRRError(null);
                         }}
-                        className="rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-emerald-800/70 hover:bg-emerald-950/20 hover:text-emerald-300 disabled:opacity-40"
+                        className="shrink-0 whitespace-nowrap rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-emerald-800/70 hover:bg-emerald-950/20 hover:text-emerald-300 disabled:opacity-40"
                       >
                         {updatingRRId === position.id ? "Saving..." : "Edit RR"}
                       </button>
@@ -263,7 +263,7 @@ export function PortfolioSection({
                   </div>
                 )}
 
-                <div className="mt-1.5 font-mono text-[11px] text-zinc-600">
+                <div className="mt-1.5 whitespace-nowrap font-mono text-[11px] text-zinc-600">
                   MFE {(position.maxFavorableR ?? 0) >= 0 ? "+" : ""}
                   {(position.maxFavorableR ?? 0).toFixed(2)}R · MAE{" "}
                   {(position.maxAdverseR ?? 0).toFixed(2)}R · RR{" "}
