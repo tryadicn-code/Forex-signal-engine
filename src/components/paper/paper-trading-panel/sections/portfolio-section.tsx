@@ -72,7 +72,7 @@ export function PortfolioSection({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-3 py-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-3 [&>*]:border-r [&>*]:border-b [&>*]:border-zinc-800/50 [&>*:nth-child(3n)]:border-r-0 [&>*:nth-last-child(-n+3)]:border-b-0">
         {metricInline("Balance", money(account.balance, account.currency))}
         {metricInline("Equity", money(account.equity, account.currency))}
         {metricInline(

@@ -64,7 +64,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             R-based
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-3 pb-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 [&>*]:border-r [&>*]:border-b [&>*]:border-zinc-800/50 [&>*:nth-child(3n)]:border-r-0 [&>*:nth-last-child(-n+3)]:border-b-0">
           {metricInline(
             "E[R]",
             performance.expectancyR === null ? "—" : performance.expectancyR.toFixed(2) + "R"
@@ -109,7 +109,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             {performance.totalTrades} closed
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 px-3 pb-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 [&>*]:border-r [&>*]:border-b [&>*]:border-zinc-800/50 [&>*:nth-child(3n)]:border-r-0 [&>*:nth-last-child(-n+3)]:border-b-0">
           {metricInline("Trades", String(performance.totalTrades))}
           {metricInline("Win rate", pct(performance.winRate))}
           {metricInline("Cur DD", pct(performance.currentDrawdownPercent))}
