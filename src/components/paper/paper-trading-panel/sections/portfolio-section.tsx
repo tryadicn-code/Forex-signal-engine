@@ -13,7 +13,7 @@ import {
 import { money, pct, riskReward } from "../lib/formatters";
 import { InitialBalanceControl } from "../components/initial-balance-control";
 import { InlineDatum } from "../components/inline-datum";
-import { metric } from "../components/metric";
+import { metricInline } from "../components/metric";
 
 export function PortfolioSection({
   paper,
@@ -72,29 +72,29 @@ export function PortfolioSection({
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-1.5 p-2.5 lg:grid-cols-6">
-        {metric("Balance", money(account.balance, account.currency))}
-        {metric("Equity", money(account.equity, account.currency))}
-        {metric(
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 px-3 py-2">
+        {metricInline("Balance", money(account.balance, account.currency))}
+        {metricInline("Equity", money(account.equity, account.currency))}
+        {metricInline(
           "Realized",
           money(account.realizedPnL, account.currency),
           undefined,
           account.realizedPnL > 0 ? "positive" : account.realizedPnL < 0 ? "negative" : "neutral"
         )}
-        {metric(
+        {metricInline(
           "Floating",
           money(account.unrealizedPnL, account.currency),
           undefined,
           account.unrealizedPnL > 0 ? "positive" : account.unrealizedPnL < 0 ? "negative" : "neutral"
         )}
-        {metric(
+        {metricInline(
           "Open risk",
           pct(account.openRiskPercent),
           undefined,
           "neutral",
           "($" + account.openRiskAmount.toFixed(2) + ")"
         )}
-        {metric("Positions", String(account.openPositionCount))}
+        {metricInline("Positions", String(account.openPositionCount))}
       </div>
 
       <div className="border-t border-zinc-800">

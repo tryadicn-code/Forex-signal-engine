@@ -29,3 +29,33 @@ export function metric(
     </div>
   );
 }
+
+/**
+ * Inline variant of metric() for compact flex layouts.
+ * Renders as a single inline-flex span instead of a bordered tile.
+ */
+export function metricInline(
+  label: string,
+  value: string,
+  note?: string,
+  tone: "neutral" | "positive" | "negative" = "neutral",
+  suffix?: string
+): React.ReactNode {
+  const valueClass =
+    tone === "positive"
+      ? "text-emerald-300"
+      : tone === "negative"
+        ? "text-red-300"
+        : "text-zinc-200";
+
+  return (
+    <span className="inline-flex items-baseline gap-1 font-mono text-[11px] tabular-nums">
+      <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+        {label}
+      </span>
+      <span className={"font-semibold " + valueClass}>{value}</span>
+      {suffix && <span className="text-[10px] text-zinc-500">{suffix}</span>}
+      {note && <span className="text-[10px] text-zinc-600">{note}</span>}
+    </span>
+  );
+}

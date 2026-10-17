@@ -23,7 +23,7 @@ import { EquityCurve } from "../components/equity-curve";
 import { RDistribution } from "../components/r-distribution";
 import { TradeFilterChip } from "../components/trade-filter-chip";
 import { CopyTradeButton } from "../components/copy-trade-button";
-import { metric } from "../components/metric";
+import { metricInline } from "../components/metric";
 
 export function JournalSection({ paper }: { paper: PaperDashboardData }) {
   const [tradeFilter, setTradeFilter] = useState<TradeFilterState>(DEFAULT_TRADE_FILTER);
@@ -64,20 +64,20 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             R-based
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-2 px-3 pb-3 sm:grid-cols-6">
-          {metric(
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 px-3 pb-3">
+          {metricInline(
             "E[R]",
             performance.expectancyR === null ? "—" : performance.expectancyR.toFixed(2) + "R"
           )}
-          {metric(
+          {metricInline(
             "Avg R",
             performance.averageR === null ? "—" : performance.averageR.toFixed(2) + "R"
           )}
-          {metric(
+          {metricInline(
             "Med R",
             performance.medianR === null ? "—" : performance.medianR.toFixed(2) + "R"
           )}
-          {metric(
+          {metricInline(
             "Best",
             performance.bestTrade === null
               ? "—"
@@ -85,7 +85,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             undefined,
             pnlTone(performance.bestTrade)
           )}
-          {metric(
+          {metricInline(
             "Worst",
             performance.worstTrade === null
               ? "—"
@@ -93,7 +93,7 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             undefined,
             pnlTone(performance.worstTrade)
           )}
-          {metric(
+          {metricInline(
             "PF",
             performance.profitFactor === null ? "—" : performance.profitFactor.toFixed(2)
           )}
@@ -109,12 +109,12 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             {performance.totalTrades} closed
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-2 px-3 pb-3 sm:grid-cols-6">
-          {metric("Trades", String(performance.totalTrades))}
-          {metric("Win rate", pct(performance.winRate))}
-          {metric("Cur DD", pct(performance.currentDrawdownPercent))}
-          {metric("Max DD", pct(performance.maxDrawdownPercent))}
-          {metric(
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 px-3 pb-3">
+          {metricInline("Trades", String(performance.totalTrades))}
+          {metricInline("Win rate", pct(performance.winRate))}
+          {metricInline("Cur DD", pct(performance.currentDrawdownPercent))}
+          {metricInline("Max DD", pct(performance.maxDrawdownPercent))}
+          {metricInline(
             "Avg hold",
             performance.averageHoldingTimeMs === null
               ? "—"
@@ -124,12 +124,12 @@ export function JournalSection({ paper }: { paper: PaperDashboardData }) {
             const w = performance.consecutiveWins;
             const l = performance.consecutiveLosses;
             if (w > 0) {
-              return metric("Win streak", String(w), undefined, "positive");
+              return metricInline("Win streak", String(w), undefined, "positive");
             }
             if (l > 0) {
-              return metric("Loss streak", String(l), undefined, "negative");
+              return metricInline("Loss streak", String(l), undefined, "negative");
             }
-            return metric("Streak", "—");
+            return metricInline("Streak", "—");
           })()}
         </div>
       </div>
