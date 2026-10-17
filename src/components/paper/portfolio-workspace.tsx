@@ -169,12 +169,9 @@ export function PortfolioWorkspace({
     <div className="mx-auto w-full max-w-[1500px] space-y-3 p-3 sm:p-4 lg:p-5">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
+          <h1 className="text-base font-semibold tracking-tight text-zinc-100">
             Paper portfolio
           </h1>
-          <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
-            Review paper positions, orders, and account balance.
-          </p>
         </div>
         {paper && paper.recentTrades.length > 0 && (
           <button
@@ -205,7 +202,7 @@ export function PortfolioWorkspace({
           aria-selected={activeView === "portfolio"}
           onClick={() => setActiveView("portfolio")}
           className={
-            "border-r border-zinc-800 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors " +
+            "border-r border-zinc-800 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors " +
             (activeView === "portfolio"
               ? "bg-emerald-950/20 text-emerald-300"
               : "text-zinc-600 hover:bg-zinc-900/60 hover:text-zinc-300")
@@ -219,7 +216,7 @@ export function PortfolioWorkspace({
           aria-selected={activeView === "journal"}
           onClick={() => setActiveView("journal")}
           className={
-            "px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors " +
+            "px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors " +
             (activeView === "journal"
               ? "bg-emerald-950/20 text-emerald-300"
               : "text-zinc-600 hover:bg-zinc-900/60 hover:text-zinc-300")

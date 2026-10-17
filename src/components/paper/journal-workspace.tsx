@@ -135,12 +135,9 @@ export function JournalWorkspace({
     <div className="mx-auto w-full max-w-[1500px] space-y-3 p-3 sm:p-4 lg:p-5">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
+          <h1 className="text-base font-semibold tracking-tight text-zinc-100">
             Trading journal
           </h1>
-          <p className="mt-1 text-xs text-zinc-500 sm:text-sm">
-            Review closed paper trades, performance metrics, and the execution audit trail.
-          </p>
         </div>
         {paper && paper.recentTrades.length > 0 && (
           <button
@@ -171,7 +168,7 @@ export function JournalWorkspace({
           role="tab"
           aria-selected={false}
           onClick={() => router.push("/portfolio")}
-          className="border-r border-zinc-800 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-zinc-600 transition-colors hover:bg-zinc-900/60 hover:text-zinc-300"
+          className="border-r border-zinc-800 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-600 transition-colors hover:bg-zinc-900/60 hover:text-zinc-300"
         >
           Portfolio
         </button>
@@ -180,7 +177,7 @@ export function JournalWorkspace({
           role="tab"
           aria-selected={true}
           onClick={() => router.push("/journal")}
-          className="bg-emerald-950/20 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-300 transition-colors"
+          className="bg-emerald-950/20 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-300 transition-colors"
         >
           Journal
         </button>
