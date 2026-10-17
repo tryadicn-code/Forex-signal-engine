@@ -13,7 +13,7 @@ export function RDistribution({ trades }: { trades: PaperTrade[] }) {
   const buckets = rDistribution(trades);
   const maxCount = Math.max(...buckets.map((b) => b.count), 1);
   const width = 300;
-  const height = 80;
+  const height = 60;
   const pad = 6;
   const barGap = 4;
   const barCount = buckets.length;
@@ -30,12 +30,12 @@ export function RDistribution({ trades }: { trades: PaperTrade[] }) {
           {trades.length} trades
         </span>
       </div>
-      <div className="px-3 pb-3">
+      <div className="px-3 pb-2">
         <svg
           viewBox={"0 0 " + width + " " + height}
           role="img"
           aria-label="R-multiple distribution across closed trades"
-          className="h-20 w-full"
+          className="h-16 w-full"
           preserveAspectRatio="none"
         >
           {buckets.map((bucket, i) => {

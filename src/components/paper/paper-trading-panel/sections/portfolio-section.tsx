@@ -191,31 +191,28 @@ export function PortfolioSection({
                         {closingPositionId === position.id ? "Closing…" : "Close"}
                       </button>
                     )}
+                    {onUpdatePositionRR && position.tp1 == null && (
+                      <button
+                        type="button"
+                        disabled={updatingRRId !== null}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setEditingRRPositionId(position.id);
+                          setRRDraft(
+                            Number(
+                              position.plannedRR ??
+                                riskReward(position.entryPrice, position.takeProfit, position.stopLoss)
+                            ).toFixed(2)
+                          );
+                          setRRError(null);
+                        }}
+                        className="rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-emerald-800/70 hover:bg-emerald-950/20 hover:text-emerald-300 disabled:opacity-40"
+                      >
+                        {updatingRRId === position.id ? "Saving..." : "Edit RR"}
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                {onUpdatePositionRR && position.tp1 == null && (
-                  <div className="mt-1.5 flex justify-end">
-                    <button
-                      type="button"
-                      disabled={updatingRRId !== null}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setEditingRRPositionId(position.id);
-                        setRRDraft(
-                          Number(
-                            position.plannedRR ??
-                              riskReward(position.entryPrice, position.takeProfit, position.stopLoss)
-                          ).toFixed(2)
-                        );
-                        setRRError(null);
-                      }}
-                      className="rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-400 hover:border-emerald-800/70 hover:bg-emerald-950/20 hover:text-emerald-300 disabled:opacity-40"
-                    >
-                      {updatingRRId === position.id ? "Saving..." : "Edit RR"}
-                    </button>
-                  </div>
-                )}
 
                 {position.tp1 != null ? (
                   <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] sm:grid-cols-5">
