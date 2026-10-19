@@ -263,17 +263,19 @@ function IdleRow({
           aria-hidden="true"
           className="flex flex-1 gap-[2px]"
         >
-          {Array.from({ length: 10 }).map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-1 flex-1 rounded-sm",
-                isScoreFilled(result.setupScore, i)
-                  ? scoreBarFill(result.setupScore)
-                  : "bg-zinc-800"
-              )}
-            />
-          ))}
+          {result.strategyId === "PRICE_ACTION"
+            ? null
+            : Array.from({ length: 10 }).map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-1 flex-1 rounded-sm",
+                    isScoreFilled(result.setupScore, i)
+                      ? scoreBarFill(result.setupScore)
+                      : "bg-zinc-800"
+                  )}
+                />
+              ))}
         </span>
         <span
           className={cn(
@@ -355,17 +357,19 @@ function AccordionRow({
           aria-hidden="true"
           className="flex flex-1 gap-[2px]"
         >
-          {Array.from({ length: 10 }).map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-1 flex-1 rounded-sm",
-                isScoreFilled(result.setupScore, i)
-                  ? scoreBarFill(result.setupScore)
-                  : "bg-zinc-800"
-              )}
-            />
-          ))}
+          {result.strategyId === "PRICE_ACTION"
+            ? null
+            : Array.from({ length: 10 }).map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-1 flex-1 rounded-sm",
+                    isScoreFilled(result.setupScore, i)
+                      ? scoreBarFill(result.setupScore)
+                      : "bg-zinc-800"
+                  )}
+                />
+              ))}
         </span>
         <span
           className={cn(
