@@ -446,6 +446,7 @@ interface GatesData {
   passed: number;
   total: number;
   pendingText: string;
+  blocked: boolean;
 }
 
 function gatesData(result: SymbolScanResult): GatesData | null {
@@ -461,7 +462,9 @@ function gatesData(result: SymbolScanResult): GatesData | null {
     pending.length > 2
       ? pending.slice(0, 2).join(", ") + " +" + (pending.length - 2)
       : pending.join(", ");
-  return { passed, total, pendingText };
+  const blocked =
+    result.executionDecision === "BLOCKED" || result.signalState === "BLOCKED";
+  return { passed, total, pendingText, blocked };
 }
 
 function GatesBar({ passed, total }: { passed: number; total: number }) {
@@ -702,7 +705,7 @@ export function SignalNarrative({
                 {gates.passed} / {gates.total} gates passed
               </span>
               <span className="text-zinc-600">
-                {" \u00B7 "}pending {gates.pendingText}
+                {" \u00B7 "}{gates.blocked ? "failed " : "pending "}{gates.pendingText}
               </span>
             </div>
           </div>
