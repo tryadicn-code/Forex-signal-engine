@@ -424,16 +424,21 @@ interface RegimeBoxData {
   preferred: string | null;
   active: string | null;
   route: string;
+  forced: boolean;
+  forcedReason: string | null;
 }
 
 function regimeBox(result: SymbolScanResult): RegimeBoxData | null {
   const routing = result.strategyRouting;
   if (!routing) return null;
+  const forced = routing.reasonCode === "FORCED_STRATEGY";
   return {
     regime: routing.regime,
     preferred: routing.preferredStrategyId,
     active: routing.selectedStrategyId ?? result.strategyId ?? null,
     route: routing.mode,
+    forced,
+    forcedReason: forced ? routing.reason : null,
   };
 }
 
@@ -652,9 +657,11 @@ export function SignalNarrative({
                 </strong>
               </span>
               <span className="text-zinc-500">
-                Preferred{" "}
+                {regime.forced ? "Forced" : "Preferred"}{" "}
                 <strong className="font-medium text-zinc-300">
-                  {regime.preferred ?? "WAIT"}
+                  {regime.forced
+                    ? regime.active ?? "—"
+                    : regime.preferred ?? "WAIT"}
                 </strong>
               </span>
               <span className="text-zinc-500">
@@ -665,8 +672,13 @@ export function SignalNarrative({
               </span>
               <span className="text-zinc-500">
                 Route{" "}
-                <strong className="font-medium text-zinc-300">
-                  {regime.route}
+                <strong
+                  className={
+                    "font-medium " +
+                    (regime.forced ? "text-amber-300" : "text-zinc-300")
+                  }
+                >
+                  {regime.forced ? "FORCED_OVERRIDE" : regime.route}
                 </strong>
               </span>
             </div>
