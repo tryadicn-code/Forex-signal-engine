@@ -378,14 +378,20 @@ function activeStageNarrative(
     result.executionDecision === "BLOCKED" || result.signalState === "BLOCKED";
   if (isBlocked) {
     const veto = blockedReason(result);
-    if (veto && base.body.indexOf(veto) === -1) {
-      base = {
-        ...base,
-        stateTone: "blocked",
-        stateDisplay: "BLOCKED",
-        body: "Blocked: " + veto + ". " + base.body,
-      };
+    const reason = veto ?? result.reason ?? null;
+    let body = base.body;
+    if (reason && body.indexOf(reason) === -1) {
+      body = "Blocked: " + reason + ". " + body;
+    } else if (!reason) {
+      body = "Execution gate blocked this setup. " + body;
     }
+    base = {
+      ...base,
+      stateTone: "blocked",
+      stateDisplay: "BLOCKED",
+      body,
+      meta: null,
+    };
   }
   return base;
 }
